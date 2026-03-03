@@ -54,13 +54,28 @@
 - `PHiveCtx` should include seed/provider registry capabilities and support multiple seed IDs.
 - Hook pipeline should support throwing custom action exceptions (e.g., TTL expired).
 - Wrapper JSON should remain flat in model output while preserving backward-compatible input parsing.
+- **Behavior operates at two levels**: var-level (per-field action pipeline) and model-level (`PHiveModelExt` + `PHiveMetaVar`).
+- **`PHiveModelExt`**: a model carries an optional ext that intercepts the full model read/write lifecycle; can overwrite ctx for all child vars.
+- **`PHiveMetaVar`**: a required meta field whose value is resolved/written before any var action runs; enables cross-var metadata propagation (e.g. `created_at` seed that all encrypted vars key off).
+- **Action classes replace closures**: each encryption/TTL/LRU scenario is a named class with four visible lifecycle methods, not anonymous encode/decode closures passed to an adapter constructor.
+- **Nonce strategy is cipher-owned**: `EncryptedVar` and `EncryptedLocalNonceVar` collapse into one type; the cipher decides how nonces are generated and stored.
+- **`PHiveStringCipher` is not a core framework type**: it is an action dependency and lives in `lib/example/`, not `lib/src/`.
+- **`phive_generator` is confirmed necessary** for Phase 2 — generates model adapters, orchestrates full pipeline, auto-assigns type IDs. Deferred until runtime model stabilizes.
+- **Current `PHiveHookRegistry` flat string registry is insufficient** — needs redesign to support model-scoped cross-var coordination.
 
 ## Pending
-- Implement TTL and LRU mixins.
+- Define `PHiveVarAction` base class (replaces encode/decode closure adapter pattern).
+- Define `PHiveModelExt` interface (model-level lifecycle interception).
+- Define `PHiveMetaVar` (required meta key contract + ctx propagation).
+- Redesign `PHiveHookRegistry` for model-scoped pipeline support.
+- Collapse `EncryptedVar` / `EncryptedLocalNonceVar` into single `EncryptedVar`; cipher owns nonce.
+- Restructure `lib/example/encryption.dart` — action class pattern, cipher stays in example.
+- Retire `PHiveEncryptedVarAdapter` closure design — replace with action instance adapter.
+- Implement TTL and LRU as action classes once runtime model is stable.
+- Design `phive_generator` annotation set and generation templates (Phase 2).
 - Align wrappers with generated serializers (`json_serializable` / `freezed`) for value payloads.
 - Add tests validating hook behavior and adapter round-trips.
 - Add reusable CLI command/task templates for running generators in both root and example workspaces.
-- Add focused tests for flat wrapper JSON behavior on model serializers.
 
 ## Known Risks
 - Generic adapter design may become complex for multiple mixin combinations.

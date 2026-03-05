@@ -11,33 +11,30 @@ part of 'user_profile.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$UserProfile {
 
-@HiveField(0) String get id;@HiveField(1) EncryptedVar<String> get email;@HiveField(2) EncryptedLocalNonceVar<String> get token;
+@PHiveField(0) String get id;@PHiveField(1, hooks: [GCMEncrypted()]) String get encryptedToken;@PHiveField(2) String get tempSessionId;
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $UserProfileCopyWith<UserProfile> get copyWith => _$UserProfileCopyWithImpl<UserProfile>(this as UserProfile, _$identity);
 
-  /// Serializes this UserProfile to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.token, token) || other.token == token));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.encryptedToken, encryptedToken) || other.encryptedToken == encryptedToken)&&(identical(other.tempSessionId, tempSessionId) || other.tempSessionId == tempSessionId));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
-int get hashCode => Object.hash(runtimeType,id,email,token);
+int get hashCode => Object.hash(runtimeType,id,encryptedToken,tempSessionId);
 
 @override
 String toString() {
-  return 'UserProfile(id: $id, email: $email, token: $token)';
+  return 'UserProfile(id: $id, encryptedToken: $encryptedToken, tempSessionId: $tempSessionId)';
 }
 
 
@@ -48,7 +45,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
-@HiveField(0) String id,@HiveField(1) EncryptedVar<String> email,@HiveField(2) EncryptedLocalNonceVar<String> token
+@PHiveField(0) String id,@PHiveField(1, hooks: [GCMEncrypted()]) String encryptedToken,@PHiveField(2) String tempSessionId
 });
 
 
@@ -65,12 +62,12 @@ class _$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? token = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? encryptedToken = null,Object? tempSessionId = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as EncryptedVar<String>,token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
-as EncryptedLocalNonceVar<String>,
+as String,encryptedToken: null == encryptedToken ? _self.encryptedToken : encryptedToken // ignore: cast_nullable_to_non_nullable
+as String,tempSessionId: null == tempSessionId ? _self.tempSessionId : tempSessionId // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -155,10 +152,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String id, @HiveField(1)  EncryptedVar<String> email, @HiveField(2)  EncryptedLocalNonceVar<String> token)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2)  String tempSessionId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.id,_that.email,_that.token);case _:
+return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
   return orElse();
 
 }
@@ -176,10 +173,10 @@ return $default(_that.id,_that.email,_that.token);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String id, @HiveField(1)  EncryptedVar<String> email, @HiveField(2)  EncryptedLocalNonceVar<String> token)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2)  String tempSessionId)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
-return $default(_that.id,_that.email,_that.token);case _:
+return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +193,10 @@ return $default(_that.id,_that.email,_that.token);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String id, @HiveField(1)  EncryptedVar<String> email, @HiveField(2)  EncryptedLocalNonceVar<String> token)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2)  String tempSessionId)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.id,_that.email,_that.token);case _:
+return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
   return null;
 
 }
@@ -209,14 +206,14 @@ return $default(_that.id,_that.email,_that.token);case _:
 
 /// @nodoc
 
-@JsonSerializable(explicitToJson: true)
-class _UserProfile implements UserProfile {
-  const _UserProfile({@HiveField(0) required this.id, @HiveField(1) required this.email, @HiveField(2) required this.token});
-  factory _UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 
-@override@HiveField(0) final  String id;
-@override@HiveField(1) final  EncryptedVar<String> email;
-@override@HiveField(2) final  EncryptedLocalNonceVar<String> token;
+class _UserProfile implements UserProfile {
+  const _UserProfile({@PHiveField(0) required this.id, @PHiveField(1, hooks: [GCMEncrypted()]) required this.encryptedToken, @PHiveField(2) required this.tempSessionId});
+  
+
+@override@PHiveField(0) final  String id;
+@override@PHiveField(1, hooks: [GCMEncrypted()]) final  String encryptedToken;
+@override@PHiveField(2) final  String tempSessionId;
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -224,23 +221,20 @@ class _UserProfile implements UserProfile {
 @pragma('vm:prefer-inline')
 _$UserProfileCopyWith<_UserProfile> get copyWith => __$UserProfileCopyWithImpl<_UserProfile>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$UserProfileToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.token, token) || other.token == token));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.encryptedToken, encryptedToken) || other.encryptedToken == encryptedToken)&&(identical(other.tempSessionId, tempSessionId) || other.tempSessionId == tempSessionId));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
-int get hashCode => Object.hash(runtimeType,id,email,token);
+int get hashCode => Object.hash(runtimeType,id,encryptedToken,tempSessionId);
 
 @override
 String toString() {
-  return 'UserProfile(id: $id, email: $email, token: $token)';
+  return 'UserProfile(id: $id, encryptedToken: $encryptedToken, tempSessionId: $tempSessionId)';
 }
 
 
@@ -251,7 +245,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@HiveField(0) String id,@HiveField(1) EncryptedVar<String> email,@HiveField(2) EncryptedLocalNonceVar<String> token
+@PHiveField(0) String id,@PHiveField(1, hooks: [GCMEncrypted()]) String encryptedToken,@PHiveField(2) String tempSessionId
 });
 
 
@@ -268,12 +262,12 @@ class __$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? token = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? encryptedToken = null,Object? tempSessionId = null,}) {
   return _then(_UserProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
-as EncryptedVar<String>,token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
-as EncryptedLocalNonceVar<String>,
+as String,encryptedToken: null == encryptedToken ? _self.encryptedToken : encryptedToken // ignore: cast_nullable_to_non_nullable
+as String,tempSessionId: null == tempSessionId ? _self.tempSessionId : tempSessionId // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

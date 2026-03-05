@@ -1,0 +1,24 @@
+name: phive_test
+description: "Test environment package"
+version: 0.0.1
+
+environment:
+  sdk: ^3.11.0
+  flutter: "^3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  hive_ce: ^2.19.3
+  hive_ce_flutter: ^2.0.2
+  phive:
+    path: ../phive
+  phive_barrel:
+    path: ../phive_barrel
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.14
+  phive_generator:
+    path: ../phive_generator

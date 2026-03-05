@@ -1,22 +1,24 @@
 # Product Context
 
 ## Why this exists
-Hive CE is easy to model with, but custom runtime behaviors (like value TTL expiration, LRU touch/update policy, usage hooks) are usually ad-hoc and spread across app code. `phive` centralizes this into composable wrapper types.
+Standard Hive CE provides great storage speed but lacks built-in primitives for field-level/model-level interception (hooks like encryption, LRU, validation, TTL). A previous iteration used a wrapper-class approach (`PHiveVar<T>`) but failed at separating domain concerns from persistence code. 
 
-## Who it helps
-- Flutter developers using Hive CE.
-- Teams that want predictable caching/retention logic in domain models.
-- Projects needing reusable data behavior policies without abandoning Hive’s typed adapters.
+## The Shift
+By shifting entirely to a generator-centric design:
+- Domain models remain completely decoupled ("Plain Old Dart Objects" or Freezed models).
+- The behavior is defined via static annotations array `hooks: [GCMEncrypted.instance]`.
+- The generator creates a subclass of `PTypeAdapter` acting identically to a generic Hive TypeAdapter but seamlessly interleaves context propagation and hook execution internally.
 
-## User Experience Target
-Users should write models close to standard Hive CE style and optionally replace raw field types with behavior-aware wrapper types. Example direction:
-- Wrapper class over `PHiveVar<T>`
-- Behavior mixins (`TTL`, `LRU`, etc.)
-- TypeAdapter implementation that preserves both value and behavior metadata
-- Runtime usage should remain natural: store model via `box.put`, restore via `box.get`, and access plain wrapped value through `.value`.
-
-## Value Proposition
-- Consistent behavior enforcement at persistence boundaries.
-- Better maintainability via reusable mixin policies.
-- No major departure from Hive CE mental model.
-- Reduced boilerplate for consumers by avoiding manual encryption payload handling in app-level code.
+## Target Experience
+Users define normal class properties:
+```dart
+@freezed
+@PHiveType(typeId: 1)
+abstract class Note with _$Note {
+  const factory Note({
+    @PHiveField(0) required String id,
+    @PHiveField(1, hooks: [GCMEncrypted.instance]) required String blob,
+  }) = _Note;
+}
+```
+All metadata creation, storage formatting, and field transformation is handled inside the auto-generated `PTypeAdapter` behind the scenes.

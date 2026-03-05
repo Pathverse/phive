@@ -3,62 +3,74 @@
 part of 'user_profile.dart';
 
 // **************************************************************************
-// TypeAdapterGenerator
+// PhiveGenerator
 // **************************************************************************
 
-class UserProfileAdapter extends TypeAdapter<UserProfile> {
+// ignore_for_file: non_constant_identifier_names
+
+class UserProfileAdapter extends PTypeAdapter<UserProfile> {
   @override
-  final typeId = 1;
+  final int typeId = 2;
 
   @override
   UserProfile read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
-    final fields = <int, dynamic>{
-      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
-    };
+    // id (index 0)
+    final raw_id = reader.read();
+    final ctx_id = extractPayload(raw_id);
+    runPostRead(const [TTL(10)], ctx_id);
+    final res_id = ctx_id.value as String;
+    // encryptedToken (index 1)
+    final raw_encryptedToken = reader.read();
+    final ctx_encryptedToken = extractPayload(raw_encryptedToken);
+    runPostRead(const [
+      ...[TTL(10)],
+      ...[GCMEncrypted()],
+    ], ctx_encryptedToken);
+    final res_encryptedToken = ctx_encryptedToken.value as String;
+    // tempSessionId (index 2)
+    final raw_tempSessionId = reader.read();
+    final ctx_tempSessionId = extractPayload(raw_tempSessionId);
+    runPostRead(const [TTL(10)], ctx_tempSessionId);
+    final res_tempSessionId = ctx_tempSessionId.value as String;
     return UserProfile(
-      id: fields[0] as String,
-      email: fields[1] as EncryptedVar<String>,
-      token: fields[2] as EncryptedLocalNonceVar<String>,
+      id: res_id,
+      encryptedToken: res_encryptedToken,
+      tempSessionId: res_tempSessionId,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserProfile obj) {
-    writer
-      ..writeByte(3)
-      ..writeByte(0)
-      ..write(obj.id)
-      ..writeByte(1)
-      ..write(obj.email)
-      ..writeByte(2)
-      ..write(obj.token);
+    // id (index 0)
+    final ctx_id = PHiveCtx()..value = obj.id;
+    runPreWrite(const [TTL(10)], ctx_id);
+    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
+    runPostWrite(const [TTL(10)], ctx_id);
+    // encryptedToken (index 1)
+    final ctx_encryptedToken = PHiveCtx()..value = obj.encryptedToken;
+    runPreWrite(const [
+      ...[TTL(10)],
+      ...[GCMEncrypted()],
+    ], ctx_encryptedToken);
+    writer.write(
+      serializePayload(
+        ctx_encryptedToken.value,
+        ctx_encryptedToken.pendingMetadata,
+      ),
+    );
+    runPostWrite(const [
+      ...[TTL(10)],
+      ...[GCMEncrypted()],
+    ], ctx_encryptedToken);
+    // tempSessionId (index 2)
+    final ctx_tempSessionId = PHiveCtx()..value = obj.tempSessionId;
+    runPreWrite(const [TTL(10)], ctx_tempSessionId);
+    writer.write(
+      serializePayload(
+        ctx_tempSessionId.value,
+        ctx_tempSessionId.pendingMetadata,
+      ),
+    );
+    runPostWrite(const [TTL(10)], ctx_tempSessionId);
   }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is UserProfileAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
 }
-
-// **************************************************************************
-// JsonSerializableGenerator
-// **************************************************************************
-
-_UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
-  id: json['id'] as String,
-  email: EncryptedVar<String>.fromJson(json['email']),
-  token: EncryptedLocalNonceVar<String>.fromJson(json['token']),
-);
-
-Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'email': instance.email.toJson(),
-      'token': instance.token.toJson(),
-    };

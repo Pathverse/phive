@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      phive_generator|phive:
+        enabled: true
+        generate_for:
+          - lib/models/*.dart

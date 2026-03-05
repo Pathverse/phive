@@ -1,8 +1,7 @@
-name: phive_example
-description: Example project for PHive encrypted variables + code generation.
+name: example
+description: "A new Flutter project."
 publish_to: 'none'
-
-version: 0.0.1
+version: 0.1.0+1
 
 environment:
   sdk: ^3.11.0
@@ -10,21 +9,22 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  phive:
-    path: ../
+  freezed_annotation: ^3.1.0
   hive_ce: ^2.19.3
   hive_ce_flutter: ^2.3.4
-  freezed_annotation: ^3.1.0
-  json_annotation: ^4.11.0
+  phive:
+    path: ../phive
+  phive_barrel:
+    path: ../phive_barrel
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  build_runner: ^2.7.1
-  freezed: ^3.2.3
-  hive_ce_generator: ^1.11.1
-  json_serializable: ^6.11.1
+  build_runner: ^2.4.14
+  phive_generator:
+    path: ../phive_generator
+  freezed: ^3.2.5
 
 flutter:
   uses-material-design: true

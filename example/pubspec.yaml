@@ -1,7 +1,8 @@
 name: example
-description: "A new Flutter project."
+description: "Flutter demo app for PHive cache save/restore with hook behavior."
 publish_to: 'none'
 version: 0.1.0+1
+homepage: https://github.com/Pathverse/phive
 
 environment:
   sdk: ^3.11.0

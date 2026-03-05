@@ -1,39 +1,35 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# phive_test
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+Internal test package for PHive integration scenarios.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+This package is mainly for contributors who want to validate generated adapters
+and runtime hooks in one place.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## What this package is for
 
-## Features
+- Integration-style validation of generator output
+- Hook pipeline behavior checks (TTL/encryption/etc.)
+- Regression tests while developing `phive` and `phive_generator`
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+## Install dependencies
 
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```bash
+flutter pub get
 ```
 
-## Additional information
+## Run tests
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```bash
+flutter test
+```
+
+## Regenerate fixtures
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+## Quick Note
+
+If you only want to **use PHive in your app**, you usually do not need this package.
+Use `phive`, `phive_generator`, and optionally `phive_barrel`.

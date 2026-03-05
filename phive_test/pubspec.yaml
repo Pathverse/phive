@@ -1,6 +1,7 @@
 name: phive_test
-description: "Test environment package"
+description: "Integration test package for validating PHive generator and runtime behavior."
 version: 0.0.1
+homepage: https://github.com/Pathverse/phive
 
 environment:
   sdk: ^3.11.0

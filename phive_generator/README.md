@@ -1,39 +1,63 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# phive_generator
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+Code generator for PHive model adapters.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+Use this package with `build_runner` to generate `*.g.dart` adapter code from
+`@PHiveType` and `@PHiveField` annotations.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## Install
 
-## Features
-
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```yaml
+dev_dependencies:
+	build_runner: ^2.4.14
+	phive_generator: ^0.0.1
 ```
 
-## Additional information
+If you are in this monorepo:
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```yaml
+dev_dependencies:
+	phive_generator:
+		path: ../phive_generator
+```
+
+## Minimal setup
+
+Your model package should also depend on:
+
+```yaml
+dependencies:
+	phive: ^0.0.1
+	hive_ce: ^2.19.3
+```
+
+## Generate files
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+For watch mode:
+
+```bash
+dart run build_runner watch --delete-conflicting-outputs
+```
+
+## Example model
+
+```dart
+@PHiveType(1)
+class Session {
+	@PHiveField(0)
+	final String id;
+
+	const Session(this.id);
+}
+```
+
+Generated output includes a `SessionAdapter` with hook pipeline calls for read/write.
+
+## Notes
+
+- Model-level hooks (`@PHiveType(... hooks: [...])`) are merged with field-level hooks.
+- Keep generated files committed if your workflow requires reproducible builds.

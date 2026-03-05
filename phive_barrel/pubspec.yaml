@@ -1,7 +1,7 @@
 name: phive_barrel
-description: "Concrete Hook implementations for PHive CE generator."
+description: "Ready-to-use PHive hooks including TTL and encryption helpers."
 version: 0.0.1
-homepage:
+homepage: https://github.com/Pathverse/phive
 
 environment:
   sdk: ^3.11.0
@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_secure_storage: ^9.2.2
-  pointycastle: ^3.9.1
+  flutter_secure_storage: ^10.0.0
+  pointycastle: ^4.0.0
   phive:
     path: ../phive
 

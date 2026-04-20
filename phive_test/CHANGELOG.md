@@ -1,3 +1,6 @@
 ## 0.0.1
 
-* TODO: Describe initial release.
+- Initial integration test package release.
+- Added generated adapter and hook regression coverage.
+- Added router behavior coverage for containership and expiry flows.
+- Added fixture coverage for macro and model generation scenarios.

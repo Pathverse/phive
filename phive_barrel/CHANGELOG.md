@@ -1,3 +1,6 @@
-## 0.0.1
+## 0.1.0
 
-* TODO: Describe initial release.
+- Initial hook bundle release for PHive.
+- Added TTL, AES, GCM, and universal encryption hooks.
+- Added behavior-driven TTL expiry cleanup.
+- Added secure storage seed-provider support for encryption hooks.

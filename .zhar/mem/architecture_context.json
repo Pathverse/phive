@@ -66,5 +66,39 @@
       "agent": "zhar-agent"
     },
     "custom": {}
+  },
+  "7c2ae": {
+    "id": "7c2ae",
+    "group": "architecture_context",
+    "node_type": "design_pattern",
+    "summary": "Generated router descriptor pattern",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/router/router.dart",
+    "content": "Router registration now has a first-class descriptor seam separate from field hooks and outcome policy. PHivePrimaryKey and PHiveRef declare router topology on models, while the generator emits *RouterDescriptor classes that call register<T>() and createRef<T, P>(). This keeps annotations declarative, keeps router registration explicit, and leaves hook processing and result policy as separate layers.",
+    "created_at": "2026-04-20T21:18:27Z",
+    "updated_at": "2026-04-20T21:18:27Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
+  },
+  "7ed02": {
+    "id": "7ed02",
+    "group": "architecture_context",
+    "node_type": "design_pattern",
+    "summary": "Composable hook exception behaviors",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/exception.dart",
+    "content": "Hook-driven read failures now carry composable PHiveActionBehavior values on PHiveActionException instead of relying on router registration policy. Hooks detect conditions like TTL expiry and declare behaviors such as deleteEntry and returnNull, while routers execute those storage side effects with backend-specific context. The dynamic router now uses LazyBox for primary storage so per-key reads can catch and apply behaviors instead of failing during eager box open.",
+    "created_at": "2026-04-20T22:10:22Z",
+    "updated_at": "2026-04-20T22:10:22Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
   }
 }

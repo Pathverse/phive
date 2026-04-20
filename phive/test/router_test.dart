@@ -25,6 +25,18 @@ class TestDeck {
   TestDeck({required this.deckId, required this.lessonId});
 }
 
+/// Test model whose adapter always throws during reads.
+class ExpiringEntry {
+  /// Stable key used by router policy tests.
+  final String entryId;
+
+  /// Opaque payload written before the adapter throws on read.
+  final String value;
+
+  /// Creates one policy-test entry.
+  ExpiringEntry({required this.entryId, required this.value});
+}
+
 class TestLessonAdapter extends TypeAdapter<TestLesson> {
   @override
   final int typeId = 50;
@@ -78,6 +90,31 @@ class TestDeckAdapter extends TypeAdapter<TestDeck> {
   }
 }
 
+/// Adapter that simulates a hook-driven read failure for policy tests.
+class ExpiringEntryAdapter extends TypeAdapter<ExpiringEntry> {
+  @override
+  final int typeId = 53;
+
+  @override
+  ExpiringEntry read(BinaryReader reader) {
+    final entryId = reader.read() as String;
+    final value = reader.read() as String;
+    throw PHiveActionException(
+      'Expired entry: $entryId / $value',
+      behaviors: {
+        PHiveActionBehavior.deleteEntry,
+        PHiveActionBehavior.returnNull,
+      },
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ExpiringEntry obj) {
+    writer.write(obj.entryId);
+    writer.write(obj.value);
+  }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 PHiveDynamicRouter _baseRouter() {
@@ -108,6 +145,7 @@ void main() {
     Hive.registerAdapter(TestLessonAdapter());
     Hive.registerAdapter(TestCardAdapter());
     Hive.registerAdapter(TestDeckAdapter());
+    Hive.registerAdapter(ExpiringEntryAdapter());
   });
 
   setUp(() async {
@@ -201,6 +239,29 @@ void main() {
     test('delete throws StateError for unregistered type', () async {
       final router = PHiveDynamicRouter();
       expect(() => router.delete<TestLesson>('L001'), throwsStateError);
+    });
+
+    test('composed exception behaviors remove expired dynamic entries', () async {
+      final writerRouter = PHiveDynamicRouter();
+      writerRouter.register<ExpiringEntry>(
+        primaryKey: (entry) => entry.entryId,
+        boxName: 'expiring_entries',
+      );
+
+      await writerRouter.store(ExpiringEntry(entryId: 'E001', value: 'payload'));
+      await Hive.close();
+      Hive.init(tempDir.path);
+
+      final readerRouter = PHiveDynamicRouter();
+      readerRouter.register<ExpiringEntry>(
+        primaryKey: (entry) => entry.entryId,
+        boxName: 'expiring_entries',
+      );
+
+      expect(await readerRouter.get<ExpiringEntry>('E001'), isNull);
+
+      final box = await Hive.openLazyBox<ExpiringEntry>('expiring_entries');
+      expect(box.containsKey('E001'), isFalse);
     });
   });
 
@@ -483,6 +544,29 @@ void main() {
       await router.delete<TestLesson>('L001');
 
       expect(await router.get<TestLesson>('L001'), isNull);
+    });
+
+    test('composed exception behaviors remove expired static entries', () async {
+      final router = PHiveStaticRouter(
+        collectionName: 'test_static_policy',
+        path: tempDir.path,
+      )..register<ExpiringEntry>(
+          primaryKey: (entry) => entry.entryId,
+          boxName: 'expiring_entries',
+        );
+      await router.ensureOpen();
+
+      await router.store(ExpiringEntry(entryId: 'E001', value: 'payload'));
+
+      expect(await router.get<ExpiringEntry>('E001'), isNull);
+
+      final collection = await BoxCollection.open(
+        'test_static_policy',
+        {'expiring_entries'},
+        path: tempDir.path,
+      );
+      final box = await collection.openBox<String>('expiring_entries');
+      expect(await box.get('E001'), isNull);
     });
 
     // ── Ref system ───────────────────────────────────────────────────────────

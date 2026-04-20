@@ -11,6 +11,7 @@ class DemoLesson {
 
   /// Primary key used by the example router.
   @PHiveField(0)
+  @PHivePrimaryKey(boxName: 'demo_lessons')
   final String lessonId;
 
   /// Human-readable lesson title displayed in the UI.

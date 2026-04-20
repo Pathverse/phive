@@ -162,7 +162,7 @@ class _PhiveExampleHomePageState extends State<PhiveExampleHomePage> {
             'Restore #${_restoreCount + 1} at ${_timeLabel(restoredAt)} returned empty (expired or missing).';
       }
     } on PHiveActionException catch (error) {
-      debugPrint('[PHiveRouter][GET] ${error.message} codes=${error.codes}');
+      debugPrint('[PHiveRouter][GET] ${error.message}');
       statusMsg =
           'Restore #${_restoreCount + 1} failed at ${_timeLabel(restoredAt)}: ${error.message}';
     } catch (error) {

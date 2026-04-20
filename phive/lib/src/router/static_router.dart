@@ -7,6 +7,8 @@ import 'package:hive_ce/hive.dart';
 import 'package:hive_ce/src/binary/binary_reader_impl.dart';
 import 'package:hive_ce/src/binary/binary_writer_impl.dart';
 
+import '../exception.dart';
+import '../policy.dart';
 import 'router.dart';
 
 /// A [PHiveRouter] implementation backed by Hive CE's [BoxCollection] API.
@@ -155,6 +157,35 @@ class PHiveStaticRouter implements PHiveRouter {
     return decoded.cast<String>();
   }
 
+  /// Applies one hook-driven read exception to the current static box state.
+  Future<T?> _handleReadException<T>(
+    CollectionBox<String> box,
+    String key,
+    PHiveActionException error,
+  ) async {
+    if (error.behaviors.contains(PHiveActionBehavior.clearBox)) {
+      await box.clear();
+    }
+    if (error.behaviors.contains(PHiveActionBehavior.deleteEntry)) {
+      await box.delete(key);
+    }
+    if (error.behaviors.contains(PHiveActionBehavior.returnNull)) {
+      return null;
+    }
+    throw error;
+  }
+
+  /// Reads one primary value and applies composable exception behaviors.
+  Future<T?> _readPrimaryValue<T>(PHiveTypeRegistration reg, String key) async {
+    final box = await _getBox(reg.boxName);
+    try {
+      final raw = await box.get(key);
+      return _decodeValue<T>(raw);
+    } on PHiveActionException catch (error) {
+      return _handleReadException(box, key, error);
+    }
+  }
+
   // ── PHiveRouter implementation ────────────────────────────────────────────
 
   /// Opens the [BoxCollection] with all registered box names.
@@ -204,9 +235,7 @@ class PHiveStaticRouter implements PHiveRouter {
   @override
   Future<T?> get<T>(String key) async {
     final reg = _requireRegistration<T>();
-    final box = await _getBox(reg.boxName);
-    final raw = await box.get(key);
-    return _decodeValue<T>(raw);
+    return _readPrimaryValue<T>(reg, key);
   }
 
   @override
@@ -242,11 +271,10 @@ class PHiveStaticRouter implements PHiveRouter {
     if (keys.isEmpty) return [];
 
     final reg = _requireRegistration<T>();
-    final box = await _getBox(reg.boxName);
 
     final results = <T>[];
     for (final key in keys) {
-      final item = _decodeValue<T>(await box.get(key));
+      final item = await _readPrimaryValue<T>(reg, key);
       if (item != null) results.add(item);
     }
     return results;

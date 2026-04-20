@@ -18,5 +18,25 @@
       "rel_type": "implemented_by"
     },
     "custom": {}
+  },
+  "81ceb": {
+    "id": "81ceb",
+    "group": "links",
+    "node_type": "node_link",
+    "summary": "Behavior model depends on lazy dynamic reads",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": null,
+    "created_at": "2026-04-20T22:12:09Z",
+    "updated_at": "2026-04-20T22:12:09Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "from_id": "7ed02",
+      "to_id": "7f8a9",
+      "rel_type": "depends_on"
+    },
+    "custom": {}
   }
 }

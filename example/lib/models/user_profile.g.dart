@@ -65,3 +65,17 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
     runPostWrite(const [TTL(10)], ctx_tempSessionId);
   }
 }
+
+/// Generated router descriptor for UserProfile registration and refs.
+class UserProfileRouterDescriptor implements PHiveRouterDescriptor {
+  /// Creates a generated descriptor for UserProfile.
+  const UserProfileRouterDescriptor();
+
+  @override
+  void apply(PHiveRouter router) {
+    router.register<UserProfile>(
+      primaryKey: (item) => item.storageKey,
+      boxName: 'user_sessions',
+    );
+  }
+}

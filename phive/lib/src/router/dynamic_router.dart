@@ -1,12 +1,15 @@
 import 'package:hive_ce/hive.dart';
 
+import '../exception.dart';
+import '../policy.dart';
 import 'router.dart';
 
 /// A [PHiveRouter] implementation where types and refs are registered at runtime.
 ///
-/// Each registered type gets its own [Box<T>]. Ref stores use a shared
-/// [Box<dynamic>] per relationship, storing [List<String>] values keyed by
-/// the parent's primary key.
+/// Each registered type gets its own [LazyBox<T>] so values deserialize on
+/// keyed reads instead of box open. Ref stores use a shared [Box<dynamic>] per
+/// relationship, storing [List<String>] values keyed by the parent's primary
+/// key.
 ///
 /// Better for use-cases where the full type set is not known at compile time
 /// (e.g., feature-flagged models, plugin architectures).
@@ -31,7 +34,7 @@ class PHiveDynamicRouter implements PHiveRouter {
     _types[T] = PHiveTypeRegistration(
       primaryKey: (dynamic item) => primaryKey(item as T),
       boxName: resolvedBoxName,
-      openBox: () => Hive.openBox<T>(resolvedBoxName),
+      openBox: () => Hive.openLazyBox<T>(resolvedBoxName),
     );
   }
 
@@ -64,11 +67,11 @@ class PHiveDynamicRouter implements PHiveRouter {
     return reg;
   }
 
-  /// Opens a typed primary box and caches the live instance by box name.
-  Future<Box<T>> _openBox<T>(String boxName) async {
+  /// Opens a typed lazy primary box and caches the live instance by box name.
+  Future<LazyBox<T>> _openBox<T>(String boxName) async {
     final cached = _boxCache[boxName];
-    if (cached != null && cached.isOpen) return cached as Box<T>;
-    final box = await Hive.openBox<T>(boxName);
+    if (cached != null && cached.isOpen) return cached as LazyBox<T>;
+    final box = await Hive.openLazyBox<T>(boxName);
     _boxCache[boxName] = box;
     return box;
   }
@@ -101,6 +104,34 @@ class PHiveDynamicRouter implements PHiveRouter {
     return List<String>.from(raw as List);
   }
 
+  /// Applies one hook-driven read exception to the current dynamic box state.
+  Future<T?> _handleReadException<T>(
+    LazyBox<T> box,
+    String key,
+    PHiveActionException error,
+  ) async {
+    if (error.behaviors.contains(PHiveActionBehavior.clearBox)) {
+      await box.clear();
+    }
+    if (error.behaviors.contains(PHiveActionBehavior.deleteEntry)) {
+      await box.delete(key);
+    }
+    if (error.behaviors.contains(PHiveActionBehavior.returnNull)) {
+      return null;
+    }
+    throw error;
+  }
+
+  /// Reads one primary value and applies composable exception behaviors.
+  Future<T?> _readPrimaryValue<T>(PHiveTypeRegistration reg, String key) async {
+    final box = await _openBox<T>(reg.boxName);
+    try {
+      return await box.get(key);
+    } on PHiveActionException catch (error) {
+      return _handleReadException(box, key, error);
+    }
+  }
+
   // ── PHiveRouter implementation ─────────────────────────────────────────────
 
   @override
@@ -127,8 +158,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   /// Retrieves one item by key from its registered primary box.
   Future<T?> get<T>(String key) async {
     final reg = _requireRegistration<T>();
-    final box = await _openBox<T>(reg.boxName);
-    return box.get(key);
+    return _readPrimaryValue<T>(reg, key);
   }
 
   @override
@@ -169,11 +199,10 @@ class PHiveDynamicRouter implements PHiveRouter {
     if (keys.isEmpty) return [];
 
     final reg = _requireRegistration<T>();
-    final box = await _openBox<T>(reg.boxName);
 
     final results = <T>[];
     for (final key in keys) {
-      final item = box.get(key);
+      final item = await _readPrimaryValue<T>(reg, key);
       if (item != null) results.add(item);
     }
     return results;

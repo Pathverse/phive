@@ -31,6 +31,27 @@ class PHiveField {
   const PHiveField(this.index, {this.hooks});
 }
 
+/// Marks the field that should back generated router registration for a model.
+class PHivePrimaryKey {
+  /// Optional box name override used by generated router descriptors.
+  final String? boxName;
+
+  /// Creates a primary-key annotation for generated router descriptors.
+  const PHivePrimaryKey({this.boxName});
+}
+
+/// Declares a parent-key field that should register a router containership ref.
+class PHiveRef {
+  /// Parent model type used to build `createRef<Child, Parent>()` calls.
+  final Type parentType;
+
+  /// Optional ref-box name override used by generated router descriptors.
+  final String? refBoxName;
+
+  /// Creates a ref annotation for generator-driven router descriptors.
+  const PHiveRef(this.parentType, {this.refBoxName});
+}
+
 /// Wraps supplemental metadata values that travel alongside payload state.
 class PhiveMetaVar<T> {
   /// Optional metadata payload stored for the variable scope.

@@ -25,6 +25,10 @@ class Settings {
     required this.config,
   });
 
+  /// Constant storage key used by the generated example router descriptor.
+  @PHivePrimaryKey(boxName: 'app_config')
+  String get storageKey => 'current_config';
+
   @override
   String toString() {
     return 'Settings(username: $username, secretKey: $secretKey, cachedToken: $cachedToken, config: $config)';

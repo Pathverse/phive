@@ -2,6 +2,8 @@ import 'package:hive_ce/hive.dart';
 import 'package:phive/phive.dart';
 import 'package:phive_barrel/phive_barrel.dart';
 
+import 'demo_lesson.dart';
+
 part 'demo_lesson_card.g.dart';
 
 /// Demo child record used to showcase router containership and cascade flows.
@@ -17,10 +19,12 @@ class DemoLessonCard {
 
   /// Primary key used by the example router.
   @PHiveField(0, hooks: [GCMEncrypted()])
+  @PHivePrimaryKey(boxName: 'demo_lesson_cards')
   final String cardId;
 
   /// Parent lesson key used by the ref registration.
   @PHiveField(1)
+  @PHiveRef(DemoLesson, refBoxName: 'demo_lesson_cards_by_lesson')
   final String lessonId;
 
   /// Prompt shown in the router relations UI.

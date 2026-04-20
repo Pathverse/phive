@@ -8,36 +8,29 @@ import 'models/demo_lesson_card.dart';
 import 'models/settings.dart';
 import 'models/user_profile.dart';
 
-// ── Router setup ─────────────────────────────────────────────────────────────
-//
-// Both types are singleton-per-box (one Settings, one UserProfile at a time),
-// so the primary key is a fixed constant string.
-//
-// Box names match the old PHiveConsumer box names for storage compatibility.
+/// Builds the dynamic router used by the hook-focused example section.
+PHiveDynamicRouter _buildDynamicRouter() {
+  final router = PHiveDynamicRouter();
+  router.applyDescriptors(const [
+    SettingsRouterDescriptor(),
+    UserProfileRouterDescriptor(),
+  ]);
+  return router;
+}
 
-final _dynamicRouter = PHiveDynamicRouter()
-  ..register<Settings>(
-    primaryKey: (_) => 'current_config',
-    boxName: 'app_config',
-  )
-  ..register<UserProfile>(
-    primaryKey: (_) => 'active_user',
-    boxName: 'user_sessions',
-  );
+/// Builds the static router used by the relations-focused example section.
+PHiveStaticRouter _buildStaticRouter() {
+  final router = PHiveStaticRouter(collectionName: 'phive_example_relations');
+  router.applyDescriptors(const [
+    DemoLessonRouterDescriptor(),
+    DemoLessonCardRouterDescriptor(),
+  ]);
+  return router;
+}
 
-final _staticRouter = PHiveStaticRouter(collectionName: 'phive_example_relations')
-  ..register<DemoLesson>(
-    primaryKey: (lesson) => lesson.lessonId,
-    boxName: 'demo_lessons',
-  )
-  ..register<DemoLessonCard>(
-    primaryKey: (card) => card.cardId,
-    boxName: 'demo_lesson_cards',
-  )
-  ..createRef<DemoLessonCard, DemoLesson>(
-    resolve: (card) => card.lessonId,
-    refBoxName: 'demo_lesson_cards_by_lesson',
-  );
+final _dynamicRouter = _buildDynamicRouter();
+
+final _staticRouter = _buildStaticRouter();
 
 /// Boots the example application and registers all runtime dependencies.
 void main() async {

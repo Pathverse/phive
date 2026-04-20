@@ -207,8 +207,8 @@ return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
 /// @nodoc
 
 
-class _UserProfile implements UserProfile {
-  const _UserProfile({@PHiveField(0) required this.id, @PHiveField(1, hooks: [GCMEncrypted()]) required this.encryptedToken, @PHiveField(2, hooks: [TTL(10)]) required this.tempSessionId});
+class _UserProfile extends UserProfile {
+  const _UserProfile({@PHiveField(0) required this.id, @PHiveField(1, hooks: [GCMEncrypted()]) required this.encryptedToken, @PHiveField(2, hooks: [TTL(10)]) required this.tempSessionId}): super._();
   
 
 @override@PHiveField(0) final  String id;

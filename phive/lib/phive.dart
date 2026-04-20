@@ -4,6 +4,7 @@ library;
 export 'src/annotations.dart';
 export 'src/core.dart';
 export 'src/exception.dart';
+export 'src/policy.dart';
 
 // ── Router layer ──────────────────────────────────────────────────────────────
 export 'src/router/router.dart';

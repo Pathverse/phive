@@ -43,3 +43,17 @@ class DemoLessonAdapter extends PTypeAdapter<DemoLesson> {
     runPostWrite(const [], ctx_title);
   }
 }
+
+/// Generated router descriptor for DemoLesson registration and refs.
+class DemoLessonRouterDescriptor implements PHiveRouterDescriptor {
+  /// Creates a generated descriptor for DemoLesson.
+  const DemoLessonRouterDescriptor();
+
+  @override
+  void apply(PHiveRouter router) {
+    router.register<DemoLesson>(
+      primaryKey: (item) => item.lessonId,
+      boxName: 'demo_lessons',
+    );
+  }
+}

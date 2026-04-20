@@ -149,3 +149,131 @@ class HybridAutoFieldModel {
 
   HybridAutoFieldModel(this.id, this.token);
 }
+
+@ShouldGenerate('''
+// ignore_for_file: non_constant_identifier_names
+
+class RouterModelAdapter extends PTypeAdapter<RouterModel> {
+  @override
+  final int typeId = 4;
+
+  @override
+  RouterModel read(BinaryReader reader) {
+    // id (index 0)
+    final raw_id = reader.read();
+    final ctx_id = extractPayload(raw_id);
+    runPostRead(const [], ctx_id);
+    final res_id = ctx_id.value as String;
+    // lessonId (index 1)
+    final raw_lessonId = reader.read();
+    final ctx_lessonId = extractPayload(raw_lessonId);
+    runPostRead(const [], ctx_lessonId);
+    final res_lessonId = ctx_lessonId.value as String;
+    return RouterModel(res_id, res_lessonId);
+  }
+
+  @override
+  void write(BinaryWriter writer, RouterModel obj) {
+    // id (index 0)
+    final ctx_id = PHiveCtx()..value = obj.id;
+    runPreWrite(const [], ctx_id);
+    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
+    runPostWrite(const [], ctx_id);
+    // lessonId (index 1)
+    final ctx_lessonId = PHiveCtx()..value = obj.lessonId;
+    runPreWrite(const [], ctx_lessonId);
+    writer.write(
+      serializePayload(ctx_lessonId.value, ctx_lessonId.pendingMetadata),
+    );
+    runPostWrite(const [], ctx_lessonId);
+  }
+}
+
+/// Generated router descriptor for RouterModel registration and refs.
+class RouterModelRouterDescriptor implements PHiveRouterDescriptor {
+  /// Creates a generated descriptor for RouterModel.
+  const RouterModelRouterDescriptor();
+
+  @override
+  void apply(PHiveRouter router) {
+    router.register<RouterModel>(
+      primaryKey: (item) => item.id,
+      boxName: 'router_models',
+    );
+    router.createRef<RouterModel, SimpleModel>(
+      resolve: (item) => item.lessonId,
+      refBoxName: 'router_models_by_simple',
+    );
+  }
+}
+''')
+@PHiveType(4)
+/// Snapshot fixture covering generated router-descriptor output.
+class RouterModel {
+  @PHiveField(0)
+  @PHivePrimaryKey(boxName: 'router_models')
+  final String id;
+
+  @PHiveField(1)
+  @PHiveRef(SimpleModel, refBoxName: 'router_models_by_simple')
+  final String lessonId;
+
+  RouterModel(this.id, this.lessonId);
+}
+
+@ShouldGenerate('''
+// ignore_for_file: non_constant_identifier_names
+
+class SingletonRouterModelAdapter extends PTypeAdapter<SingletonRouterModel> {
+  @override
+  final int typeId = 5;
+
+  @override
+  SingletonRouterModel read(BinaryReader reader) {
+    // username (index 0)
+    final raw_username = reader.read();
+    final ctx_username = extractPayload(raw_username);
+    runPostRead(const [], ctx_username);
+    final res_username = ctx_username.value as String;
+    return SingletonRouterModel(res_username);
+  }
+
+  @override
+  void write(BinaryWriter writer, SingletonRouterModel obj) {
+    // username (index 0)
+    final ctx_username = PHiveCtx()..value = obj.username;
+    runPreWrite(const [], ctx_username);
+    writer.write(
+      serializePayload(ctx_username.value, ctx_username.pendingMetadata),
+    );
+    runPostWrite(const [], ctx_username);
+  }
+}
+
+/// Generated router descriptor for SingletonRouterModel registration and refs.
+class SingletonRouterModelRouterDescriptor implements PHiveRouterDescriptor {
+  /// Creates a generated descriptor for SingletonRouterModel.
+  const SingletonRouterModelRouterDescriptor();
+
+  @override
+  void apply(PHiveRouter router) {
+    router.register<SingletonRouterModel>(
+      primaryKey: (item) => item.storageKey,
+      boxName: 'singleton_models',
+    );
+  }
+}
+''')
+@PHiveType(5)
+/// Snapshot fixture covering router descriptors emitted from annotated getters.
+class SingletonRouterModel {
+  @PHiveField(0)
+  final String username;
+
+  /// Creates one singleton-style router fixture.
+  SingletonRouterModel(this.username);
+
+  @PHivePrimaryKey(boxName: 'singleton_models')
+  /// Constant storage key used by the generated router descriptor.
+  String get storageKey => 'singleton';
+}

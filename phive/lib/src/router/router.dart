@@ -85,6 +85,27 @@ abstract class PHiveRouter {
   Future<void> ensureOpen();
 }
 
+/// Applies generated or handwritten registration intent to a [PHiveRouter].
+abstract interface class PHiveRouterDescriptor {
+  /// Registers this descriptor's types and refs on [router].
+  void apply(PHiveRouter router);
+}
+
+/// Adds convenience helpers for installing router descriptors.
+extension PHiveRouterDescriptorRegistration on PHiveRouter {
+  /// Applies one descriptor to this router instance.
+  void applyDescriptor(PHiveRouterDescriptor descriptor) {
+    descriptor.apply(this);
+  }
+
+  /// Applies multiple descriptors in registration order.
+  void applyDescriptors(Iterable<PHiveRouterDescriptor> descriptors) {
+    for (final descriptor in descriptors) {
+      descriptor.apply(this);
+    }
+  }
+}
+
 /// A lightweight handle that identifies a specific ref store entry.
 ///
 /// Created by [PHiveRouter.containerOf] and consumed by

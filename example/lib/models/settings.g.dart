@@ -74,3 +74,17 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
     runPostWrite(const [UniversalEncrypted()], ctx_config);
   }
 }
+
+/// Generated router descriptor for Settings registration and refs.
+class SettingsRouterDescriptor implements PHiveRouterDescriptor {
+  /// Creates a generated descriptor for Settings.
+  const SettingsRouterDescriptor();
+
+  @override
+  void apply(PHiveRouter router) {
+    router.register<Settings>(
+      primaryKey: (item) => item.storageKey,
+      boxName: 'app_config',
+    );
+  }
+}

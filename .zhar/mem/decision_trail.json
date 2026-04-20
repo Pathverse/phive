@@ -93,5 +93,24 @@
       "source_ref": "example"
     },
     "custom": {}
+  },
+  "7f8a9": {
+    "id": "7f8a9",
+    "group": "decision_trail",
+    "node_type": "research_finding",
+    "summary": "Dynamic router must use LazyBox for behavior-driven reads",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/router/dynamic_router.dart",
+    "content": "Behavior-driven PHiveActionException handling works at keyed read time, not during eager box open. Hive CE normal Box<T> can deserialize frames while opening the box, which prevents the router from catching hook exceptions per entry. PHiveDynamicRouter therefore uses LazyBox<T> for primary storage so composed behaviors like deleteEntry and returnNull can be applied during get(key) and container traversal.",
+    "created_at": "2026-04-20T22:11:01Z",
+    "updated_at": "2026-04-20T22:11:01Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "phive/lib/src/router/dynamic_router.dart"
+    },
+    "custom": {}
   }
 }

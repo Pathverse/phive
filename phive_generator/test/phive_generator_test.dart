@@ -16,6 +16,8 @@ Future<void> main() async {
       'SimpleModel',
       'AutoFieldModel',
       'HybridAutoFieldModel',
+      'RouterModel',
+      'SingletonRouterModel',
     ],
   );
 }

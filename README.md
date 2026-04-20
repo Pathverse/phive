@@ -1,47 +1,48 @@
 # PHive
 
-Annotation-driven persistence for Hive CE with generated adapters, hook pipelines, router-based storage, and Freezed support.
+Annotation-driven persistence for Hive CE with generated adapters, generated router descriptors, hook pipelines, and router-based storage.
 
 ## What is PHive?
 
 PHive is a monorepo that provides:
 
-- **`phive`**: runtime annotations, hook contracts, router APIs
-- **`phive_generator`**: code generator that emits `PTypeAdapter` implementations
-- **`phive_barrel`**: ready-to-use hooks (e.g. TTL, encryption)
+- **`phive`**: runtime annotations, hook contracts, router APIs, and exception behavior handling
+- **`phive_generator`**: code generator that emits `PTypeAdapter` and `*RouterDescriptor` implementations
+- **`phive_barrel`**: ready-to-use hooks such as TTL and encryption
 - **`example`**: Flutter app demonstrating dynamic and static router flows
-- **`phive_test`**: integration-style test package for generator/runtime validation
+- **`phive_test`**: integration-style test package for generator and runtime validation
 
 ## Key Features
 
 - Generate strongly typed Hive CE adapters from `@PHiveType` and `@PHiveField`
-- Compose field-level and model-level hooks (including merged hook pipelines)
-- Keep models clean (no wrapper value types in domain objects)
+- Generate router registration descriptors from `@PHivePrimaryKey` and `@PHiveRef`
+- Compose field-level and model-level hooks without wrapper types in domain models
 - Support Freezed models
 - Route data through `PHiveDynamicRouter` or `PHiveStaticRouter`
 - Support parent-child containership through router refs
+- Let hooks declare composable read behaviors through `PHiveActionException`
 
 ## Routing Model
 
-PHive currently exposes two storage routers:
+PHive exposes two storage routers:
 
-- `PHiveDynamicRouter`: runtime registration, one Hive box per registered type and ref store
+- `PHiveDynamicRouter`: runtime registration backed by `LazyBox<T>` for primary values and normal ref boxes for relationships
 - `PHiveStaticRouter`: initialization-locked registration backed by one Hive CE `BoxCollection`
 
-Use the dynamic router when the type set is flexible or when direct box semantics are preferred. Use the static router when a fixed set of types and refs should share one logical database, especially on web.
+Use the dynamic router when the type set is flexible. Use the static router when a fixed set of types and refs should share one logical database, especially on web.
 
 ## Packages
 
 ### `phive`
 Core runtime package containing:
 
-- `@PHiveType`, `@PHiveField`
+- `@PHiveType`, `@PHiveField`, `@PHivePrimaryKey`, `@PHiveRef`
 - `PHiveCtx`, `PHiveHook`, `PTypeAdapter`
-- `PHiveActionException`
+- `PHiveActionException`, `PHiveActionBehavior`
 - `PHiveRouter`, `PHiveDynamicRouter`, `PHiveStaticRouter`, `PHiveContainerHandle`
 
 ### `phive_generator`
-Build runner generator package that emits adapter code.
+Build runner generator package that emits adapter code and router descriptors.
 
 ### `phive_barrel`
 Default hook implementations such as:
@@ -52,7 +53,7 @@ Default hook implementations such as:
 
 ## Quick Start
 
-### 1) Add dependencies
+### 1. Add dependencies
 
 ```yaml
 dependencies:
@@ -68,44 +69,52 @@ dev_dependencies:
     path: ../phive_generator
 ```
 
-### 2) Annotate your model
+### 2. Annotate your model
 
 ```dart
 import 'package:phive/phive.dart';
 import 'package:phive_barrel/phive_barrel.dart';
 
-@PHiveType(1, hooks: [TTL(10)])
+@PHiveType(1)
 class Session {
   @PHiveField(0)
+  @PHivePrimaryKey(boxName: 'sessions')
   final String id;
 
-  @PHiveField(1, hooks: [GCMEncrypted()])
+  @PHiveField(1, hooks: [GCMEncrypted(), TTL(10)])
   final String token;
 
   const Session({required this.id, required this.token});
 }
 ```
 
-### 3) Generate adapters
+### 3. Generate adapters and descriptors
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-### 4) Register and use
+### 4. Register and use
 
 ```dart
 Hive.registerAdapter(SessionAdapter());
 
 final router = PHiveDynamicRouter()
-  ..register<Session>(
-    primaryKey: (session) => session.id,
-    boxName: 'sessions',
-  );
+  ..applyDescriptor(const SessionRouterDescriptor());
 
 await router.store(const Session(id: '1', token: 'abc'));
 final restored = await router.get<Session>('1');
 ```
+
+## Exception Behavior Model
+
+Hooks remain responsible for value semantics. Routers remain responsible for storage semantics.
+
+- hooks detect conditions such as expiry or invalid payload state
+- hooks throw `PHiveActionException` with one or more `PHiveActionBehavior` values
+- routers execute those behaviors with storage context
+
+Example: the built-in TTL hook throws behaviors that delete the expired entry and return `null`.
 
 ## Static Router Notes
 
@@ -141,7 +150,7 @@ phive/
 
 ## Status
 
-This project is under active development. Router and generator capabilities are active, and generator-backed static-router ref declarations remain planned.
+This project is under active development. Adapter generation, router descriptors, containership refs, and behavior-driven hook handling are all active.
 
 ## License
 

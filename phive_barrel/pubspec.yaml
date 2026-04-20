@@ -5,7 +5,7 @@ homepage: https://github.com/Pathverse/phive
 
 environment:
   sdk: ^3.11.0
-  flutter: "^3.0.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:

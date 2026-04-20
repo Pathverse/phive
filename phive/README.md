@@ -47,6 +47,21 @@ class Session {
 
 Then run your generator package (`phive_generator`) with `build_runner`.
 
+You can also opt into constructor-order field inference for simpler models:
+
+```dart
+@PHiveType(2, autoFields: true)
+class AutoSession {
+	final String id;
+	final String token;
+
+	const AutoSession(this.id, this.token);
+}
+```
+
+This keeps explicit `@PHiveField` optional for greenfield schemas, while still
+allowing explicit indexes on any field that needs a fixed migration contract.
+
 ## PHiveConsumer quick use
 
 ```dart

@@ -1,0 +1,20 @@
+{
+  "09b72": {
+    "id": "09b72",
+    "group": "notes",
+    "node_type": "note",
+    "summary": "Legacy Cline progress snapshot:",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "Legacy Cline progress snapshot:\n- Completed: PHive runtime and generator were rebuilt around PHiveType and PHiveField, payload serialization via %PVR%, reusable hook templates, and PHiveRouter with tested dynamic routing.\n- Removed: PHiveConsumer and its adapter surfaces were retired in favor of the router layer.\n- Pending roadmap: PHiveStaticRouter implementation, PHiveRef generator support, PHiveProcessor and PHiveDataSource, router-level scope configuration, and broader integration tests that combine router and hook behavior.",
+    "created_at": "2026-04-20T18:01:58Z",
+    "updated_at": "2026-04-20T18:01:58Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "copilot",
+      "target_ids": "08475"
+    },
+    "custom": {}
+  }
+}

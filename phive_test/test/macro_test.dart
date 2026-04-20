@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:phive_barrel/phive_barrel.dart';
 import 'package:phive_test/models/test_model.dart';
+import 'package:phive_test/models/test_model2.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -18,6 +19,7 @@ void main() {
     final tempDir = Directory.systemTemp.createTempSync('phive_test_db');
     Hive.init(tempDir.path);
     Hive.registerAdapter(DemoUserAdapter());
+    Hive.registerAdapter(DemoTopLevelAesUserAdapter());
   });
 
   tearDownAll(() async {
@@ -51,5 +53,24 @@ void main() {
     
     // We can also verify that manipulating TTL works by awaiting? Actually TTL doesn't delete, it just throws/drops.
     // The current GCMEncrypted is synchronous and uses fixed keys, but functionality works.
+  });
+
+  test('DemoTopLevelAesUser saves to Hive and restores using autoFields AES hooks', () async {
+    final box = await Hive.openBox<DemoTopLevelAesUser>('test_box_auto_fields');
+    final user = DemoTopLevelAesUser(
+      id: 'usr_auto_456',
+      secret: 'top_secret_value',
+    );
+
+    await box.put('auto_user', user);
+
+    final readUser = box.get('auto_user');
+    expect(readUser, isNotNull);
+    expect(readUser?.id, 'usr_auto_456');
+    expect(
+      readUser?.secret,
+      'top_secret_value',
+      reason: 'Model-level AES hook should decrypt autoFields-backed payloads.',
+    );
   });
 }

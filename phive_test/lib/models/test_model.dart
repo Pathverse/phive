@@ -5,6 +5,7 @@ import 'package:phive_barrel/phive_barrel.dart';
 part 'test_model.g.dart';
 
 @PHiveType(1)
+/// Integration fixture covering mixed field-level hook usage.
 class DemoUser {
   @PHiveField(0)
   final String id;
@@ -29,3 +30,4 @@ class DemoUser {
     required this.metadata,
   });
 }
+

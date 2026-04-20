@@ -55,9 +55,29 @@ class Session {
 }
 ```
 
+## Opt-in auto field inference
+
+If you want a lighter model declaration for greenfield schemas, you can opt in to
+deterministic field inference:
+
+```dart
+@PHiveType(2, autoFields: true)
+class Session {
+	final String id;
+	final String token;
+
+	const Session(this.id, this.token);
+}
+```
+
+In `autoFields` mode, constructor-backed fields without `@PHiveField` receive
+the next available field index in constructor order. If some fields still use
+`@PHiveField`, their explicit indexes win and inferred fields fill the gaps.
+
 Generated output includes a `SessionAdapter` with hook pipeline calls for read/write.
 
 ## Notes
 
 - Model-level hooks (`@PHiveType(... hooks: [...])`) are merged with field-level hooks.
+- `autoFields` is best for new models; explicit `@PHiveField(index)` remains the safer migration path for persisted schemas.
 - Keep generated files committed if your workflow requires reproducible builds.

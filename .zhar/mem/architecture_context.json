@@ -1,0 +1,53 @@
+{
+  "06525": {
+    "id": "06525",
+    "group": "architecture_context",
+    "node_type": "design_pattern",
+    "summary": "Generator-centric hook pipeline",
+    "status": "active",
+    "tags": [],
+    "source": "memory-bank/systemPatterns.md",
+    "content": "PHive uses a generator-centric persistence pattern. The generator discovers annotated model fields, emits a PTypeAdapter, and routes all persistence behavior through a shared PHiveCtx and stateless PHiveHook pipeline. Generated adapters own payload serialization, metadata encoding via the %PVR% delimiter schema, model-level and field-level hook composition, and read/write lifecycle execution. Encryption hooks resolve key material through PhiveMetaRegistry and the seed provider abstraction.",
+    "created_at": "2026-04-20T18:01:27Z",
+    "updated_at": "2026-04-20T18:01:27Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
+  },
+  "0739c": {
+    "id": "0739c",
+    "group": "architecture_context",
+    "node_type": "tech_setup",
+    "summary": "Flutter monorepo for PHive runtime and generator",
+    "status": "active",
+    "tags": [],
+    "source": "memory-bank/techContext.md",
+    "content": "The workspace is a Flutter and Dart monorepo built around build_runner, source_gen, Hive CE, and flutter_test. The main packages are phive for runtime types, phive_generator for adapter generation, phive_barrel for reusable hook templates and seed-provider integration, phive_test for integration validation, and example for the demo application. Key runtime types include PHiveCtx, PHiveHook, PTypeAdapter, PHiveRouter, PHiveDynamicRouter, PHiveStaticRouter, PHiveContainerHandle, and PHiveActionException.",
+    "created_at": "2026-04-20T18:01:27Z",
+    "updated_at": "2026-04-20T18:01:27Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
+  },
+  "08475": {
+    "id": "08475",
+    "group": "architecture_context",
+    "node_type": "architecture",
+    "summary": "PHiveRouter replaces consumer storage layer",
+    "status": "active",
+    "tags": [],
+    "source": "memory-bank/activeContext.md",
+    "content": "The consumer layer has been superseded by PHiveRouter. PHiveDynamicRouter is the implemented runtime router and owns type registration, box management, primary-key routing, and parent-child ref stores. PHiveStaticRouter remains a documented stub pending generator support for compile-time router definitions and PHiveRef emission. The active roadmap after this migration is PHiveProcessor above the router layer, PHiveRef generator support, and static-router implementation.",
+    "created_at": "2026-04-20T18:01:27Z",
+    "updated_at": "2026-04-20T18:01:27Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
+  }
+}

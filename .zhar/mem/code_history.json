@@ -1,0 +1,38 @@
+{
+  "0048f": {
+    "id": "0048f",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Add model-level AES test fixture",
+    "status": "active",
+    "tags": [],
+    "source": "phive_test/lib/models/test_model.dart",
+    "content": null,
+    "created_at": "2026-04-20T17:19:13Z",
+    "updated_at": "2026-04-20T17:19:13Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "02a10": {
+    "id": "02a10",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Add autoFields AES integration test",
+    "status": "active",
+    "tags": [],
+    "source": "phive_test/test/macro_test.dart",
+    "content": null,
+    "created_at": "2026-04-20T17:58:01Z",
+    "updated_at": "2026-04-20T17:58:01Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  }
+}

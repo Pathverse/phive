@@ -1,26 +1,37 @@
 # Active Context
 
-## Generator and Hook Refinement
-The framework remains generator-first with pure models and hook-driven persistence through `PTypeAdapter`.
-Freezed compatibility is preserved via abstract model declarations.
+## Current Mission — PHiveRouter Implementation
 
-## Current Mission (PHiveConsumer + Adapter Composition)
-The consumer layer has been refactored to support extensible adapters with collision-safe slot ownership.
+The consumer layer has been fully superseded by `PHiveRouter`. `PHiveDynamicRouter` is implemented and TDD-tested. `PHiveStaticRouter` is stubbed pending generator changes.
 
-### Completed in this cycle
-- `PHiveConsumerCtx` now carries overloadable operation surfaces (`overloadableBox`, `overloadableGetMethod`, `overloadableSetMethod`, `overloadableDeleteMethod`, `overloadableClearMethod`).
-- `PHiveConsumerAdapter` now exposes `providedSlots` and `hydrate(ctx)` so each adapter can contribute behavior into context.
-- `PHiveConsumer` now supports multiple adapters and guards slot collisions at construction.
-- `DefaultHiveAdapter` moved from `consumer.dart` into `lib/src/adapters/default_hive_adapter.dart`.
-- Hardcoded exception-string matching was removed from default open handling; typed exception flow + shared constants are now used.
+## What Was Just Built
 
-### Generator bug fixed
-- `phive_generator` now parses `@PHiveType(... hooks: [...])` model-level hooks.
-- Model-level hooks are merged with field-level hooks in generated read/write pipelines.
-- Verified regeneration in `example/lib/models/user_profile.g.dart` now includes model TTL hooks.
+### `PHiveRouter` interface (`phive/lib/src/router/router.dart`)
+Abstract contract shared by both router types. Defines: `register<T>`, `createRef<T, P>`, `containerOf<T, P>`, `store<T>`, `get<T>`, `delete<T>`, `getContainer<T>`, `deleteContainer<T>`, `deleteWithChildren<T>`, `ensureOpen`.
 
-## Next Steps
-- Implement concrete behavior for `CollectionBoxAdapter` and `ScopeProviderAdapter` in `lib/src/adapters/`.
-- Apply `consumerMeta`-driven key scoping (e.g., `env::key`) via scope adapter hydrate overrides.
-- Add tests covering model-hook merge semantics and adapter slot collision behavior.
+Shared types: `PHiveContainerHandle<T>`, `PHiveTypeRegistration`, `PHiveRefRegistration`.
 
+### `PHiveDynamicRouter` (`phive/lib/src/router/dynamic_router.dart`)
+Fully implemented. Runtime registration. One `Box<T>` per type. Ref stores are `Box<dynamic>` keyed by parent's primary key, values are `List<String>` of child primary keys. Box instances cached in `_boxCache`.
+
+Key behaviour:
+- `store<T>` writes item then updates all matching ref stores (idempotent — no duplicate entries).
+- `deleteContainer<T>` cascade-deletes all referenced children + clears ref entry.
+- `deleteWithChildren<T>` cascades across all child types registered against the parent.
+
+### `PHiveStaticRouter` (`phive/lib/src/router/static_router.dart`)
+Stubbed with documented `UnimplementedError` messages. All methods explain the compile-time registration model. Pending generator support.
+
+### TDD Tests (`phive/test/router_test.dart`)
+Written before implementation. 6 groups, 20 tests covering all router behaviours and error cases. Uses inline `TypeAdapter` implementations for `TestLesson`, `TestCard`, `TestDeck` models. Run with: `flutter test test/router_test.dart` from `phive/`.
+
+### Schema Document
+`phive_router_schema.docx` in workspace root. Covers: interface, ref store format, both router types, migration from consumer system, PHiveProcessor<T> plans, file layout, and test coverage map.
+
+## Next Steps (Ordered)
+1. **Run tests locally** — `flutter test test/router_test.dart` from `phive/`. Flutter SDK not available in sandbox.
+2. **PHiveProcessor<T>** — caching middleware layer above `PHiveRouter`. Wraps `PHiveStore<T>` (typed router accessor) + `PHiveDataSource<T>` (Dio/Retrofit boundary). Handles cache-aside strategy and `PHiveActionException` orchestration.
+3. **`PHiveStaticRouter` implementation** — requires generator changes: emit `PHiveStaticRouterEntry` per `@PHiveType` class + `@PHiveRef` annotation support.
+4. **Generator: `@PHiveRef` annotation** — add to `phive/lib/src/annotations.dart`, update `phive_generator` to parse and emit ref config alongside `PTypeAdapter`.
+5. **`ScopeProviderAdapter` dissolution** — replace with router-level `setScope(env)` config that prefixes all keys.
+6. **Deprecate and remove** `PHiveConsumer`, `PHiveConsumerAdapter`, `DefaultHiveAdapter`, `CollectionBoxAdapter`, `ScopeProviderAdapter`.

@@ -1,0 +1,21 @@
+{
+  "01f86": {
+    "id": "01f86",
+    "group": "decision_trail",
+    "node_type": "research_finding",
+    "summary": "Use opt-in autoFields inference",
+    "status": "active",
+    "tags": [],
+    "source": "phive_generator/lib/src/phive_generator.dart",
+    "content": "Adopted an opt-in autoFields design for PHiveType. Inference is limited to constructor-backed fields, explicit PHiveField indexes win, inferred fields fill unused indexes deterministically in constructor order, and accessor annotations can override provisional inferred mappings without changing field order.",
+    "created_at": "2026-04-20T17:53:38Z",
+    "updated_at": "2026-04-20T17:53:38Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "phive_generator/lib/src/phive_generator.dart"
+    },
+    "custom": {}
+  }
+}

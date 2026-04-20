@@ -5,20 +5,37 @@ import 'package:phive_barrel/phive_barrel.dart';
 import 'models/settings.dart';
 import 'models/user_profile.dart';
 
+// ── Router setup ─────────────────────────────────────────────────────────────
+//
+// Both types are singleton-per-box (one Settings, one UserProfile at a time),
+// so the primary key is a fixed constant string.
+//
+// Box names match the old PHiveConsumer box names for storage compatibility.
+
+final _router = PHiveDynamicRouter()
+  ..register<Settings>(
+    primaryKey: (_) => 'current_config',
+    boxName: 'app_config',
+  )
+  ..register<UserProfile>(
+    primaryKey: (_) => 'active_user',
+    boxName: 'user_sessions',
+  );
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Register secure storage for cryptographic hooks
   PhiveMetaRegistry.registerSeedProvider(SecureStorageSeedProvider());
   await PhiveMetaRegistry.init();
 
   // Initialize Hive CE
   await Hive.initFlutter();
-  
+
   // Register generated TypeAdapters
   Hive.registerAdapter(SettingsAdapter());
   Hive.registerAdapter(UserProfileAdapter());
-  
+
   runApp(const MyApp());
 }
 
@@ -51,10 +68,6 @@ class _MyHomePageState extends State<MyHomePage> {
   Settings? _loadedSettings;
   UserProfile? _loadedProfile;
   String _status = 'Initializing...';
-  final PHiveConsumer<Settings> _settingsConsumer =
-      PHiveConsumer<Settings>('app_config');
-  final PHiveConsumer<UserProfile> _profilesConsumer =
-      PHiveConsumer<UserProfile>('user_sessions');
   DateTime? _lastSavedAt;
   DateTime? _lastRestoredAt;
   int _restoreCount = 0;
@@ -62,25 +75,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _warmupConsumers();
+    _warmup();
   }
 
-  Future<void> _warmupConsumers() async {
+  Future<void> _warmup() async {
     try {
-      await Future.wait([
-        _settingsConsumer.ensureOpen(),
-        _profilesConsumer.ensureOpen(),
-      ]);
-      if (!mounted) {
-        return;
-      }
+      await _router.ensureOpen();
+      if (!mounted) return;
       setState(() {
         _status = 'Ready. Use Simulate Login then Restore Cache.';
       });
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _status = 'Ready (lazy open). Use Simulate Login then Restore Cache.';
       });
@@ -96,10 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _loginSimulatedUser() async {
     setState(() => _status = 'Authenticating...');
-    
-    // Simulate API Response mapping
 
-    // Create new application state
     final userSettings = Settings(
       username: 'AliceTheDev',
       secretKey: 'sk_live_db12a8934dfb3r832b',
@@ -107,20 +110,18 @@ class _MyHomePageState extends State<MyHomePage> {
       config: {'theme': 'dark', 'notifications': true, 'version': 2.0},
     );
 
-    // Create Freezed Domain Model 
     final userProfile = UserProfile(
       id: 'USR_90210',
       encryptedToken: 'secret_oauth2_refresh_token',
       tempSessionId: 'sess_tmp_60min_abcdef',
     );
 
-    // Persist to disk - PHive Hooks are fired magically here!
-    // The PHiveConsumer will automatically handle opening and scoping the box
-    await _settingsConsumer.put('current_config', userSettings);
-    await _profilesConsumer.put('active_user', userProfile);
+    // PHive hooks (encryption, TTL) fire inside the generated PTypeAdapter
+    // during Hive's write path — the router just routes to the right box.
+    await _router.store(userSettings);
+    await _router.store(userProfile);
 
     final savedAt = DateTime.now();
-
     setState(() {
       _lastSavedAt = savedAt;
       _status = 'Saved to cache at ${_timeLabel(savedAt)}';
@@ -137,35 +138,18 @@ class _MyHomePageState extends State<MyHomePage> {
         'Restore #${_restoreCount + 1} succeeded at ${_timeLabel(restoredAt)}';
 
     try {
-      // Phive reads map payload correctly back into strictly-typed models
-      // using PHiveConsumer to safely handle overloaded box actions
-      s = await _settingsConsumer.get(
-        'current_config',
-        ctx: PHiveConsumerCtx<Settings>(
-          customCallback: (error) {
-            debugPrint(
-              '[PHiveConsumer][GET app_config/current_config] '
-              '${error.message} codes=${error.codes}',
-            );
-          },
-        ),
-      );
-      p = await _profilesConsumer.get(
-        'active_user',
-        ctx: PHiveConsumerCtx<UserProfile>(
-          customCallback: (error) {
-            debugPrint(
-              '[PHiveConsumer][GET user_sessions/active_user] '
-              '${error.message} codes=${error.codes}',
-            );
-          },
-        ),
-      );
-      
+      s = await _router.get<Settings>('current_config');
+      p = await _router.get<UserProfile>('active_user');
+
       if (s == null || p == null) {
         statusMsg =
             'Restore #${_restoreCount + 1} at ${_timeLabel(restoredAt)} returned empty (expired or missing).';
       }
+    } on PHiveActionException catch (e) {
+      // Hooks throw PHiveActionException for TTL expiry and other conditions.
+      debugPrint('[PHiveRouter][GET] ${e.message} codes=${e.codes}');
+      statusMsg =
+          'Restore #${_restoreCount + 1} failed at ${_timeLabel(restoredAt)}: ${e.message}';
     } catch (e) {
       statusMsg =
           'Restore #${_restoreCount + 1} failed at ${_timeLabel(restoredAt)}: $e';
@@ -181,8 +165,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _clearCache() async {
-    await _settingsConsumer.clear();
-    await _profilesConsumer.clear();
+    // Delete the known singleton keys from each box.
+    await _router.delete<Settings>('current_config');
+    await _router.delete<UserProfile>('active_user');
     setState(() {
       _loadedSettings = null;
       _loadedProfile = null;
@@ -210,15 +195,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 decoration: BoxDecoration(
                   color: Colors.deepPurple.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.deepPurple.shade200)
+                  border: Border.all(color: Colors.deepPurple.shade200),
                 ),
                 child: Column(
                   children: [
                     Text(
                       _status,
                       style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                        color: Colors.deepPurple.shade900,
-                      ),
+                            color: Colors.deepPurple.shade900,
+                          ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -234,15 +219,17 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 32),
 
-              // UI Cache viewer
+              // Cache viewer
               if (_loadedSettings != null && _loadedProfile != null) ...[
                 _buildCard(
                   title: 'Freezed User Profile',
                   icon: Icons.person,
                   children: [
                     _dataRow('ID', _loadedProfile!.id),
-                    _dataRow('Temp Session', _loadedProfile!.tempSessionId, hook: 'TTL 10S'),
-                    _dataRow('Oauth Token', _loadedProfile!.encryptedToken, hook: 'GCM Encrypted'),
+                    _dataRow('Temp Session', _loadedProfile!.tempSessionId,
+                        hook: 'TTL 10S'),
+                    _dataRow('Oauth Token', _loadedProfile!.encryptedToken,
+                        hook: 'GCM Encrypted'),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -251,25 +238,28 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: Icons.settings,
                   children: [
                     _dataRow('Username', _loadedSettings!.username),
-                    _dataRow('Secret Key', _loadedSettings!.secretKey, hook: 'GCM Encrypted'),
-                    _dataRow('Session', _loadedSettings!.cachedToken, hook: 'TTL 10S'),
-                    _dataRow('UI Config', _loadedSettings!.config.toString(), hook: 'Universal JSON Encrypted'),
+                    _dataRow('Secret Key', _loadedSettings!.secretKey,
+                        hook: 'GCM Encrypted'),
+                    _dataRow('Session', _loadedSettings!.cachedToken,
+                        hook: 'TTL 10S'),
+                    _dataRow('UI Config', _loadedSettings!.config.toString(),
+                        hook: 'Universal JSON Encrypted'),
                   ],
                 ),
               ] else ...[
-                 SizedBox(
-                   height: 200,
-                   child: Center(
-                     child: Text(
-                       'No valid cache in memory.',
-                       style: TextStyle(color: Colors.grey.shade600),
-                     ),
-                   ),
-                 ),
+                SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: Text(
+                      'No valid cache in memory.',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ),
+                ),
               ],
-              
+
               const SizedBox(height: 40),
-              
+
               // Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -291,8 +281,9 @@ class _MyHomePageState extends State<MyHomePage> {
               TextButton.icon(
                 onPressed: _clearCache,
                 icon: const Icon(Icons.delete_forever, color: Colors.red),
-                label: const Text('Purge Storage', style: TextStyle(color: Colors.red)),
-              )
+                label: const Text('Purge Storage',
+                    style: TextStyle(color: Colors.red)),
+              ),
             ],
           ),
         ),
@@ -300,7 +291,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildCard({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -330,25 +325,32 @@ class _MyHomePageState extends State<MyHomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100, 
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))
+            width: 100,
+            child: Text(label,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.grey)),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value, style: const TextStyle(fontFamily: 'monospace')),
+                Text(value,
+                    style: const TextStyle(fontFamily: 'monospace')),
                 if (hook != null)
                   Container(
                     margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(4)
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       '🛡️ $hook',
-                      style: TextStyle(fontSize: 10, color: Colors.green.shade900, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.green.shade900,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
               ],

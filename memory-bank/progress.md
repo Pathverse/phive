@@ -1,31 +1,42 @@
 # Progress
 
 ## Completed
-- Re-initialized the phive and phive_generator packages from scratch.
-- Drafted the generator-centered system patterns and defined the end goals in projectbrief.
-- Created preliminary @PHiveType and @PHiveField API inside phive/lib/src/annotations.dart.
-- TDD tests passed for PHiveCtx, PHiveHook, and generic PTypeAdapter structure.
-- phive_generator updated to extract exact static AST arrays for hooks.
-- PTypeAdapter payload serialization implemented correctly natively formatting payloads with inline base64url(JSON) maps and \$%PVR%\$ delimiters.
-- Created phive_barrel with concrete Hook implementations (TTL, GCM/AES Encrypted using pointycastle, PhiveMetaProvider/Seeded Storage).
-- Created phive_test for pure integration testing of the generator outputs interacting with an actual Hive CE box in Memory.
-- Validated complete Freezed model generation integration (by leveraging \bstract class ClassName with _\\).
-- Drafted and implemented **Exception Orchestration** (\PHiveActionException\) allowing predictable error handling through numeric action codes.
-- Created \PHiveConsumer<T>\ which traps \PHiveActionException\ to orchestrate data lifecycle (e.g., auto-deleting keys upon TTL expiry).
-- Updated \PHiveConsumer\ with an initial **Adapter Pattern** (\DefaultHiveAdapter\) to automatically handle opening boxes and simplifying UI imports.
-- Rebuilt demo flutter app to showcase multi-box architectures safely handling caching, logging, and TTL via \PHiveConsumer\.
-- Refactored `PHiveConsumer` to support multi-adapter composition with slot-collision guards.
-- Expanded `PHiveConsumerCtx` to carry overloadable operation slots and `consumerMeta`/`meta` maps.
-- Moved `DefaultHiveAdapter` into `phive/lib/src/adapters/default_hive_adapter.dart`.
-- Added adapter scaffolding for `CollectionBoxAdapter` and `ScopeProviderAdapter`.
-- Removed hardcoded error-string checks from default adapter flow and centralized consumer error messages.
-- Fixed `phive_generator` bug where `@PHiveType(... hooks: [...])` model-level hooks were not parsed.
-- Verified model hooks are now merged into generated hook pipelines (e.g. `example/lib/models/user_profile.g.dart`).
+- Re-initialized `phive` and `phive_generator` packages from scratch.
+- Drafted generator-centered system patterns and defined end goals in `projectbrief`.
+- Created `@PHiveType` and `@PHiveField` annotations in `phive/lib/src/annotations.dart` (also includes `PhiveMetaVar<T>`).
+- TDD unit tests passed for `PHiveCtx`, `PHiveHook`, and generic `PTypeAdapter` structure (`phive/test/core_test.dart`).
+- `phive_generator` updated to extract exact static AST arrays for hooks.
+- `PTypeAdapter` payload serialization implemented: inline `base64url(JSON)` metadata maps with `%PVR%` delimiters; delimiter omitted when meta is empty.
+- Created `phive_barrel` with concrete `PHiveHook` implementations: `TTLHook`, `GCMEncrypted`, `AESEncrypted`, `UniversalEncrypted`, `PhiveSeedProvider`/`PhiveMetaRegistry`, `SecureStorageSeedProvider`.
+- Created `phive_test` package for integration testing (generator outputs + in-memory Hive CE box). Model: `DemoUser` with GCM, AES, TTL, and UniversalEncrypted hooks.
+- Validated Freezed model generation integration.
+- Implemented `PHiveActionException` with numeric action codes (0–5).
+- Created `PHiveConsumer<T>` (now deprecated) with adapter pattern.
+- Implemented `DefaultHiveAdapter` (now deprecated).
+- Scaffolded `CollectionBoxAdapter` and `ScopeProviderAdapter` (now superseded by router).
+- Fixed `phive_generator` bug: model-level `@PHiveType(hooks: [...])` now merged into generated hook pipelines.
+- **Designed and implemented `PHiveRouter` architecture** (new router layer):
+  - `PHiveRouter` abstract interface + `PHiveContainerHandle`, `PHiveTypeRegistration`, `PHiveRefRegistration` types.
+  - `PHiveDynamicRouter` — fully implemented runtime router.
+  - `PHiveStaticRouter` — documented stub (pending generator support).
+  - `phive/lib/phive.dart` updated to export router layer.
+- **TDD tests for `PHiveDynamicRouter`** — 6 groups, 20 tests written before implementation (`phive/test/router_test.dart`).
+- **Schema document** — `phive_router_schema.docx` covering full router architecture.
+
+- **Removed all deprecated consumer surfaces:**
+  - Deleted `phive/lib/src/consumer.dart` (`PHiveConsumer`, `PHiveConsumerAdapter`, `PHiveConsumerCtx`, `PHiveConsumerSlots`, `DefaultHiveAdapter` import)
+  - Deleted `phive/lib/src/adapters/` directory (`DefaultHiveAdapter`, `CollectionBoxAdapter`, `ScopeProviderAdapter`)
+  - Removed `PHiveConsumerExceptionMessages` from `exception.dart`
+  - Cleaned `phive/lib/phive.dart` to export only core + router
+  - Rewrote `example/lib/main.dart` to use `PHiveDynamicRouter`
 
 ## In Progress
-- Implementing concrete adapter behavior (`CollectionBoxAdapter`, `ScopeProviderAdapter`) using ctx-overload hydration.
-- Adding scoped-key behavior via `consumerMeta` (target format: `env::key`).
+- Tests written but not yet verified locally (Flutter SDK not available in sandbox). Run: `flutter test test/router_test.dart` from `phive/`.
 
 ## Pending
-- Additional collection/complex class Hook integration validation.
-
+- `PHiveStaticRouter` implementation (requires generator changes).
+- `@PHiveRef` annotation + generator support (`phive_generator`).
+- `PHiveProcessor<T>` — caching middleware layer (above router, for Retrofit/Dio integration).
+- `PHiveDataSource<T>` interface — network boundary abstraction.
+- Router-level scope config (replaces deleted `ScopeProviderAdapter`).
+- Integration tests in `phive_test` for router + hooks combined.

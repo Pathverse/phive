@@ -22,17 +22,21 @@ class PHiveDynamicRouter implements PHiveRouter {
   // ── Registration ───────────────────────────────────────────────────────────
 
   @override
+  /// Registers a type and preserves its typed box opener for later warmup.
   void register<T>({
     required String Function(T item) primaryKey,
     String? boxName,
   }) {
+    final resolvedBoxName = boxName ?? T.toString().toLowerCase();
     _types[T] = PHiveTypeRegistration(
       primaryKey: (dynamic item) => primaryKey(item as T),
-      boxName: boxName ?? T.toString().toLowerCase(),
+      boxName: resolvedBoxName,
+      openBox: () => Hive.openBox<T>(resolvedBoxName),
     );
   }
 
   @override
+  /// Registers a parent-child relationship and its backing ref box name.
   void createRef<T, P>({
     required String Function(T item) resolve,
     String? refBoxName,
@@ -48,6 +52,7 @@ class PHiveDynamicRouter implements PHiveRouter {
 
   // ── Internal helpers ───────────────────────────────────────────────────────
 
+  /// Returns the registration for a type or throws when it is missing.
   PHiveTypeRegistration _requireRegistration<T>() {
     final reg = _types[T];
     if (reg == null) {
@@ -59,6 +64,7 @@ class PHiveDynamicRouter implements PHiveRouter {
     return reg;
   }
 
+  /// Opens a typed primary box and caches the live instance by box name.
   Future<Box<T>> _openBox<T>(String boxName) async {
     final cached = _boxCache[boxName];
     if (cached != null && cached.isOpen) return cached as Box<T>;
@@ -67,6 +73,18 @@ class PHiveDynamicRouter implements PHiveRouter {
     return box;
   }
 
+  /// Opens a primary box from its registration without erasing its generic type.
+  Future<void> _ensurePrimaryBox(PHiveTypeRegistration registration) async {
+    final cached = _boxCache[registration.boxName];
+    if (cached != null && cached.isOpen) {
+      return;
+    }
+
+    final box = await registration.openBox();
+    _boxCache[registration.boxName] = box;
+  }
+
+  /// Opens a ref box and caches it under an isolated cache key.
   Future<Box<dynamic>> _openRefBox(String refBoxName) async {
     final cacheKey = '__ref_box__$refBoxName';
     final cached = _boxCache[cacheKey];
@@ -76,6 +94,7 @@ class PHiveDynamicRouter implements PHiveRouter {
     return box;
   }
 
+  /// Reads a parent-child ref list and normalizes it to a string list.
   List<String> _readRefList(Box<dynamic> refBox, String parentKey) {
     final raw = refBox.get(parentKey);
     if (raw == null) return <String>[];
@@ -85,6 +104,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   // ── PHiveRouter implementation ─────────────────────────────────────────────
 
   @override
+  /// Stores one item and updates every ref relationship where it is a child.
   Future<void> store<T>(T item) async {
     final reg = _requireRegistration<T>();
     final box = await _openBox<T>(reg.boxName);
@@ -104,6 +124,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Retrieves one item by key from its registered primary box.
   Future<T?> get<T>(String key) async {
     final reg = _requireRegistration<T>();
     final box = await _openBox<T>(reg.boxName);
@@ -111,6 +132,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Deletes one primary item without cascading through ref boxes.
   Future<void> delete<T>(String key) async {
     final reg = _requireRegistration<T>();
     final box = await _openBox<T>(reg.boxName);
@@ -120,6 +142,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Resolves a container handle for one parent-child relationship.
   PHiveContainerHandle<T> containerOf<T, P>(P parent) {
     final parentReg = _requireRegistration<P>();
     final parentKey = parentReg.primaryKey(parent);
@@ -139,6 +162,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Loads all child items referenced by one container handle.
   Future<List<T>> getContainer<T>(PHiveContainerHandle<T> handle) async {
     final refBox = await _openRefBox(handle.refBoxName);
     final keys = _readRefList(refBox, handle.parentKey);
@@ -156,6 +180,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Deletes all children referenced by one container and clears the ref entry.
   Future<void> deleteContainer<T>(PHiveContainerHandle<T> handle) async {
     final refBox = await _openRefBox(handle.refBoxName);
     final keys = _readRefList(refBox, handle.parentKey);
@@ -172,6 +197,7 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Deletes one parent item and cascades through every registered child ref.
   Future<void> deleteWithChildren<T>(T item) async {
     final reg = _requireRegistration<T>();
     final primaryKey = reg.primaryKey(item);
@@ -201,9 +227,10 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Pre-opens primary and ref boxes while preserving registered generic types.
   Future<void> ensureOpen() async {
     for (final reg in _types.values) {
-      await _openBox<dynamic>(reg.boxName);
+      await _ensurePrimaryBox(reg);
     }
     for (final ref in _refs) {
       await _openRefBox(ref.refBoxName);

@@ -2,7 +2,7 @@
 
 Core runtime package for PHive.
 
-Use this package to define model annotations, hook pipelines, and consumer APIs.
+Use this package to define model annotations, hook pipelines, generated adapter runtime support, and router-based storage flows.
 
 ## What you get
 
@@ -10,7 +10,8 @@ Use this package to define model annotations, hook pipelines, and consumer APIs.
 - `PTypeAdapter<T>` runtime support
 - `PHiveCtx` and `PHiveHook`
 - `PHiveActionException`
-- `PHiveConsumer<T>` with adapter support
+- `PHiveRouter`, `PHiveDynamicRouter`, `PHiveStaticRouter`
+- `PHiveContainerHandle` for parent-child containership
 
 ## Install
 
@@ -45,7 +46,7 @@ class Session {
 }
 ```
 
-Then run your generator package (`phive_generator`) with `build_runner`.
+Then run `phive_generator` with `build_runner` to emit the adapter.
 
 You can also opt into constructor-order field inference for simpler models:
 
@@ -62,16 +63,31 @@ class AutoSession {
 This keeps explicit `@PHiveField` optional for greenfield schemas, while still
 allowing explicit indexes on any field that needs a fixed migration contract.
 
-## PHiveConsumer quick use
+## Router quick use
 
 ```dart
-final consumer = PHiveConsumer<Session>('app_sessions');
+Hive.registerAdapter(SessionAdapter());
 
-await consumer.put('current', const Session(id: '1', token: 'abc'));
-final session = await consumer.get('current');
+final router = PHiveDynamicRouter()
+	..register<Session>(
+		primaryKey: (session) => session.id,
+		boxName: 'app_sessions',
+	);
+
+await router.store(const Session(id: '1', token: 'abc'));
+final session = await router.get<Session>('1');
 ```
+
+## Router model
+
+- `PHiveDynamicRouter` uses runtime registration and normal Hive boxes.
+- `PHiveStaticRouter` uses one Hive CE `BoxCollection` with multiple named stores.
+- Both routers preserve PHive-generated adapter semantics and hook pipelines.
+
+Use the dynamic router when the type set is flexible. Use the static router when a fixed set of types and refs should share one logical database, especially on web.
 
 ## Notes
 
 - This package is runtime-only.
-- For ready-made hooks (TTL/encryption), also add `phive_barrel`.
+- For ready-made hooks such as TTL and encryption, also add `phive_barrel`.
+- For adapter generation, also add `phive_generator`.

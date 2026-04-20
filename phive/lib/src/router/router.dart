@@ -1,3 +1,5 @@
+import 'package:hive_ce/hive.dart';
+
 /// PHiveRouter — abstract interface and shared types for the phive routing layer.
 ///
 /// The router is responsible for:
@@ -110,9 +112,13 @@ class PHiveTypeRegistration {
   /// The Hive box name used to store items of this type.
   final String boxName;
 
+  /// Opens the primary storage box using the original registered generic type.
+  final Future<BoxBase<dynamic>> Function() openBox;
+
   const PHiveTypeRegistration({
     required this.primaryKey,
     required this.boxName,
+    required this.openBox,
   });
 }
 

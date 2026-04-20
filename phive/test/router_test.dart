@@ -88,6 +88,16 @@ PHiveDynamicRouter _baseRouter() {
   return r;
 }
 
+// Builds a PHiveStaticRouter with TestLesson + TestCard + Card→Lesson ref.
+// Must call ensureOpen() before any CRUD. Uses the tempDir set by setUp().
+PHiveStaticRouter _baseStaticRouter(String path) => PHiveStaticRouter(
+      collectionName: 'test_static',
+      path: path,
+    )
+      ..register<TestLesson>(primaryKey: (l) => l.lessonId)
+      ..register<TestCard>(primaryKey: (c) => c.cardId)
+      ..createRef<TestCard, TestLesson>(resolve: (c) => c.lessonId);
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 void main() {
@@ -400,6 +410,147 @@ void main() {
       expect(await router.get<TestLesson>('L001'), isNull);
       expect(await router.get<TestCard>('C001'), isNull);
       expect(await router.get<TestDeck>('D001'), isNull);
+    });
+  });
+
+  // ── 7. PHiveStaticRouter ──────────────────────────────────────────────────
+
+  group('PHiveStaticRouter — registration lock + full CRUD', () {
+    // ── Registration lock ────────────────────────────────────────────────────
+
+    test('register throws StateError after ensureOpen', () async {
+      final router = PHiveStaticRouter(
+        collectionName: 'test_static_lock',
+        path: tempDir.path,
+      )..register<TestLesson>(primaryKey: (l) => l.lessonId);
+
+      await router.ensureOpen();
+
+      expect(
+        () => router.register<TestCard>(primaryKey: (c) => c.cardId),
+        throwsStateError,
+      );
+    });
+
+    test('createRef throws StateError after ensureOpen', () async {
+      final router = PHiveStaticRouter(
+        collectionName: 'test_static_reflock',
+        path: tempDir.path,
+      )
+        ..register<TestLesson>(primaryKey: (l) => l.lessonId)
+        ..register<TestCard>(primaryKey: (c) => c.cardId);
+
+      await router.ensureOpen();
+
+      expect(
+        () => router.createRef<TestCard, TestLesson>(resolve: (c) => c.lessonId),
+        throwsStateError,
+      );
+    });
+
+    test('ensureOpen is idempotent — multiple calls do not throw', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+      await expectLater(router.ensureOpen(), completes);
+    });
+
+    // ── Store / Get / Delete ─────────────────────────────────────────────────
+
+    test('store and get a registered type round-trips correctly', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      await router.store(TestLesson(lessonId: 'L001', title: 'Static Lesson'));
+      final result = await router.get<TestLesson>('L001');
+
+      expect(result, isNotNull);
+      expect(result!.lessonId, 'L001');
+      expect(result.title, 'Static Lesson');
+    });
+
+    test('get returns null for missing key', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      expect(await router.get<TestLesson>('does_not_exist'), isNull);
+    });
+
+    test('delete removes a stored item', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      await router.store(TestLesson(lessonId: 'L001', title: 'Will be deleted'));
+      await router.delete<TestLesson>('L001');
+
+      expect(await router.get<TestLesson>('L001'), isNull);
+    });
+
+    // ── Ref system ───────────────────────────────────────────────────────────
+
+    test('storing a child updates its ref entry', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      final lesson = TestLesson(lessonId: 'L001', title: 'Lesson');
+      await router.store(lesson);
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'Card 1'));
+
+      final handle = router.containerOf<TestCard, TestLesson>(lesson);
+      final cards = await router.getContainer<TestCard>(handle);
+
+      expect(cards.length, 1);
+      expect(cards.first.cardId, 'C001');
+    });
+
+    test('storing the same child twice does not duplicate the ref entry', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      final lesson = TestLesson(lessonId: 'L001', title: 'Lesson');
+      final card = TestCard(cardId: 'C001', lessonId: 'L001', content: 'Card');
+      await router.store(lesson);
+      await router.store(card);
+      await router.store(card); // duplicate
+
+      final handle = router.containerOf<TestCard, TestLesson>(lesson);
+      expect((await router.getContainer<TestCard>(handle)).length, 1);
+    });
+
+    // ── deleteContainer ──────────────────────────────────────────────────────
+
+    test('deleteContainer removes children and clears the ref entry', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      final lesson = TestLesson(lessonId: 'L001', title: 'Lesson');
+      await router.store(lesson);
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'A'));
+      await router.store(TestCard(cardId: 'C002', lessonId: 'L001', content: 'B'));
+
+      final handle = router.containerOf<TestCard, TestLesson>(lesson);
+      await router.deleteContainer<TestCard>(handle);
+
+      expect(await router.get<TestCard>('C001'), isNull);
+      expect(await router.get<TestCard>('C002'), isNull);
+      expect(await router.getContainer<TestCard>(handle), isEmpty);
+    });
+
+    // ── deleteWithChildren ───────────────────────────────────────────────────
+
+    test('deleteWithChildren removes parent and all children', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      final lesson = TestLesson(lessonId: 'L001', title: 'Lesson');
+      await router.store(lesson);
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'A'));
+      await router.store(TestCard(cardId: 'C002', lessonId: 'L001', content: 'B'));
+
+      await router.deleteWithChildren<TestLesson>(lesson);
+
+      expect(await router.get<TestLesson>('L001'), isNull);
+      expect(await router.get<TestCard>('C001'), isNull);
+      expect(await router.get<TestCard>('C002'), isNull);
     });
   });
 }

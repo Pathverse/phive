@@ -2,7 +2,7 @@
 abstract class PhiveSeedProvider {
   /// Returns a key synchronously from memory. Expects [init] to have been called.
   List<int> getSeedSync(String? seedId);
-  
+
   /// Initializes the seeds dynamically.
   Future<void> init();
 }
@@ -22,5 +22,18 @@ class PhiveMetaRegistry {
     if (seedProvider != null) {
       await seedProvider!.init();
     }
+  }
+
+  /// Returns one loaded seed or throws when encryption hooks are not ready.
+  static List<int> requireSeedSync(String? seedId) {
+    final provider = seedProvider;
+    if (provider == null) {
+      throw StateError(
+        'No Phive seed provider is registered. '
+        'Call PhiveMetaRegistry.registerSeedProvider(...) and await '
+        'PhiveMetaRegistry.init() before using encryption hooks.',
+      );
+    }
+    return provider.getSeedSync(seedId);
   }
 }

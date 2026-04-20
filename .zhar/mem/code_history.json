@@ -376,5 +376,59 @@
       "significance": "feature"
     },
     "custom": {}
+  },
+  "8231b": {
+    "id": "8231b",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Refresh README set for behavior-driven router model",
+    "status": "active",
+    "tags": [],
+    "source": "README.md",
+    "content": null,
+    "created_at": "2026-04-20T22:16:00Z",
+    "updated_at": "2026-04-20T22:16:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "83e73": {
+    "id": "83e73",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Refresh encryption hook templates and seed loading support",
+    "status": "active",
+    "tags": [],
+    "source": "phive_barrel/lib/templates/encrypted_aes.dart",
+    "content": null,
+    "created_at": "2026-04-20T22:18:36Z",
+    "updated_at": "2026-04-20T22:18:36Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "8417b": {
+    "id": "8417b",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Add named-seed preload tests and barrel setup docs",
+    "status": "active",
+    "tags": [],
+    "source": "phive_barrel/test/secure_storage_seed_provider_test.dart",
+    "content": null,
+    "created_at": "2026-04-20T22:21:53Z",
+    "updated_at": "2026-04-20T22:21:53Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
   }
 }

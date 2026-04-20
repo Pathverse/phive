@@ -5,6 +5,8 @@ Code generator for PHive model adapters.
 Use this package with `build_runner` to generate `*.g.dart` adapter code from
 `@PHiveType` and `@PHiveField` annotations.
 
+Generated adapters are the serialization layer used by both PHive routers. They apply model-level and field-level hooks, serialize PHive metadata, and keep storage behavior out of your domain models.
+
 ## Install
 
 ```yaml
@@ -51,7 +53,10 @@ class Session {
 	@PHiveField(0)
 	final String id;
 
-	const Session(this.id);
+	@PHiveField(1)
+	final String token;
+
+	const Session(this.id, this.token);
 }
 ```
 
@@ -75,6 +80,14 @@ the next available field index in constructor order. If some fields still use
 `@PHiveField`, their explicit indexes win and inferred fields fill the gaps.
 
 Generated output includes a `SessionAdapter` with hook pipeline calls for read/write.
+
+## What the generator handles
+
+- emits `PTypeAdapter<T>` implementations
+- merges model-level and field-level hook pipelines
+- preserves explicit field indexes where provided
+- supports opt-in `autoFields` inference for constructor-backed models
+- generates adapter code that works with both `PHiveDynamicRouter` and `PHiveStaticRouter`
 
 ## Notes
 

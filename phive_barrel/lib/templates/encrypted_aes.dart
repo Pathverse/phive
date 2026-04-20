@@ -7,11 +7,14 @@ import '../src/meta.dart';
 
 /// AES CBC encryption template. Note: GCM is generally preferred over CBC for authenticated encryption.
 class AESEncrypted extends PHiveHook {
+  /// Optional seed identifier used to select a stored encryption key.
   final String? seedId;
 
+  /// Creates an AES-CBC hook that encrypts string fields before storage.
   const AESEncrypted({this.seedId});
 
   @override
+  /// Encrypts the current string value and stores the IV in PHive metadata.
   void preWrite(PHiveCtx ctx) {
     if (ctx.value is String) {
       final plaintext = utf8.encode(ctx.value as String);
@@ -46,6 +49,7 @@ class AESEncrypted extends PHiveHook {
   }
 
   @override
+  /// Decrypts a previously encrypted string value using the stored IV.
   void postRead(PHiveCtx ctx) {
     if (ctx.value is String && ctx.metadata.containsKey('iv')) {
       final ivStr = ctx.metadata['iv'] as String;

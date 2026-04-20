@@ -17,15 +17,12 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
     // id (index 0)
     final raw_id = reader.read();
     final ctx_id = extractPayload(raw_id);
-    runPostRead(const [TTL(10)], ctx_id);
+    runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // encryptedToken (index 1)
     final raw_encryptedToken = reader.read();
     final ctx_encryptedToken = extractPayload(raw_encryptedToken);
-    runPostRead(const [
-      ...[TTL(10)],
-      ...[GCMEncrypted()],
-    ], ctx_encryptedToken);
+    runPostRead(const [GCMEncrypted()], ctx_encryptedToken);
     final res_encryptedToken = ctx_encryptedToken.value as String;
     // tempSessionId (index 2)
     final raw_tempSessionId = reader.read();
@@ -43,25 +40,19 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
   void write(BinaryWriter writer, UserProfile obj) {
     // id (index 0)
     final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [TTL(10)], ctx_id);
+    runPreWrite(const [], ctx_id);
     writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
-    runPostWrite(const [TTL(10)], ctx_id);
+    runPostWrite(const [], ctx_id);
     // encryptedToken (index 1)
     final ctx_encryptedToken = PHiveCtx()..value = obj.encryptedToken;
-    runPreWrite(const [
-      ...[TTL(10)],
-      ...[GCMEncrypted()],
-    ], ctx_encryptedToken);
+    runPreWrite(const [GCMEncrypted()], ctx_encryptedToken);
     writer.write(
       serializePayload(
         ctx_encryptedToken.value,
         ctx_encryptedToken.pendingMetadata,
       ),
     );
-    runPostWrite(const [
-      ...[TTL(10)],
-      ...[GCMEncrypted()],
-    ], ctx_encryptedToken);
+    runPostWrite(const [GCMEncrypted()], ctx_encryptedToken);
     // tempSessionId (index 2)
     final ctx_tempSessionId = PHiveCtx()..value = obj.tempSessionId;
     runPreWrite(const [TTL(10)], ctx_tempSessionId);

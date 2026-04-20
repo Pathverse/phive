@@ -4,11 +4,18 @@ import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../src/meta.dart';
 
+/// Seed provider that persists encryption keys in Flutter secure storage.
 class SecureStorageSeedProvider implements PhiveSeedProvider {
+  /// Secure storage backend used for key persistence.
   final FlutterSecureStorage _secureStorage;
+
+  /// Default key under which the primary seed is stored.
   final String _defaultStorageKey;
+
+  /// In-memory cache of loaded seed material keyed by seed id.
   final Map<String, List<int>> _cache = {};
 
+  /// Creates a provider backed by Flutter secure storage.
   SecureStorageSeedProvider({
     FlutterSecureStorage? secureStorage,
     String defaultStorageKey = 'phive_encryption_key',
@@ -16,6 +23,7 @@ class SecureStorageSeedProvider implements PhiveSeedProvider {
         _defaultStorageKey = defaultStorageKey;
 
   @override
+  /// Loads or creates the default seed and caches it in memory.
   Future<void> init() async {
     final existing = await _secureStorage.read(key: _defaultStorageKey);
     if (existing != null && existing.isNotEmpty) {
@@ -32,6 +40,7 @@ class SecureStorageSeedProvider implements PhiveSeedProvider {
   }
 
   @override
+  /// Returns a previously loaded seed for synchronous hook usage.
   List<int> getSeedSync(String? seedId) {
     final key = seedId ?? _defaultStorageKey;
     if (!_cache.containsKey(key)) {

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserProfile {
 
-@PHiveField(0) String get id;@PHiveField(1, hooks: [GCMEncrypted()]) String get encryptedToken;@PHiveField(2) String get tempSessionId;
+@PHiveField(0) String get id;@PHiveField(1, hooks: [GCMEncrypted()]) String get encryptedToken;@PHiveField(2, hooks: [TTL(10)]) String get tempSessionId;
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
-@PHiveField(0) String id,@PHiveField(1, hooks: [GCMEncrypted()]) String encryptedToken,@PHiveField(2) String tempSessionId
+@PHiveField(0) String id,@PHiveField(1, hooks: [GCMEncrypted()]) String encryptedToken,@PHiveField(2, hooks: [TTL(10)]) String tempSessionId
 });
 
 
@@ -152,7 +152,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2)  String tempSessionId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2, hooks: [TTL(10)])  String tempSessionId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
 return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
@@ -173,7 +173,7 @@ return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2)  String tempSessionId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2, hooks: [TTL(10)])  String tempSessionId)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
 return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
@@ -193,7 +193,7 @@ return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2)  String tempSessionId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@PHiveField(0)  String id, @PHiveField(1, hooks: [GCMEncrypted()])  String encryptedToken, @PHiveField(2, hooks: [TTL(10)])  String tempSessionId)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
 return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
@@ -208,12 +208,12 @@ return $default(_that.id,_that.encryptedToken,_that.tempSessionId);case _:
 
 
 class _UserProfile implements UserProfile {
-  const _UserProfile({@PHiveField(0) required this.id, @PHiveField(1, hooks: [GCMEncrypted()]) required this.encryptedToken, @PHiveField(2) required this.tempSessionId});
+  const _UserProfile({@PHiveField(0) required this.id, @PHiveField(1, hooks: [GCMEncrypted()]) required this.encryptedToken, @PHiveField(2, hooks: [TTL(10)]) required this.tempSessionId});
   
 
 @override@PHiveField(0) final  String id;
 @override@PHiveField(1, hooks: [GCMEncrypted()]) final  String encryptedToken;
-@override@PHiveField(2) final  String tempSessionId;
+@override@PHiveField(2, hooks: [TTL(10)]) final  String tempSessionId;
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -245,7 +245,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@PHiveField(0) String id,@PHiveField(1, hooks: [GCMEncrypted()]) String encryptedToken,@PHiveField(2) String tempSessionId
+@PHiveField(0) String id,@PHiveField(1, hooks: [GCMEncrypted()]) String encryptedToken,@PHiveField(2, hooks: [TTL(10)]) String tempSessionId
 });
 
 

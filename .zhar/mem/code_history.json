@@ -34,5 +34,311 @@
       "significance": "feature"
     },
     "custom": {}
+  },
+  "0b860": {
+    "id": "0b860",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Align example docs and profile hooks",
+    "status": "active",
+    "tags": [],
+    "source": "example/lib/models/user_profile.dart",
+    "content": null,
+    "created_at": "2026-04-20T18:27:11Z",
+    "updated_at": "2026-04-20T18:27:11Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "patch"
+    },
+    "custom": {}
+  },
+  "0c10e": {
+    "id": "0c10e",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Split example UI into lib/ui components",
+    "status": "active",
+    "tags": [],
+    "source": "example/lib/ui/phive_example_app.dart",
+    "content": null,
+    "created_at": "2026-04-20T18:30:59Z",
+    "updated_at": "2026-04-20T18:30:59Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "refactor"
+    },
+    "custom": {}
+  },
+  "0e3c7": {
+    "id": "0e3c7",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Expanded example UI into hook and relation sections",
+    "status": "active",
+    "tags": [],
+    "source": "example/lib/ui/phive_example_app.dart",
+    "content": null,
+    "created_at": "2026-04-20T18:41:29Z",
+    "updated_at": "2026-04-20T18:41:29Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "3c4d5": {
+    "id": "3c4d5",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Rewrite PHiveStaticRouter to use BoxCollection/CollectionBox",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/router/static_router.dart",
+    "content": "Full rewrite. Replaced Box<dynamic> with prefixed keys with Hive CE BoxCollection / CollectionBox. _collection holds a BoxCollection opened in ensureOpen(). _boxCache maps box names to CollectionBox<dynamic>. All CRUD uses async CollectionBox.get/put/delete. _assertMutable guards register and createRef after ensureOpen sets _isOpen. Box naming follows the same conventions as PHiveDynamicRouter.",
+    "created_at": "2026-04-20T19:30:00Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "fix"
+    },
+    "custom": {}
+  },
+  "4d5e6": {
+    "id": "4d5e6",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Add PHiveStaticRouter TDD test group (group 7, 10 tests)",
+    "status": "active",
+    "tags": [],
+    "source": "phive/test/router_test.dart",
+    "content": "Added group 7 — PHiveStaticRouter registration lock + full CRUD. 10 tests: register throws after ensureOpen, createRef throws after ensureOpen, ensureOpen idempotent, store/get round-trip, null on missing key, delete, ref entry populated on store, idempotent re-store, deleteContainer removes children and clears ref, deleteWithChildren removes parent and all children. Total test count is now 33 across 7 groups.",
+    "created_at": "2026-04-20T19:30:00Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "5e6f7": {
+    "id": "5e6f7",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Major schema update — initialization-locked language, BoxCollection API, corrected key naming",
+    "status": "active",
+    "tags": [],
+    "source": "docs/phive_router_schema.md",
+    "content": "Section 1 table updated: PHiveStaticRouter row now reads initialization-locked with BoxCollection rationale. Section 5.1 key naming corrected: PHiveStaticRouter uses per-type CollectionBox with same naming as dynamic router, not prefixed keys. Section 7 fully rewritten: initialization-lock semantics, BoxCollection.open() requirement, web TypeAdapter caveat, generator support demoted to 7.4 planned subsection, fromConfig removed. Section 10 updated to 33 tests / 7 groups with static router group listed. Section 11 file layout cleaned.",
+    "created_at": "2026-04-20T19:30:00Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "patch"
+    },
+    "custom": {}
+  },
+  "6f7a8": {
+    "id": "6f7a8",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Replace stale consumer sections with router architecture in systemPatterns",
+    "status": "active",
+    "tags": [],
+    "source": "memory-bank/systemPatterns.md",
+    "content": "Sections 6-8 (PHiveConsumer, adapter pattern, slot overload pattern) replaced with router architecture sections: section 6 is now exception orchestration without consumer coupling, section 7 describes PHiveDynamicRouter and PHiveStaticRouter including BoxCollection rationale, ref system, and web caveat, section 8 describes planned PHiveProcessor. Section 10 known-constraints updated to replace consumer-era notes with initialization-lock and web TypeAdapter caveats.",
+    "created_at": "2026-04-20T19:30:00Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "patch"
+    },
+    "custom": {}
+  },
+  "709aa": {
+    "id": "709aa",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Sync static router registration with openBox contract",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/router/static_router.dart",
+    "content": null,
+    "created_at": "2026-04-20T18:53:35Z",
+    "updated_at": "2026-04-20T18:53:35Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "patch"
+    },
+    "custom": {}
+  },
+  "723d3": {
+    "id": "723d3",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Wire example login to dynamic and refs to static router",
+    "status": "active",
+    "tags": [],
+    "source": "example/lib/main.dart",
+    "content": null,
+    "created_at": "2026-04-20T18:56:11Z",
+    "updated_at": "2026-04-20T18:56:11Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "74759": {
+    "id": "74759",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Encode static router CollectionBox payloads as base64 strings",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/router/static_router.dart",
+    "content": null,
+    "created_at": "2026-04-20T19:02:07Z",
+    "updated_at": "2026-04-20T19:02:07Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "patch"
+    },
+    "custom": {}
+  },
+  "75e6f": {
+    "id": "75e6f",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Document static router storage lessons and payload patterns",
+    "status": "active",
+    "tags": [],
+    "source": "docs/phive_static_router_lessons.md",
+    "content": null,
+    "created_at": "2026-04-20T19:15:57Z",
+    "updated_at": "2026-04-20T19:15:57Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "76917": {
+    "id": "76917",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Refresh public docs for router storage model",
+    "status": "active",
+    "tags": [],
+    "source": "README.md",
+    "content": null,
+    "created_at": "2026-04-20T19:43:05Z",
+    "updated_at": "2026-04-20T19:43:05Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "77c83": {
+    "id": "77c83",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Refresh package READMEs for router-based public docs",
+    "status": "active",
+    "tags": [],
+    "source": "phive/README.md",
+    "content": null,
+    "created_at": "2026-04-20T19:44:15Z",
+    "updated_at": "2026-04-20T19:44:15Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "7861b": {
+    "id": "7861b",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Add public glossary for PHive storage terms",
+    "status": "active",
+    "tags": [],
+    "source": "docs/phive_glossary.md",
+    "content": null,
+    "created_at": "2026-04-20T19:45:42Z",
+    "updated_at": "2026-04-20T19:45:42Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "793d8": {
+    "id": "793d8",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Trim router schema to current public architecture",
+    "status": "active",
+    "tags": [],
+    "source": "docs/phive_router_schema.md",
+    "content": null,
+    "created_at": "2026-04-20T19:49:11Z",
+    "updated_at": "2026-04-20T19:49:11Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "7aeb9": {
+    "id": "7aeb9",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Refocus storage guide on payload encoding and dissection",
+    "status": "active",
+    "tags": [],
+    "source": "docs/phive_static_router_lessons.md",
+    "content": null,
+    "created_at": "2026-04-20T19:50:23Z",
+    "updated_at": "2026-04-20T19:50:23Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
+  },
+  "7b35d": {
+    "id": "7b35d",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "Add concise usage-focused runtime and hook docstrings",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/core.dart",
+    "content": null,
+    "created_at": "2026-04-20T19:53:29Z",
+    "updated_at": "2026-04-20T19:53:29Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "significance": "feature"
+    },
+    "custom": {}
   }
 }

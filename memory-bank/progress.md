@@ -30,12 +30,16 @@
   - Cleaned `phive/lib/phive.dart` to export only core + router
   - Rewrote `example/lib/main.dart` to use `PHiveDynamicRouter`
 
+- **Fixed `PHiveStaticRouter`** — rewrote to use Hive CE `BoxCollection`/`CollectionBox` API (not `Box<dynamic>` with key prefixes). Registration is now correctly described as "initialization-locked" (not "compile-time"). All CRUD uses `async CollectionBox.get/put/delete`.
+- **Added TDD test group for `PHiveStaticRouter`** (`router_test.dart` group 7, 10 tests) — registration lock (register/createRef throw after ensureOpen), `ensureOpen` idempotent, store/get/delete round-trip, ref system, deleteContainer, deleteWithChildren. Total: **33 tests, 7 groups**.
+- **Updated schema** (`docs/phive_router_schema.md`) — fixed section 1 table, rewrote section 7 to reflect actual implementation with initialization-lock semantics, `BoxCollection.open()` API, and web TypeAdapter caveat. Fixed section 5.1 key naming, updated test count/groups in section 10, cleaned file layout in section 11.
+- **Updated `memory-bank/systemPatterns.md`** — replaced stale consumer-era sections 6–8 with router architecture (PHiveDynamicRouter, PHiveStaticRouter, ref system, planned PHiveProcessor).
+
 ## In Progress
 - Tests written but not yet verified locally (Flutter SDK not available in sandbox). Run: `flutter test test/router_test.dart` from `phive/`.
 
 ## Pending
-- `PHiveStaticRouter` implementation (requires generator changes).
-- `@PHiveRef` annotation + generator support (`phive_generator`).
+- `@PHiveRef` annotation + generator support (`phive_generator`) — emitting `PHiveStaticRouter` config from annotated classes.
 - `PHiveProcessor<T>` — caching middleware layer (above router, for Retrofit/Dio integration).
 - `PHiveDataSource<T>` interface — network boundary abstraction.
 - Router-level scope config (replaces deleted `ScopeProviderAdapter`).

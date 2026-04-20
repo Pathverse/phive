@@ -26,8 +26,8 @@ Generated adapters inherit from `PTypeAdapter<T>`. This class owns:
 ## 5. Model-Level Hooks
 Hooks can be attached at the model level via `@PHiveType(hooks: [...])`, acting on a root `PHiveCtx` that controls universal persistence rules (e.g., global TTL for the whole item). The generator parses model-level hooks and merges them with field-level hooks when emitting `runPreWrite/runPostWrite/runPostRead` blocks.
 
-## 6. Exception Orchestration & `PHiveConsumer`
-Hooks throw `PHiveActionException` (never fatal raw exceptions) to signal corrective intent. `PHiveConsumer<T>` wraps the Hive box interface and catches these exceptions, then executes the actions declared in `codes`.
+## 6. Exception Orchestration
+Hooks throw `PHiveActionException` (never fatal raw exceptions) to signal corrective intent. The router layer propagates these; the planned `PHiveProcessor<T>` layer above the router will catch and orchestrate the response.
 
 ### `PHiveActionException` Action Codes
 | Code | Action |
@@ -41,27 +41,25 @@ Hooks throw `PHiveActionException` (never fatal raw exceptions) to signal correc
 
 Codes `3` and `4` are mutually exclusive (enforced in the constructor). Codes can be combined (e.g., `{2, 3}` runs a callback then deletes the key).
 
-## 7. Consumer Adapter Pattern
-`PHiveConsumer<T>` accepts one or more `PHiveConsumerAdapter` implementations. Each adapter:
-- Declares `Set<int> providedSlots` (which overload slots it owns).
-- Implements `hydrate<T>(ctx)` to populate those slots on `PHiveConsumerCtx`.
-- Implements `ensureOpen`, `get`, `set`, `delete`, `clear` as CRUD operations.
+## 7. PHiveRouter Architecture
+`PHiveRouter` is the storage layer. Two concrete implementations share the `PHiveRouter` interface:
 
-`DefaultHiveAdapter` is automatically used when no adapter is specified. It handles lazy box opening, concurrent open de-duplication via `_openingFutures`, and web-runtime safety.
+### PHiveDynamicRouter
+- Runtime registration — `register<T>` and `createRef<T,P>` can be called at any time.
+- One `Box<T>` per registered type; `Box<dynamic>` ref stores for parent→child index lists.
+- Injectable — multiple router instances can coexist (e.g., one per feature module).
 
-## 8. Context-Overload Adapter Pattern (`PHiveConsumerCtx`)
-Extensibility flows through overloadable slots on `PHiveConsumerCtx<T>`:
+### PHiveStaticRouter
+- Initialization-locked — all types and refs must be registered before the first `ensureOpen()` call.
+- Uses Hive CE's `BoxCollection` API: one logical database per router instance. On web this is one IndexedDB database with multiple object stores; on native it is one directory with multiple box files.
+- `BoxCollection.open(name, boxNames)` is called inside `ensureOpen()` with the complete set of box names. After that point `register` and `createRef` throw `StateError`.
+- Web caveat: on web, IndexedDB may bypass `TypeAdapter` dispatch, so `PTypeAdapter` hooks (encryption, TTL) require native-side validation or explicit binary serialisation for web targets.
 
-### Slot Constants (`PHiveConsumerSlots`)
-| Constant | Value | Overloads |
-|---|---|---|
-| `overloadableBox` | 10 | `BoxBase<T>? overloadableBox` |
-| `overloadableGet` | 20 | `PHiveConsumerGetMethod<T>?` |
-| `overloadableSet` | 21 | `PHiveConsumerSetMethod<T>?` |
-| `overloadableDelete` | 22 | `PHiveConsumerDeleteMethod?` |
-| `overloadableClear` | 23 | `PHiveConsumerClearMethod?` |
+### Ref System
+`createRef<T, P>(resolve: (child) => child.parentId)` declares a parent→child containership. On every `store<T>()` call the router appends the child's primary key to the ref store entry for that parent, idempotently. `PHiveContainerHandle<T>` is a lightweight immutable descriptor (`refBoxName` + `parentKey`) returned by `containerOf<T,P>(parent)` and consumed by `getContainer` / `deleteContainer`.
 
-Each adapter declares which slots it owns via `providedSlots`. `PHiveConsumer._guardAdapterSlots()` validates there are no collisions at construction time. This allows stacking multiple adapters (e.g., `DefaultHiveAdapter` + `ScopeProviderAdapter`) while preserving deterministic ownership.
+## 8. Planned: PHiveProcessor\<T\>
+`PHiveProcessor<T>` will sit above `PHiveRouter` to handle caching middleware concerns: network fallback (Retrofit/Dio via `PHiveDataSource<T>`), `PHiveActionException` orchestration, and TTL policies. Cache strategies planned: cache-aside, stale-while-revalidate, write-through.
 
 ## 9. Seed Provider / Encryption Registry
 Encryption hooks (`GCMEncrypted`, `AESEncrypted`, `UniversalEncrypted`) retrieve key material via `PhiveMetaRegistry.seedProvider`. The app registers a `PhiveSeedProvider` implementation (e.g., `SecureStorageSeedProvider`) at startup and calls `PhiveMetaRegistry.init()` to load seeds into memory before any box operations run.
@@ -69,5 +67,5 @@ Encryption hooks (`GCMEncrypted`, `AESEncrypted`, `UniversalEncrypted`) retrieve
 ## 10. Known Constraints & Design Decisions
 - Freezed models must be declared as `abstract class Foo with _$Foo` so that the mixin satisfies analyzer bounds during generation.
 - Codes `3` and `4` in `PHiveActionException` are mutually exclusive by design (delete-key vs. clear-box are contradictory intents).
-- `_primaryAdapter` (first in the list) handles all CRUD dispatch; secondary adapters only hydrate context via their overload slots.
-- `CollectionBoxAdapter` and `ScopeProviderAdapter` are scaffolded but all methods throw `UnimplementedError` — see activeContext for what remains.
+- `PHiveStaticRouter` schema is frozen after `ensureOpen()` because `BoxCollection.open()` requires the complete set of box names upfront — `BoxCollection` cannot register new stores after it has been opened.
+- `PHiveStaticRouter` on web may bypass `TypeAdapter` dispatch (IndexedDB uses native JSON serialisation), so encryption and TTL hooks need native-only validation or an explicit binary strategy for web.

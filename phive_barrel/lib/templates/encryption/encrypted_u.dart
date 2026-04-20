@@ -8,11 +8,14 @@ import '../../src/meta.dart';
 /// Universal encryption template.
 /// Attempts to serialize dynamic values to JSON/bytes before encrypting.
 class UniversalEncrypted extends PHiveHook {
+  /// Optional seed identifier used to select a stored encryption key.
   final String? seedId;
 
+  /// Creates a generic encryption hook for JSON-serializable values.
   const UniversalEncrypted({this.seedId});
 
   @override
+  /// Serializes and encrypts the current value, storing the nonce in metadata.
   void preWrite(PHiveCtx ctx) {
     if (ctx.value != null) {
       // Very basic universal serialization using JSON
@@ -37,6 +40,7 @@ class UniversalEncrypted extends PHiveHook {
   }
 
   @override
+  /// Decrypts and attempts to JSON-decode a previously encrypted value.
   void postRead(PHiveCtx ctx) {
     if (ctx.value is String && ctx.metadata.containsKey('nonce_u')) {
       final nonceStr = ctx.metadata['nonce_u'] as String;

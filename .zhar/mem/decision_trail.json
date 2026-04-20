@@ -17,5 +17,81 @@
       "source_ref": "phive_generator/lib/src/phive_generator.dart"
     },
     "custom": {}
+  },
+  "0dc2f": {
+    "id": "0dc2f",
+    "group": "decision_trail",
+    "node_type": "research_finding",
+    "summary": "Expanded example to cover hook and relation demos",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "The example app now intentionally demonstrates two distinct PHive capabilities in one flow:\n- Hooked cache behavior for encrypted and TTL-backed fields.\n- Router relation behavior for parent-child storage, container reads, child-only deletion, and cascade deletion.\n\nThis keeps the example aligned with PHiveDynamicRouter's actual value instead of presenting it as plain typed CRUD over Hive boxes.",
+    "created_at": "2026-04-20T18:41:29Z",
+    "updated_at": "2026-04-20T18:41:29Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "example"
+    },
+    "custom": {}
+  },
+  "1a2f3": {
+    "id": "1a2f3",
+    "group": "decision_trail",
+    "node_type": "design_decision",
+    "summary": "PHiveStaticRouter uses BoxCollection, not Box<dynamic> with prefixed keys",
+    "status": "active",
+    "tags": [],
+    "source": "phive/lib/src/router/static_router.dart",
+    "content": "PHiveStaticRouter was corrected to use Hive CE's BoxCollection / CollectionBox API rather than a single Box<dynamic> with namespaced key prefixes. Each registered type and ref store gets its own named CollectionBox within one BoxCollection, matching the naming conventions of PHiveDynamicRouter (type box: T.toString().toLowerCase(), ref box: __ref_ParentType_ChildType). All CRUD operations use async CollectionBox.get / put / delete. This gives web targets one IndexedDB database with multiple object stores instead of many independent databases.",
+    "created_at": "2026-04-20T19:30:00Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "phive/lib/src/router/static_router.dart"
+    },
+    "custom": {}
+  },
+  "2b3e4": {
+    "id": "2b3e4",
+    "group": "decision_trail",
+    "node_type": "design_decision",
+    "summary": "PHiveStaticRouter schema is initialization-locked, not compile-time",
+    "status": "active",
+    "tags": [],
+    "source": "docs/phive_router_schema.md",
+    "content": "The language describing PHiveStaticRouter was corrected from 'compile-time' to 'initialization-locked'. The distinction matters: types and refs are registered at runtime by calling register<T> and createRef<T,P> on the router instance before ensureOpen(). Once ensureOpen() is called, BoxCollection.open() is invoked with the complete set of box names and no further registration is possible. This is a runtime initialization constraint, not a static or build-time constraint. Generator support (planned) would allow annotations to drive those registration calls automatically, but the locking mechanism itself is always runtime.",
+    "created_at": "2026-04-20T19:30:00Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "docs/phive_router_schema.md"
+    },
+    "custom": {}
+  },
+  "717cf": {
+    "id": "717cf",
+    "group": "decision_trail",
+    "node_type": "research_finding",
+    "summary": "Split example by router role",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "The example now uses two router implementations intentionally:\n- PHiveDynamicRouter handles the login/cache demo so generated adapters and field hooks continue to run through regular typed Hive boxes.\n- PHiveStaticRouter handles the lesson/card relations demo so BoxCollection-backed ref behavior is demonstrated explicitly without mixing it into the hook path.",
+    "created_at": "2026-04-20T18:56:11Z",
+    "updated_at": "2026-04-20T18:56:11Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "example"
+    },
+    "custom": {}
   }
 }

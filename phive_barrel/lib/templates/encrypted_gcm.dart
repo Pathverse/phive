@@ -5,12 +5,16 @@ import 'package:phive/phive.dart';
 import 'package:pointycastle/export.dart';
 import '../src/meta.dart';
 
+/// AES-GCM encryption hook for authenticated string field storage.
 class GCMEncrypted extends PHiveHook {
+  /// Optional seed identifier used to select a stored encryption key.
   final String? seedId;
 
+  /// Creates a GCM encryption hook for one or more string fields.
   const GCMEncrypted({this.seedId});
 
   @override
+  /// Encrypts the current string value and stores the nonce in PHive metadata.
   void preWrite(PHiveCtx ctx) {
     if (ctx.value is String) {
       final plaintext = utf8.encode(ctx.value as String);
@@ -34,6 +38,7 @@ class GCMEncrypted extends PHiveHook {
   }
 
   @override
+  /// Decrypts a previously encrypted string value using the stored nonce.
   void postRead(PHiveCtx ctx) {
     if (ctx.value is String && ctx.metadata.containsKey('nonce')) {
       final nonceStr = ctx.metadata['nonce'] as String;

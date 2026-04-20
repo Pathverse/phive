@@ -1,15 +1,15 @@
 # PHive
 
-Annotation-driven secure persistence for Hive CE with generated adapters, hook pipelines, and Freezed support.
+Annotation-driven persistence for Hive CE with generated adapters, hook pipelines, router-based storage, and Freezed support.
 
 ## What is PHive?
 
 PHive is a monorepo that provides:
 
-- **`phive`**: runtime annotations, hook contracts, consumer APIs
+- **`phive`**: runtime annotations, hook contracts, router APIs
 - **`phive_generator`**: code generator that emits `PTypeAdapter` implementations
 - **`phive_barrel`**: ready-to-use hooks (e.g. TTL, encryption)
-- **`example`**: Flutter app demonstrating cache save/restore and hook behavior
+- **`example`**: Flutter app demonstrating dynamic and static router flows
 - **`phive_test`**: integration-style test package for generator/runtime validation
 
 ## Key Features
@@ -18,7 +18,17 @@ PHive is a monorepo that provides:
 - Compose field-level and model-level hooks (including merged hook pipelines)
 - Keep models clean (no wrapper value types in domain objects)
 - Support Freezed models
-- Use `PHiveConsumer` with adapter-based overload points for advanced box behavior
+- Route data through `PHiveDynamicRouter` or `PHiveStaticRouter`
+- Support parent-child containership through router refs
+
+## Routing Model
+
+PHive currently exposes two storage routers:
+
+- `PHiveDynamicRouter`: runtime registration, one Hive box per registered type and ref store
+- `PHiveStaticRouter`: initialization-locked registration backed by one Hive CE `BoxCollection`
+
+Use the dynamic router when the type set is flexible or when direct box semantics are preferred. Use the static router when a fixed set of types and refs should share one logical database, especially on web.
 
 ## Packages
 
@@ -28,7 +38,7 @@ Core runtime package containing:
 - `@PHiveType`, `@PHiveField`
 - `PHiveCtx`, `PHiveHook`, `PTypeAdapter`
 - `PHiveActionException`
-- `PHiveConsumer` and adapter abstractions
+- `PHiveRouter`, `PHiveDynamicRouter`, `PHiveStaticRouter`, `PHiveContainerHandle`
 
 ### `phive_generator`
 Build runner generator package that emits adapter code.
@@ -86,17 +96,22 @@ dart run build_runner build --delete-conflicting-outputs
 
 ```dart
 Hive.registerAdapter(SessionAdapter());
-final box = await Hive.openBox<Session>('sessions');
-await box.put('current', const Session(id: '1', token: 'abc'));
+
+final router = PHiveDynamicRouter()
+  ..register<Session>(
+    primaryKey: (session) => session.id,
+    boxName: 'sessions',
+  );
+
+await router.store(const Session(id: '1', token: 'abc'));
+final restored = await router.get<Session>('1');
 ```
 
-## PHiveConsumer
+## Static Router Notes
 
-Use `PHiveConsumer<T>` when you want hook-aware read/write orchestration and adapter-extensible behavior:
+`PHiveStaticRouter` uses Hive CE `BoxCollection` to place multiple named stores under one logical database. On web, PHive stores base64-encoded Hive binary payloads in `CollectionBox<String>` so generated adapter behavior and hook pipelines remain intact across platforms.
 
-- context overload slots (`overloadableGetMethod`, `overloadableSetMethod`, etc.)
-- adapter slot collision guard
-- `consumerMeta` / `meta` payloads for scoped strategies (e.g. env-key prefixing)
+See [docs/phive_router_schema.md](docs/phive_router_schema.md) for the router model and [docs/phive_static_router_lessons.md](docs/phive_static_router_lessons.md) for the storage-format guide.
 
 ## Development
 
@@ -126,7 +141,7 @@ phive/
 
 ## Status
 
-This project is under active development. APIs around `PHiveConsumer` adapters are evolving.
+This project is under active development. Router and generator capabilities are active, and generator-backed static-router ref declarations remain planned.
 
 ## License
 

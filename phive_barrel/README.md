@@ -24,7 +24,10 @@ dependencies:
 
 - `TTL(seconds)`
 - `GCMEncrypted()`
+- `AESEncrypted()`
 - `UniversalEncrypted()`
+
+These hooks are designed to run inside generated `PTypeAdapter<T>` code produced by `phive_generator`.
 
 ## Quick Start
 
@@ -46,7 +49,14 @@ class Session {
 
 Then regenerate adapters with `build_runner`.
 
+## Hook model
+
+- hooks run through `PHiveCtx`
+- model-level hooks declared on `@PHiveType` are merged with field-level hooks on `@PHiveField`
+- encryption hooks may attach metadata such as nonces into the PHive payload envelope
+- the runtime router remains responsible for storage layout, while hooks remain responsible for value transformation
+
 ## Notes
 
 - Hooks are designed to work with PHive-generated adapters.
-- For Flutter/web examples, check the monorepo `example` app.
+- For a working dynamic-router and static-router example, see the monorepo `example` app.

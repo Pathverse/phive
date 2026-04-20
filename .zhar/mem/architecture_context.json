@@ -37,13 +37,30 @@
     "id": "08475",
     "group": "architecture_context",
     "node_type": "architecture",
-    "summary": "PHiveRouter replaces consumer storage layer",
+    "summary": "PHiveRouter — both routers implemented; BoxCollection-backed static router",
     "status": "active",
     "tags": [],
-    "source": "memory-bank/activeContext.md",
-    "content": "The consumer layer has been superseded by PHiveRouter. PHiveDynamicRouter is the implemented runtime router and owns type registration, box management, primary-key routing, and parent-child ref stores. PHiveStaticRouter remains a documented stub pending generator support for compile-time router definitions and PHiveRef emission. The active roadmap after this migration is PHiveProcessor above the router layer, PHiveRef generator support, and static-router implementation.",
+    "source": "memory-bank/systemPatterns.md",
+    "content": "The consumer layer has been superseded by PHiveRouter. Both router implementations are now complete. PHiveDynamicRouter is the runtime router: one Box<T> per registered type, Box<dynamic> ref stores holding List<String> child-key indexes, runtime registration at any time. PHiveStaticRouter is the initialization-locked router: uses Hive CE BoxCollection so all type and ref boxes live in one logical database (one IndexedDB store on web, one directory on native). All types and refs must be registered before the first ensureOpen() call; BoxCollection.open() is invoked inside ensureOpen() with the complete set of box names and the schema is frozen after that point. On web, IndexedDB may bypass TypeAdapter dispatch so PTypeAdapter hooks (encryption, TTL) require native-side validation for web targets. The active roadmap is PHiveProcessor above the router layer, PHiveRef generator support for annotation-driven static-router config, and router-level scope configuration.",
     "created_at": "2026-04-20T18:01:27Z",
-    "updated_at": "2026-04-20T18:01:27Z",
+    "updated_at": "2026-04-20T19:30:00Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
+  },
+  "7307d": {
+    "id": "7307d",
+    "group": "architecture_context",
+    "node_type": "architecture",
+    "summary": "Static router stores binary payloads inside BoxCollection",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "PHiveStaticRouter no longer hands raw Dart objects to BoxCollection on web. It now serializes both primary values and ref payloads through Hive's binary reader/writer pipeline and stores them as primitive base64 strings in CollectionBox entries.\n\nThis keeps the BoxCollection one-database layout while preserving adapter-based PHive behavior across web and native targets.",
+    "created_at": "2026-04-20T19:02:07Z",
+    "updated_at": "2026-04-20T19:02:07Z",
     "expires_at": null,
     "metadata": {
       "agent": "zhar-agent"

@@ -7,11 +7,12 @@ part 'user_profile.freezed.dart';
 part 'user_profile.g.dart';
 
 @freezed
-@PHiveType(2, hooks: [TTL(10)])
+/// Demo profile model showing per-field hook behavior in the example app.
+@PHiveType(2)
 abstract class UserProfile with _$UserProfile {
   const factory UserProfile({
     @PHiveField(0) required String id,
     @PHiveField(1, hooks: [GCMEncrypted()]) required String encryptedToken,
-    @PHiveField(2) required String tempSessionId,
+    @PHiveField(2, hooks: [TTL(10)]) required String tempSessionId,
   }) = _UserProfile;
 }

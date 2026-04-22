@@ -52,6 +52,28 @@ class PHiveRef {
   const PHiveRef(this.parentType, {this.refBoxName});
 }
 
+/// Declares a PHive model type whose Hive typeId is assigned automatically.
+///
+/// Unlike [PHiveType], no `typeId` is supplied at the call site. Instead the
+/// generator reads the workspace-level `phive_type_registry.json` file and
+/// hard-codes the assigned integer into the generated adapter.  Run the
+/// `assign_type_ids` CLI tool once after adding new annotated classes so the
+/// registry is populated before `build_runner` is invoked.
+class PHiveAutoType {
+  /// Model-level hooks merged into every mapped field pipeline.
+  final List<PHiveHook>? hooks;
+
+  /// Enables deterministic field inference when `@PHiveField` is omitted.
+  ///
+  /// When enabled, constructor-backed fields without explicit `@PHiveField`
+  /// annotations are assigned the next available field index in constructor
+  /// order. Explicit indexes always win.
+  final bool autoFields;
+
+  /// Creates a PHive auto-type annotation whose typeId is registry-assigned.
+  const PHiveAutoType({this.hooks, this.autoFields = false});
+}
+
 /// Wraps supplemental metadata values that travel alongside payload state.
 class PhiveMetaVar<T> {
   /// Optional metadata payload stored for the variable scope.

@@ -106,7 +106,7 @@ _RouterMember? _routerMemberFromParameter(FormalParameterElement param) {
   final refConfig = _parseRefAnnotation(refAnnotation);
   return _RouterMember(
     name: param.displayName,
-    type: param.type.getDisplayString(withNullability: true),
+    type: param.type.getDisplayString(),
     isPrimaryKey: pkConfig.isPrimaryKey,
     boxNameSource: pkConfig.boxNameSource,
     refParentTypeSource: refConfig.parentTypeSource,
@@ -129,7 +129,7 @@ _RouterMember? _routerMemberFromAccessor(PropertyAccessorElement accessor) {
   final refConfig = _parseRefAnnotation(refAnnotation);
   return _RouterMember(
     name: accessor.displayName,
-    type: accessor.returnType.getDisplayString(withNullability: true),
+    type: accessor.returnType.getDisplayString(),
     isPrimaryKey: pkConfig.isPrimaryKey,
     boxNameSource: pkConfig.boxNameSource,
     refParentTypeSource: refConfig.parentTypeSource,

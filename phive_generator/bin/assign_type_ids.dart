@@ -5,9 +5,9 @@
 ///   dart run phive_generator:assign_type_ids [options]
 ///
 /// Options:
-///   --dir <path>        Directory to scan for .dart files. Default: lib/
-///   --registry <path>   Registry file path. Default: phive_type_registry.json
-///   --start <int>       Minimum typeId to assign (floor). Default: 0
+///   --dir {path}        Directory to scan for .dart files. Default: lib/
+///   --registry {path}   Registry file path. Default: phive_type_registry.json
+///   --start {int}       Minimum typeId to assign (floor). Default: 0
 ///   --dry-run           Print changes without writing to disk.
 ///   --help              Show this help message.
 ///

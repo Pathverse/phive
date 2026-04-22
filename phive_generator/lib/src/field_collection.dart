@@ -93,7 +93,7 @@ CollectedField? _fieldFromParameter(
     name: param.displayName,
     index: config.index,
     hooksSource: config.hooksSource,
-    type: param.type.getDisplayString(withNullability: true),
+    type: param.type.getDisplayString(),
     hasExplicitAnnotation: phiveFieldMeta != null,
   );
 }
@@ -117,7 +117,7 @@ CollectedField? _fieldFromAccessor(
     name: accessor.displayName,
     index: config.index,
     hooksSource: config.hooksSource,
-    type: accessor.returnType.getDisplayString(withNullability: true),
+    type: accessor.returnType.getDisplayString(),
     hasExplicitAnnotation: phiveFieldMeta != null,
   );
 }

@@ -6,6 +6,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:phive/phive.dart';
 import 'package:source_gen/source_gen.dart';
+// ignore: implementation_imports
 import 'package:hive_ce_generator/src/helper/helper.dart' as hive_helper;
 
 import 'adapter_emitter.dart';
@@ -110,7 +111,7 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
   /// automatically invalidate the build cache; running `build_runner build`
   /// explicitly after `assign_type_ids` is the expected workflow.
   Future<TypeIdRegistry> _resolveRegistry(BuildStep buildStep) async {
-    if (_testRegistry != null) return _testRegistry!;
+    if (_testRegistry != null) return _testRegistry;
 
     final registryFile = File('phive_type_registry.json');
     if (!registryFile.existsSync()) {

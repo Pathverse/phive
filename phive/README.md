@@ -112,6 +112,10 @@ PHive uses behavior-driven hook exceptions for read-side cleanup and fallback ha
 
 This keeps hooks responsible for declaring value semantics and routers responsible for applying storage side effects.
 
+## Nullable Fields
+
+`PTypeAdapter.serializePayload` handles null correctly: a null value is stored as Hive null rather than the string `"null"`. Nullable field types (`int?`, `bool?`, etc.) round-trip safely through the hook pipeline.
+
 ## Notes
 
 - This package is runtime-only.

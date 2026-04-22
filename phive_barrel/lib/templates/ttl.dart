@@ -23,7 +23,12 @@ class TTL extends PHiveHook {
 
   @override
   /// Attaches TTL metadata to the outgoing payload.
+  ///
+  /// Skips null values — there is no meaningful expiry window to record for a
+  /// field that holds no data, and writing TTL metadata for null would cause
+  /// [serializePayload] to encode a non-null payload string for a null value.
   void preWrite(PHiveCtx ctx) {
+    if (ctx.value == null) return;
     ctx.pendingMetadata['ttl_ms'] = durationSeconds * 1000;
     ctx.pendingMetadata['written_at'] = DateTime.now().millisecondsSinceEpoch;
   }

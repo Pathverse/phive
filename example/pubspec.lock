@@ -526,21 +526,21 @@ packages:
       path: "../phive"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.2.1"
   phive_barrel:
     dependency: "direct main"
     description:
       path: "../phive_barrel"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.2.1"
   phive_generator:
     dependency: "direct dev"
     description:
       path: "../phive_generator"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.2.1"
   platform:
     dependency: transitive
     description:

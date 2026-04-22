@@ -40,8 +40,15 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
   /// Delimiter between encoded metadata and the serialized field value.
   static const String metaDelimiter = '%PVR%';
 
-  /// Combines a value and optional metadata into a PHive payload string.
-  String serializePayload(dynamic value, Map<String, dynamic> meta) {
+  /// Combines a value and optional metadata into a PHive payload.
+  ///
+  /// Returns `null` directly when [value] is null so that Hive stores a true
+  /// null rather than the string `"null"`.  When metadata is present the
+  /// payload is a base64-encoded JSON header joined to the value by
+  /// [metaDelimiter]; otherwise the raw value string is returned unchanged.
+  dynamic serializePayload(dynamic value, Map<String, dynamic> meta) {
+    if (value == null) return null;
+
     /// If no metadata exists, we can save space and omit the delimiter entirely
     if (meta.isEmpty) {
       return value.toString();

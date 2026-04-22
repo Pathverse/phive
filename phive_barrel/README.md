@@ -99,6 +99,10 @@ class Session {
 
 If you use a custom `seedId`, include it in `SecureStorageSeedProvider(seedIds: [...])` before calling `PhiveMetaRegistry.init()`.
 
+## Nullable Fields
+
+All barrel hooks are null-safe. `TTL` skips writing metadata when the field value is null so nullable fields (`int?`, `bool?`, etc.) round-trip correctly without payload corruption. Encryption hooks (`GCMEncrypted`, `AESEncrypted`, `UniversalEncrypted`) already skipped non-string values. No special annotation is needed; nullability is handled automatically.
+
 ## Notes
 
 - Hooks are designed to work with PHive-generated adapters.

@@ -1,6 +1,6 @@
 name: phive
 description: "Annotation-driven runtime for Hive CE with hook pipelines and consumer APIs."
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/Pathverse/phive
 
 environment:

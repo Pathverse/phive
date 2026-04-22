@@ -9,7 +9,7 @@ This package is mainly for contributors who want to validate generated adapters,
 - integration-style validation of generator output
 - hook pipeline behavior checks such as TTL and encryption
 - regression tests while developing `phive`, `phive_generator`, and router behavior
-- fixture models that exercise class-level hooks, field-level hooks, `autoFields`, and descriptor generation
+- fixture models that exercise class-level hooks, field-level hooks, `autoFields`, descriptor generation, and `@PHiveAutoType` registry-assigned typeIds
 
 ## Install Dependencies
 
@@ -36,6 +36,7 @@ This package is where PHive validates cross-package expectations such as:
 - generated adapters and descriptors compile together
 - top-level and field-level hooks behave correctly
 - AES, GCM, TTL, and `autoFields` scenarios stay stable across refactors
+- `@PHiveAutoType` adapters with registry-assigned typeIds round-trip correctly
 
 ## Quick Note
 

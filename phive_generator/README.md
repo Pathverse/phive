@@ -2,7 +2,7 @@
 
 Code generator for PHive model adapters and router descriptors.
 
-Use this package with `build_runner` to generate `*.g.dart` code from `@PHiveType`, `@PHiveField`, `@PHivePrimaryKey`, and `@PHiveRef` annotations.
+Use this package with `build_runner` to generate `*.g.dart` code from `@PHiveType`, `@PHiveAutoType`, `@PHiveField`, `@PHivePrimaryKey`, and `@PHiveRef` annotations.
 
 Generated adapters are the serialization layer used by both PHive routers. They apply model-level and field-level hooks, serialize PHive metadata, and keep storage behavior out of your domain models. Generated router descriptors keep registration and ref wiring declarative as well.
 
@@ -100,9 +100,38 @@ class Session {
 
 In `autoFields` mode, constructor-backed fields without `@PHiveField` receive the next available field index in constructor order. If some fields still use `@PHiveField`, their explicit indexes win and inferred fields fill the gaps.
 
+## Auto-assigned typeIds with `@PHiveAutoType`
+
+If you would rather not pick typeId integers by hand, use `@PHiveAutoType`. The generator reads `phive_type_registry.json` from the package root and hard-codes the assigned id into the adapter.
+
+```dart
+@PHiveAutoType()
+class Note {
+	@PHiveField(0)
+	final String id;
+
+	@PHiveField(1)
+	final String body;
+
+	const Note({required this.id, required this.body});
+}
+```
+
+**Workflow — once per new class:**
+
+```bash
+# Assign a typeId to any unregistered @PHiveAutoType classes
+dart run phive_generator:assign_type_ids
+
+# Commit the registry, then generate as normal
+dart run build_runner build --delete-conflicting-outputs
+```
+
+`phive_type_registry.json` is committed to version control. Ids are stable and never reassigned. `@PHiveAutoType` supports all the same options as `@PHiveType` — `hooks` and `autoFields` — just without the integer.
+
 ## What the Generator Handles
 
-- emits `PTypeAdapter<T>` implementations
+- emits `PTypeAdapter<T>` implementations for `@PHiveType` and `@PHiveAutoType`
 - emits `*RouterDescriptor` implementations when router annotations are present
 - merges model-level and field-level hook pipelines
 - preserves explicit field indexes where provided

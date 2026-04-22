@@ -6,8 +6,8 @@ Use this package to define model annotations, hook pipelines, generated adapter 
 
 ## What you get
 
-- `@PHiveType` and `@PHiveField`
-- `@PHivePrimaryKey` and `@PHiveRef`
+- `@PHiveType` and `@PHiveAutoType` — model annotation with explicit or registry-assigned typeId
+- `@PHiveField`, `@PHivePrimaryKey`, `@PHiveRef`
 - `PTypeAdapter<T>` runtime support
 - `PHiveCtx` and `PHiveHook`
 - `PHiveActionException` and `PHiveActionBehavior`
@@ -63,7 +63,22 @@ class AutoSession {
 }
 ```
 
-This keeps explicit `@PHiveField` optional for greenfield schemas while still allowing explicit indexes wherever a stable migration contract matters.
+Or skip the typeId entirely with `@PHiveAutoType` and let the generator assign it from `phive_type_registry.json`:
+
+```dart
+@PHiveAutoType()
+class Note {
+  @PHiveField(0)
+  final String id;
+
+  @PHiveField(1)
+  final String body;
+
+  const Note({required this.id, required this.body});
+}
+```
+
+Run `dart run phive_generator:assign_type_ids` once after annotating, then `build_runner` as normal. See `phive_generator` for the full workflow.
 
 ## Router Quick Use
 

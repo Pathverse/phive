@@ -26,13 +26,31 @@ ElementAnnotation? findAnnotationNamed(
 /// Extracts the hooks list source text declared on the `@PHiveType` or
 /// `@PHiveAutoType` annotation of [element], returning `'[]'` when absent.
 String extractModelHooksSource(InterfaceElement element) {
+  return extractModelHookListSource(element, argumentName: 'hooks');
+}
+
+/// Extracts the class-level hooks list source text declared on the
+/// `@PHiveType` or `@PHiveAutoType` annotation of [element], returning `'[]'`
+/// when absent.
+String extractModelClassHooksSource(InterfaceElement element) {
+  return extractModelHookListSource(element, argumentName: 'classHooks');
+}
+
+/// Extracts a named hook-list argument from `@PHiveType` or `@PHiveAutoType`
+/// on [element], returning `'[]'` when the argument is absent.
+String extractModelHookListSource(
+  InterfaceElement element, {
+  required String argumentName,
+}) {
   for (final annotation in element.metadata.annotations) {
     final source = annotation.toSource();
     if (!source.startsWith('@PHiveType(') &&
         !source.startsWith('@PHiveAutoType(')) {
       continue;
     }
-    final hooksMatch = RegExp(r'hooks:\s*(\[.*?\])').firstMatch(source);
+    final hooksMatch = RegExp(
+      '$argumentName:\\s*(\\[.*?\\])',
+    ).firstMatch(source);
     if (hooksMatch != null) {
       return hooksMatch.group(1)!;
     }

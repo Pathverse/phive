@@ -55,6 +55,7 @@ class PhiveGenerator extends GeneratorForAnnotation<PHiveType> {
       constructor: constr,
       routerDescriptor: routerDescriptor,
       modelHooksSource: extractModelHooksSource(element),
+      classHooksSource: extractModelClassHooksSource(element),
     );
   }
 }

@@ -20,6 +20,8 @@ import 'router_collection.dart';
 /// [routerDescriptor] comes from [collectRouterDescriptorConfig] and may be
 /// `null` when the model declares no router annotations.
 /// [modelHooksSource] is the hooks list expression from the model annotation.
+/// [classHooksSource] is the whole-object hooks list expression from the model
+/// annotation.
 String emitAdapter({
   required String className,
   required int typeId,
@@ -27,26 +29,38 @@ String emitAdapter({
   required ConstructorElement constructor,
   required RouterDescriptorConfig? routerDescriptor,
   required String modelHooksSource,
+  required String classHooksSource,
 }) {
   final writeBlocks = <String>[];
   final readBlocks = <String>[];
   final constructorArgs = <String>[];
+  final hasClassHooks = classHooksSource.trim() != '[]';
+  final writeTarget = hasClassHooks ? 'write_obj' : 'obj';
 
   for (final field in mappedFields) {
     final hooks = mergeHooksSource(modelHooksSource, field.hooksSource);
+    final rawReadSource = hasClassHooks && field == mappedFields.first
+      ? 'has_class_metadata ? reader.read() : raw_class_metadata'
+      : 'reader.read()';
+  final readSharedMetadataLine = hasClassHooks
+    ? '    applySharedMetadata(ctx_${field.name}, class_metadata);\n'
+    : '';
+  final writeSharedMetadataLine = hasClassHooks
+    ? '    applySharedPendingMetadata(ctx_${field.name}, class_metadata);\n'
+    : '';
 
     writeBlocks.add('''
     // ${field.name} (index ${field.index})
-    final ctx_${field.name} = PHiveCtx()..value = obj.${field.name};
+    final ctx_${field.name} = PHiveCtx()..value = $writeTarget.${field.name};
     runPreWrite(const $hooks, ctx_${field.name});
-    writer.write(serializePayload(ctx_${field.name}.value, ctx_${field.name}.pendingMetadata));
+${writeSharedMetadataLine}    writer.write(serializePayload(ctx_${field.name}.value, ctx_${field.name}.pendingMetadata));
     runPostWrite(const $hooks, ctx_${field.name});''');
 
     readBlocks.add('''
     // ${field.name} (index ${field.index})
-    final raw_${field.name} = reader.read();
+    final raw_${field.name} = $rawReadSource;
     final ctx_${field.name} = extractPayload(raw_${field.name});
-    runPostRead(const $hooks, ctx_${field.name});
+${readSharedMetadataLine}    runPostRead(const $hooks, ctx_${field.name});
     final res_${field.name} = ctx_${field.name}.value as ${field.type};''');
   }
 
@@ -74,15 +88,20 @@ class ${className}Adapter extends PTypeAdapter<$className> {
 
   @override
   $className read(BinaryReader reader) {
+${_emitReadClassHooksPrelude(classHooksSource)}
 ${readBlocks.join('\n')}
-    return $className(
-${constructorArgs.join(',\n')}
-    );
+${_emitReadReturnBlock(
+    className: className,
+    constructorArgs: constructorArgs,
+    classHooksSource: classHooksSource,
+  )}
   }
 
   @override
   void write(BinaryWriter writer, $className obj) {
+${_emitWriteClassHooksPrelude(className: className, classHooksSource: classHooksSource)}
 ${writeBlocks.join('\n')}
+${_emitWriteClassHooksPostlude(className: className, classHooksSource: classHooksSource)}
   }
 }
 $descriptorBlock
@@ -96,6 +115,71 @@ CollectedField? _findFieldByName(List<CollectedField> fields, String name) {
     if (field.name == name) return field;
   }
   return null;
+}
+
+String _emitReadClassHooksBlock({
+  required String className,
+  required String classHooksSource,
+}) {
+  if (classHooksSource.trim() == '[]') {
+    return '';
+  }
+
+  return '''    final ctx_obj = PHiveCtx()..value = result;
+    applySharedMetadata(ctx_obj, class_metadata);
+    runPostRead(const $classHooksSource, ctx_obj);
+    return ctx_obj.value as $className;''';
+}
+
+String _emitReadReturnBlock({
+  required String className,
+  required List<String> constructorArgs,
+  required String classHooksSource,
+}) {
+  if (classHooksSource.trim() == '[]') {
+    return '''    return $className(
+${constructorArgs.join(',\n')}
+    );''';
+  }
+
+  return '''    final result = $className(
+${constructorArgs.join(',\n')}
+    );
+${_emitReadClassHooksBlock(className: className, classHooksSource: classHooksSource)}''';
+}
+
+String _emitWriteClassHooksPrelude({
+  required String className,
+  required String classHooksSource,
+}) {
+  if (classHooksSource.trim() == '[]') return '';
+
+  return '''    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const $classHooksSource, ctx_obj);
+    final class_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+    writer.write(serializeClassMetadataEnvelope(class_metadata));
+    final write_obj = ctx_obj.value as $className;''';
+}
+
+String _emitWriteClassHooksPostlude({
+  required String className,
+  required String classHooksSource,
+}) {
+  if (classHooksSource.trim() == '[]') return '';
+
+  return '    runPostWrite(const $classHooksSource, ctx_obj);';
+}
+
+/// Emits the read-side class metadata prelude when whole-object hooks exist.
+String _emitReadClassHooksPrelude(String classHooksSource) {
+  if (classHooksSource.trim() == '[]') return '';
+
+  return '''    final raw_class_metadata = reader.read();
+    final has_class_metadata = isClassMetadataEnvelope(raw_class_metadata);
+    final class_metadata = has_class_metadata
+        ? extractClassMetadataEnvelope(raw_class_metadata)
+        : const <String, dynamic>{};
+''';
 }
 
 String _emitRouterDescriptorBlock({

@@ -112,5 +112,43 @@
       "source_ref": "phive/lib/src/router/dynamic_router.dart"
     },
     "custom": {}
+  },
+  "86648": {
+    "id": "86648",
+    "group": "decision_trail",
+    "node_type": "research_finding",
+    "summary": "PHive model hooks expand into each mapped field pipeline",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "Verified that @PHiveType and @PHiveAutoType do not create a single class-level hook execution wrapper. The generators extract model hooks once, then adapter emission merges them with each field's hooks inside the mapped-field loop. As a result, generated adapters call runPreWrite/runPostWrite/runPostRead per persisted field using the merged hook list. This is intentional and is covered by snapshot fixtures such as AutoTypeWithHooks, which expects model-level and field-level hooks to be combined on the field pipeline.",
+    "created_at": "2026-04-22T18:28:48Z",
+    "updated_at": "2026-04-22T18:28:48Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "phive_generator/lib/src/adapter_emitter.dart"
+    },
+    "custom": {}
+  },
+  "873bf": {
+    "id": "873bf",
+    "group": "decision_trail",
+    "node_type": "research_finding",
+    "summary": "classHooks use a PAR shared-metadata envelope",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "Verified and implemented the intended classHooks storage design. Adapters with classHooks now write a dedicated %PAR%...%PAR% envelope immediately before field payloads. The envelope stores shared class-level metadata, and generated adapters merge that metadata into each field context on both write and read without overwriting field-specific metadata. This keeps existing model-level hooks as per-field defaults while giving classHooks a first-class shared-metadata channel consistent with the earlier root-context design intent.",
+    "created_at": "2026-04-22T19:28:54Z",
+    "updated_at": "2026-04-22T19:28:54Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "outcome": "adopted",
+      "source_ref": "phive/lib/src/core.dart"
+    },
+    "custom": {}
   }
 }

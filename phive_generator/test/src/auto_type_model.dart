@@ -114,7 +114,10 @@ class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
     // token (index 0)
     final raw_token = reader.read();
     final ctx_token = extractPayload(raw_token);
-    runPostRead(const [...[AutoStubHook()], ...[AutoStubHook()]], ctx_token);
+    runPostRead(const [
+      ...[AutoStubHook()],
+      ...[AutoStubHook()],
+    ], ctx_token);
     final res_token = ctx_token.value as String;
     return AutoTypeWithHooks(res_token);
   }
@@ -123,9 +126,15 @@ class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
   void write(BinaryWriter writer, AutoTypeWithHooks obj) {
     // token (index 0)
     final ctx_token = PHiveCtx()..value = obj.token;
-    runPreWrite(const [...[AutoStubHook()], ...[AutoStubHook()]], ctx_token);
+    runPreWrite(const [
+      ...[AutoStubHook()],
+      ...[AutoStubHook()],
+    ], ctx_token);
     writer.write(serializePayload(ctx_token.value, ctx_token.pendingMetadata));
-    runPostWrite(const [...[AutoStubHook()], ...[AutoStubHook()]], ctx_token);
+    runPostWrite(const [
+      ...[AutoStubHook()],
+      ...[AutoStubHook()],
+    ], ctx_token);
   }
 }
 ''')
@@ -136,6 +145,61 @@ class AutoTypeWithHooks {
   final String token;
 
   AutoTypeWithHooks(this.token);
+}
+
+@ShouldGenerate('''
+// ignore_for_file: non_constant_identifier_names
+
+class AutoTypeWithClassHooksAdapter
+    extends PTypeAdapter<AutoTypeWithClassHooks> {
+  @override
+  final int typeId = 35;
+
+  @override
+  AutoTypeWithClassHooks read(BinaryReader reader) {
+    final raw_class_metadata = reader.read();
+    final has_class_metadata = isClassMetadataEnvelope(raw_class_metadata);
+    final class_metadata = has_class_metadata
+        ? extractClassMetadataEnvelope(raw_class_metadata)
+        : const <String, dynamic>{};
+
+    // token (index 0)
+    final raw_token = has_class_metadata ? reader.read() : raw_class_metadata;
+    final ctx_token = extractPayload(raw_token);
+    applySharedMetadata(ctx_token, class_metadata);
+    runPostRead(const [], ctx_token);
+    final res_token = ctx_token.value as String;
+    final result = AutoTypeWithClassHooks(res_token);
+    final ctx_obj = PHiveCtx()..value = result;
+    applySharedMetadata(ctx_obj, class_metadata);
+    runPostRead(const [AutoStubHook()], ctx_obj);
+    return ctx_obj.value as AutoTypeWithClassHooks;
+  }
+
+  @override
+  void write(BinaryWriter writer, AutoTypeWithClassHooks obj) {
+    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const [AutoStubHook()], ctx_obj);
+    final class_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+    writer.write(serializeClassMetadataEnvelope(class_metadata));
+    final write_obj = ctx_obj.value as AutoTypeWithClassHooks;
+    // token (index 0)
+    final ctx_token = PHiveCtx()..value = write_obj.token;
+    runPreWrite(const [], ctx_token);
+    applySharedPendingMetadata(ctx_token, class_metadata);
+    writer.write(serializePayload(ctx_token.value, ctx_token.pendingMetadata));
+    runPostWrite(const [], ctx_token);
+    runPostWrite(const [AutoStubHook()], ctx_obj);
+  }
+}
+''')
+@PHiveAutoType(classHooks: [AutoStubHook()])
+/// Snapshot fixture: whole-object class hooks wrap the generated adapter once.
+class AutoTypeWithClassHooks {
+  @PHiveField(0)
+  final String token;
+
+  AutoTypeWithClassHooks(this.token);
 }
 
 @ShouldGenerate('''
@@ -184,9 +248,7 @@ class AutoTypeRouterRouterDescriptor implements PHiveRouterDescriptor {
 
   @override
   void apply(PHiveRouter router) {
-    router.register<AutoTypeRouter>(
-      primaryKey: (item) => item.id,
-    );
+    router.register<AutoTypeRouter>(primaryKey: (item) => item.id);
     router.createRef<AutoTypeRouter, AutoTypeSimple>(
       resolve: (item) => item.parentId,
     );

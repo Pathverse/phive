@@ -448,5 +448,24 @@
       "significance": "feature"
     },
     "custom": {}
+  },
+  "88e92": {
+    "id": "88e92",
+    "group": "code_history",
+    "node_type": "file_change",
+    "summary": "classHooks read path falls back when PAR envelope is missing",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": null,
+    "created_at": "2026-04-22T19:31:09Z",
+    "updated_at": "2026-04-22T19:31:09Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "path": "phive_generator/lib/src/adapter_emitter.dart",
+      "significance": "patch"
+    },
+    "custom": {}
   }
 }

@@ -153,6 +153,75 @@ class HybridAutoFieldModel {
 @ShouldGenerate('''
 // ignore_for_file: non_constant_identifier_names
 
+class ClassHookModelAdapter extends PTypeAdapter<ClassHookModel> {
+  @override
+  final int typeId = 5;
+
+  @override
+  ClassHookModel read(BinaryReader reader) {
+    final raw_class_metadata = reader.read();
+    final has_class_metadata = isClassMetadataEnvelope(raw_class_metadata);
+    final class_metadata = has_class_metadata
+        ? extractClassMetadataEnvelope(raw_class_metadata)
+        : const <String, dynamic>{};
+
+    // id (index 0)
+    final raw_id = has_class_metadata ? reader.read() : raw_class_metadata;
+    final ctx_id = extractPayload(raw_id);
+    applySharedMetadata(ctx_id, class_metadata);
+    runPostRead(const [], ctx_id);
+    final res_id = ctx_id.value as String;
+    // token (index 1)
+    final raw_token = reader.read();
+    final ctx_token = extractPayload(raw_token);
+    applySharedMetadata(ctx_token, class_metadata);
+    runPostRead(const [], ctx_token);
+    final res_token = ctx_token.value as String;
+    final result = ClassHookModel(res_id, res_token);
+    final ctx_obj = PHiveCtx()..value = result;
+    applySharedMetadata(ctx_obj, class_metadata);
+    runPostRead(const [StubHook()], ctx_obj);
+    return ctx_obj.value as ClassHookModel;
+  }
+
+  @override
+  void write(BinaryWriter writer, ClassHookModel obj) {
+    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const [StubHook()], ctx_obj);
+    final class_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+    writer.write(serializeClassMetadataEnvelope(class_metadata));
+    final write_obj = ctx_obj.value as ClassHookModel;
+    // id (index 0)
+    final ctx_id = PHiveCtx()..value = write_obj.id;
+    runPreWrite(const [], ctx_id);
+    applySharedPendingMetadata(ctx_id, class_metadata);
+    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
+    runPostWrite(const [], ctx_id);
+    // token (index 1)
+    final ctx_token = PHiveCtx()..value = write_obj.token;
+    runPreWrite(const [], ctx_token);
+    applySharedPendingMetadata(ctx_token, class_metadata);
+    writer.write(serializePayload(ctx_token.value, ctx_token.pendingMetadata));
+    runPostWrite(const [], ctx_token);
+    runPostWrite(const [StubHook()], ctx_obj);
+  }
+}
+''')
+@PHiveType(5, classHooks: [StubHook()])
+/// Snapshot fixture covering whole-object class hook pipelines.
+class ClassHookModel {
+  @PHiveField(0)
+  final String id;
+
+  @PHiveField(1)
+  final String token;
+
+  ClassHookModel(this.id, this.token);
+}
+
+@ShouldGenerate('''
+// ignore_for_file: non_constant_identifier_names
+
 class RouterModelAdapter extends PTypeAdapter<RouterModel> {
   @override
   final int typeId = 4;

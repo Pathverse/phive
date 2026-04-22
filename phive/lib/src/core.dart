@@ -40,6 +40,9 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
   /// Delimiter between encoded metadata and the serialized field value.
   static const String metaDelimiter = '%PVR%';
 
+  /// Delimiter surrounding the encoded class-level metadata envelope.
+  static const String classMetaDelimiter = '%PAR%';
+
   /// Combines a value and optional metadata into a PHive payload.
   ///
   /// Returns `null` directly when [value] is null so that Hive stores a true
@@ -56,6 +59,16 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
 
     final encodedMeta = base64Url.encode(utf8.encode(jsonEncode(meta)));
     return encodedMeta + metaDelimiter + value.toString();
+  }
+
+  /// Encodes shared class-level metadata into a dedicated adapter envelope.
+  ///
+  /// The returned string is always emitted for adapters that declare
+  /// `classHooks`, even when [meta] is empty, so the read side can reliably
+  /// detect and consume the class-metadata slot before field payloads.
+  String serializeClassMetadataEnvelope(Map<String, dynamic> meta) {
+    final encodedMeta = base64Url.encode(utf8.encode(jsonEncode(meta)));
+    return classMetaDelimiter + encodedMeta + classMetaDelimiter;
   }
 
   /// Splits a raw payload into its value and metadata components.
@@ -78,6 +91,63 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
     }
 
     return ctx;
+  }
+
+  /// Decodes the shared class-level metadata envelope when present.
+  ///
+  /// Returns an empty map when [rawEnvelope] is not a valid class metadata
+  /// record. This keeps the read path defensive for malformed payloads.
+  bool isClassMetadataEnvelope(dynamic rawEnvelope) {
+    return rawEnvelope is String &&
+        rawEnvelope.startsWith(classMetaDelimiter) &&
+        rawEnvelope.endsWith(classMetaDelimiter);
+  }
+
+  /// Decodes the shared class-level metadata envelope when present.
+  ///
+  /// Returns an empty map when [rawEnvelope] is not a valid class metadata
+  /// record. This keeps the read path defensive for malformed payloads.
+  Map<String, dynamic> extractClassMetadataEnvelope(dynamic rawEnvelope) {
+    if (!isClassMetadataEnvelope(rawEnvelope)) {
+      return {};
+    }
+
+    final rawEnvelopeString = rawEnvelope as String;
+    final encodedMeta = rawEnvelope.substring(
+      classMetaDelimiter.length,
+      rawEnvelopeString.length - classMetaDelimiter.length,
+    );
+    if (encodedMeta.isEmpty) return {};
+
+    final decodedMeta = jsonDecode(utf8.decode(base64Url.decode(encodedMeta)));
+    if (decodedMeta is Map<String, dynamic>) {
+      return decodedMeta;
+    }
+
+    return {};
+  }
+
+  /// Merges shared class metadata into a field or object read context.
+  ///
+  /// Existing keys already restored from the field payload win over the shared
+  /// metadata so per-field nonces and overrides remain intact.
+  void applySharedMetadata(PHiveCtx ctx, Map<String, dynamic> sharedMetadata) {
+    for (final entry in sharedMetadata.entries) {
+      ctx.metadata.putIfAbsent(entry.key, () => entry.value);
+    }
+  }
+
+  /// Merges shared class metadata into a field write context.
+  ///
+  /// Existing pending metadata written by field hooks wins over the shared
+  /// metadata so field-specific values override class defaults when needed.
+  void applySharedPendingMetadata(
+    PHiveCtx ctx,
+    Map<String, dynamic> sharedMetadata,
+  ) {
+    for (final entry in sharedMetadata.entries) {
+      ctx.pendingMetadata.putIfAbsent(entry.key, () => entry.value);
+    }
   }
 
   /// Runs all pre-write hooks for one field payload.

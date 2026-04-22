@@ -33,6 +33,40 @@ void main() {
       expect(extract.value, 'my_data');
       expect(extract.metadata, isEmpty);
     });
+
+    test('serializes and restores class metadata envelope accurately', () {
+      final adapter = MockAdapter();
+      final envelope = adapter.serializeClassMetadataEnvelope({
+        'ttl_ms': 60000,
+        'written_at': 123,
+      });
+
+      final extract = adapter.extractClassMetadataEnvelope(envelope);
+      expect(extract['ttl_ms'], 60000);
+      expect(extract['written_at'], 123);
+    });
+
+    test('treats a non-PAR value as missing class metadata', () {
+      final adapter = MockAdapter();
+
+      expect(adapter.isClassMetadataEnvelope('plain-value'), isFalse);
+      expect(adapter.extractClassMetadataEnvelope('plain-value'), isEmpty);
+    });
+
+    test('applies shared metadata without overwriting field metadata', () {
+      final adapter = MockAdapter();
+      final ctx = adapter.extractPayload(
+        adapter.serializePayload('value', {'nonce': 'field-nonce'}),
+      );
+
+      adapter.applySharedMetadata(ctx, {
+        'ttl_ms': 60000,
+        'nonce': 'class-nonce',
+      });
+
+      expect(ctx.metadata['ttl_ms'], 60000);
+      expect(ctx.metadata['nonce'], 'field-nonce');
+    });
   });
 
   group('Null value handling', () {

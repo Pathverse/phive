@@ -23,6 +23,7 @@ Future<void> main() async {
       'AutoTypeSimple': 10,
       'AutoTypeAutoFields': 20,
       'AutoTypeWithHooks': 30,
+      'AutoTypeWithClassHooks': 35,
       'AutoTypeRouter': 40,
     }),
   );
@@ -34,6 +35,7 @@ Future<void> main() async {
       'AutoTypeSimple',
       'AutoTypeAutoFields',
       'AutoTypeWithHooks',
+      'AutoTypeWithClassHooks',
       'AutoTypeRouter',
     ],
   );

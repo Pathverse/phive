@@ -95,6 +95,7 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
       constructor: constr,
       routerDescriptor: routerDescriptor,
       modelHooksSource: extractModelHooksSource(element),
+      classHooksSource: extractModelClassHooksSource(element),
     );
   }
 

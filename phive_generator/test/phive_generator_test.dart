@@ -16,6 +16,7 @@ Future<void> main() async {
       'SimpleModel',
       'AutoFieldModel',
       'HybridAutoFieldModel',
+      'ClassHookModel',
       'RouterModel',
       'SingletonRouterModel',
     ],

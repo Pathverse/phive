@@ -8,6 +8,13 @@ class PHiveType {
   /// Model-level hooks merged into every mapped field pipeline.
   final List<PHiveHook>? hooks;
 
+  /// Class-level hooks run once for the whole object during adapter I/O.
+  ///
+  /// Unlike [hooks], these do not merge into each field pipeline. Generated
+  /// adapters run them around the model instance itself so they can transform
+  /// the full object graph in one pass.
+  final List<PHiveHook>? classHooks;
+
   /// Enables deterministic field inference when `@PHiveField` is omitted.
   ///
   /// When enabled, constructor-backed fields without explicit `@PHiveField`
@@ -16,7 +23,12 @@ class PHiveType {
   final bool autoFields;
 
   /// Creates a PHive type annotation for generator-driven adapters.
-  const PHiveType(this.typeId, {this.hooks, this.autoFields = false});
+  const PHiveType(
+    this.typeId, {
+    this.hooks,
+    this.classHooks,
+    this.autoFields = false,
+  });
 }
 
 /// Declares a mapped PHive field and its adapter pipeline scope.
@@ -63,6 +75,13 @@ class PHiveAutoType {
   /// Model-level hooks merged into every mapped field pipeline.
   final List<PHiveHook>? hooks;
 
+  /// Class-level hooks run once for the whole object during adapter I/O.
+  ///
+  /// Unlike [hooks], these do not merge into each field pipeline. Generated
+  /// adapters run them around the model instance itself so they can transform
+  /// the full object graph in one pass.
+  final List<PHiveHook>? classHooks;
+
   /// Enables deterministic field inference when `@PHiveField` is omitted.
   ///
   /// When enabled, constructor-backed fields without explicit `@PHiveField`
@@ -71,7 +90,11 @@ class PHiveAutoType {
   final bool autoFields;
 
   /// Creates a PHive auto-type annotation whose typeId is registry-assigned.
-  const PHiveAutoType({this.hooks, this.autoFields = false});
+  const PHiveAutoType({
+    this.hooks,
+    this.classHooks,
+    this.autoFields = false,
+  });
 }
 
 /// Wraps supplemental metadata values that travel alongside payload state.

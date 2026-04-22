@@ -112,6 +112,13 @@ PHive uses behavior-driven hook exceptions for read-side cleanup and fallback ha
 
 This keeps hooks responsible for declaring value semantics and routers responsible for applying storage side effects.
 
+PHive annotations expose two hook scopes:
+
+- `hooks` on `@PHiveType` and `@PHiveAutoType` are merged into each mapped field pipeline.
+- `classHooks` run once around the whole model instance during generated adapter read/write.
+- `classHooks` persist shared metadata in a dedicated `%PAR%...%PAR%` class envelope written before field payloads.
+- Shared class metadata is merged into each field context without overwriting field-specific metadata.
+
 ## Nullable Fields
 
 `PTypeAdapter.serializePayload` handles null correctly: a null value is stored as Hive null rather than the string `"null"`. Nullable field types (`int?`, `bool?`, etc.) round-trip safely through the hook pipeline.

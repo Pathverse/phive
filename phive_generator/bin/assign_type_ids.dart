@@ -90,22 +90,22 @@ Future<void> main(List<String> args) async {
 
 /// Finds all class names annotated with `@PHiveAutoType` under [dir].
 ///
-/// Uses a two-pass regex that handles the common case of the annotation
-/// appearing on its own line immediately before the class declaration:
+/// Uses a two-step forward-scan strategy:
+/// 1. Locate every `@PHiveAutoType` occurrence in the file.
+/// 2. From each occurrence, scan forward up to [_scanWindowSize] characters
+///    looking for the next `class ClassName` token.  The scan is aborted if
+///    an opening brace `{` appears before the `class` keyword, which would
+///    mean the annotation is inside an existing class body rather than
+///    preceding a top-level declaration.
 ///
-/// ```dart
-/// @PHiveAutoType(...)
-/// class MyModel { ... }
-/// ```
-///
-/// Abstract classes and classes with leading comments are also matched.
+/// This handles all real-world layouts including multi-line annotation args,
+/// Freezed `abstract class`, and stacked annotations such as
+/// `@PHiveAutoType() @JsonSerializable() class MyModel`.
+const int _scanWindowSize = 600;
+
 List<String> _scanForAutoTypeClasses(Directory dir) {
-  // Matches @PHiveAutoType (with optional args on multiple lines) followed
-  // by an optional abstract keyword and the class name.
-  final pattern = RegExp(
-    r'@PHiveAutoType[^\n]*\n(?:\s*//[^\n]*\n)*\s*(?:abstract\s+)?class\s+(\w+)',
-    multiLine: true,
-  );
+  final annotationRe = RegExp(r'@PHiveAutoType');
+  final classRe = RegExp(r'\bclass\s+(\w+)');
 
   final names = <String>{};
   final dartFiles = dir
@@ -115,8 +115,19 @@ List<String> _scanForAutoTypeClasses(Directory dir) {
 
   for (final file in dartFiles) {
     final source = file.readAsStringSync();
-    for (final match in pattern.allMatches(source)) {
-      final name = match.group(1);
+    for (final ann in annotationRe.allMatches(source)) {
+      final end = (ann.start + _scanWindowSize).clamp(0, source.length);
+      final window = source.substring(ann.start, end);
+
+      final classMatch = classRe.firstMatch(window);
+      if (classMatch == null) continue;
+
+      // Abort if a class body opens before the class keyword — the annotation
+      // is inside an existing class rather than preceding a new declaration.
+      final braceIdx = window.indexOf('{');
+      if (braceIdx != -1 && braceIdx < classMatch.start) continue;
+
+      final name = classMatch.group(1);
       if (name != null) names.add(name);
     }
   }

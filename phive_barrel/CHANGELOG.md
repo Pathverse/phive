@@ -1,3 +1,6 @@
+## 0.2.0
+- Compatibility updates for PHive 0.2.0.
+
 ## 0.1.0
 
 - Initial hook bundle release for PHive.

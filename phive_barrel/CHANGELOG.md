@@ -1,3 +1,6 @@
+## 0.3.0
+- added true classhooks
+
 ## 0.2.1
 
 - Fixed `TTL.preWrite` to skip null field values — no TTL metadata is written when a nullable field holds null, preventing spurious payload wrapping. Requires `phive ^0.2.1`.

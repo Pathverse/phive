@@ -1,3 +1,6 @@
+## 0.3.0
+- added true classhooks
+
 ## 0.2.0
 
 - Added `@PHiveAutoType` support: `PhiveAutoTypeGenerator`, `TypeIdRegistry`, and `assign_type_ids` CLI for registry-driven typeId assignment.

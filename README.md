@@ -15,6 +15,7 @@ PHive is a monorepo that provides:
 ## Key Features
 
 - Generate strongly typed Hive CE adapters from `@PHiveType` and `@PHiveField`
+- Auto-assign stable Hive typeIds with `@PHiveAutoType` — no manual integer management
 - Generate router registration descriptors from `@PHivePrimaryKey` and `@PHiveRef`
 - Compose field-level and model-level hooks without wrapper types in domain models
 - Support Freezed models
@@ -36,13 +37,17 @@ Use the dynamic router when the type set is flexible. Use the static router when
 ### `phive`
 Core runtime package containing:
 
-- `@PHiveType`, `@PHiveField`, `@PHivePrimaryKey`, `@PHiveRef`
+- `@PHiveType`, `@PHiveAutoType`, `@PHiveField`, `@PHivePrimaryKey`, `@PHiveRef`
 - `PHiveCtx`, `PHiveHook`, `PTypeAdapter`
 - `PHiveActionException`, `PHiveActionBehavior`
 - `PHiveRouter`, `PHiveDynamicRouter`, `PHiveStaticRouter`, `PHiveContainerHandle`
 
 ### `phive_generator`
-Build runner generator package that emits adapter code and router descriptors.
+Build runner generator package that emits adapter code and router descriptors. Includes:
+
+- `PhiveGenerator` — handles `@PHiveType` (explicit typeId)
+- `PhiveAutoTypeGenerator` — handles `@PHiveAutoType` (registry-assigned typeId)
+- `assign_type_ids` CLI — scans source files and populates `phive_type_registry.json`
 
 ### `phive_barrel`
 Default hook implementations such as:
@@ -93,6 +98,38 @@ class Session {
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
+
+---
+
+### Alternative: auto-assigned typeIds with `@PHiveAutoType`
+
+If you prefer not to track typeId integers by hand, use `@PHiveAutoType` instead. The generator reads a committed `phive_type_registry.json` file and hard-codes the assigned id into the adapter — the annotation itself carries no integer.
+
+```dart
+@PHiveAutoType()
+class Note {
+  @PHiveField(0)
+  final String id;
+
+  @PHiveField(1, hooks: [GCMEncrypted()])
+  final String body;
+
+  const Note({required this.id, required this.body});
+}
+```
+
+**Workflow — once per new class:**
+
+```bash
+# 1. Assign a typeId to any new @PHiveAutoType classes and commit the result
+dart run phive_generator:assign_type_ids
+git add phive_type_registry.json
+
+# 2. Generate as normal
+dart run build_runner build --delete-conflicting-outputs
+```
+
+`phive_type_registry.json` is the source of truth for typeId stability. Committed once, it guarantees that a class always gets the same id in every environment and across every build.
 
 ### 4. Register and use
 

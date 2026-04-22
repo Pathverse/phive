@@ -35,12 +35,22 @@
 - **Updated schema** (`docs/phive_router_schema.md`) — fixed section 1 table, rewrote section 7 to reflect actual implementation with initialization-lock semantics, `BoxCollection.open()` API, and web TypeAdapter caveat. Fixed section 5.1 key naming, updated test count/groups in section 10, cleaned file layout in section 11.
 - **Updated `memory-bank/systemPatterns.md`** — replaced stale consumer-era sections 6–8 with router architecture (PHiveDynamicRouter, PHiveStaticRouter, ref system, planned PHiveProcessor).
 
+- **Implemented `PHiveAutoType` — registry-assigned typeId system:**
+  - `PHiveAutoType` annotation added to `phive/lib/src/annotations.dart` (hooks, autoFields; no typeId param).
+  - `TypeIdRegistry` in `phive_generator/lib/src/type_registry.dart` — immutable, `fromJson`/`toJson`, `assign`/`assignAll`, `lookupTypeId`, `nextAvailableId`.
+  - `PhiveAutoTypeGenerator` in `phive_generator/lib/src/auto_type_generator.dart` — reads `phive_type_registry.json` via `dart:io` (bypasses build asset graph restrictions on root-level files); accepts injected `TypeIdRegistry` for hermetic tests.
+  - `assign_type_ids` CLI in `phive_generator/bin/assign_type_ids.dart` — scans lib/ for `@PHiveAutoType` class names, upserts missing entries into `phive_type_registry.json`.
+  - `PhiveGenerator` refactored into shared components: `annotation_helpers`, `field_collection`, `router_collection`, `adapter_emitter` — both generators delegate to same emitter.
+  - `phiveAutoBuilder` registered in `builder.dart` and `build.yaml`.
+  - `TypeIdRegistry` unit tests (20 cases) and `PhiveAutoTypeGenerator` snapshot tests (4 fixtures).
+  - `AutoNote` integration fixture and `auto_type_test.dart` added to `phive_test`.
+  - `phive_type_registry.json` added to `phive_test` (AutoNote → 10).
+
 ## In Progress
-- Tests written but not yet verified locally (Flutter SDK not available in sandbox). Run: `flutter test test/router_test.dart` from `phive/`.
+- Tests written but not yet verified locally (Flutter SDK not available in sandbox). Run: `flutter test test/router_test.dart` from `phive/`, `flutter test test/auto_type_test.dart` from `phive_test/`, `dart test` from `phive_generator/`.
 
 ## Pending
-- `@PHiveRef` annotation + generator support (`phive_generator`) — emitting `PHiveStaticRouter` config from annotated classes.
 - `PHiveProcessor<T>` — caching middleware layer (above router, for Retrofit/Dio integration).
 - `PHiveDataSource<T>` interface — network boundary abstraction.
 - Router-level scope config (replaces deleted `ScopeProviderAdapter`).
-- Integration tests in `phive_test` for router + hooks combined.
+- `PHiveStaticRouter` full implementation — pending generator support for emitting static router entry config.

@@ -64,7 +64,26 @@ Codes `3` and `4` are mutually exclusive (enforced in the constructor). Codes ca
 ## 9. Seed Provider / Encryption Registry
 Encryption hooks (`GCMEncrypted`, `AESEncrypted`, `UniversalEncrypted`) retrieve key material via `PhiveMetaRegistry.seedProvider`. The app registers a `PhiveSeedProvider` implementation (e.g., `SecureStorageSeedProvider`) at startup and calls `PhiveMetaRegistry.init()` to load seeds into memory before any box operations run.
 
-## 10. Known Constraints & Design Decisions
+## 10. Auto-Type Registry Pattern (`PHiveAutoType`)
+
+`@PHiveAutoType` is a companion annotation to `@PHiveType` that removes manual typeId management. The typeId is resolved at build time from a committed `phive_type_registry.json` file rather than from the annotation itself.
+
+### Components
+- **`PHiveAutoType`** annotation — identical surface to `PHiveType` minus the `typeId` positional param.
+- **`TypeIdRegistry`** (`type_registry.dart`) — immutable, parsed from JSON; provides `lookupTypeId`, `assign`/`assignAll`, `nextAvailableId`. 20 TDD unit tests.
+- **`PhiveAutoTypeGenerator`** — reads `phive_type_registry.json` via `dart:io` (not the build asset graph, which does not reliably expose root-level files); accepts injected `TypeIdRegistry` for hermetic snapshot tests.
+- **`assign_type_ids` CLI** — scans `lib/` for `@PHiveAutoType` class names and upserts missing ids. Idempotent; existing entries are never changed.
+- **Shared emitter** — `PhiveGenerator` and `PhiveAutoTypeGenerator` both delegate to `emitAdapter(...)` in `adapter_emitter.dart`. Generated adapter output is structurally identical; only the typeId source differs.
+
+### Design Decision: `dart:io` over build asset graph
+`buildStep.readAsString` for root-level JSON is unreliable across build configurations. `dart:io` is used instead; `build_runner` always sets the working directory to the package root. The trade-off — no automatic cache invalidation on registry change — is acceptable because the user always runs `assign_type_ids` then `build_runner` explicitly.
+
+### Workflow
+```
+annotate → assign_type_ids → commit phive_type_registry.json → build_runner build
+```
+
+## 11. Known Constraints & Design Decisions
 - Freezed models must be declared as `abstract class Foo with _$Foo` so that the mixin satisfies analyzer bounds during generation.
 - Codes `3` and `4` in `PHiveActionException` are mutually exclusive by design (delete-key vs. clear-box are contradictory intents).
 - `PHiveStaticRouter` schema is frozen after `ensureOpen()` because `BoxCollection.open()` requires the complete set of box names upfront — `BoxCollection` cannot register new stores after it has been opened.

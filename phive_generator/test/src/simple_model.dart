@@ -16,14 +16,20 @@ class SimpleModelAdapter extends PTypeAdapter<SimpleModel> {
 
   @override
   SimpleModel read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+
     // id (index 0)
     final raw_id = reader.read();
-    final ctx_id = extractPayload(raw_id);
+    final ctx_id = PHiveCtx()..value = raw_id;
+    applyMetadata(ctx_id, metadata_header.globalMetadata);
+    applyMetadata(ctx_id, metadata_header.metadataForField('id'));
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // data (index 1)
     final raw_data = reader.read();
-    final ctx_data = extractPayload(raw_data);
+    final ctx_data = PHiveCtx()..value = raw_data;
+    applyMetadata(ctx_data, metadata_header.globalMetadata);
+    applyMetadata(ctx_data, metadata_header.metadataForField('data'));
     runPostRead(const [StubHook()], ctx_data);
     final res_data = ctx_data.value as String;
     return SimpleModel(res_id, res_data);
@@ -31,15 +37,26 @@ class SimpleModelAdapter extends PTypeAdapter<SimpleModel> {
 
   @override
   void write(BinaryWriter writer, SimpleModel obj) {
+    final global_metadata = const <String, dynamic>{};
     // id (index 0)
     final ctx_id = PHiveCtx()..value = obj.id;
     runPreWrite(const [], ctx_id);
-    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
-    runPostWrite(const [], ctx_id);
     // data (index 1)
     final ctx_data = PHiveCtx()..value = obj.data;
     runPreWrite(const [StubHook()], ctx_data);
-    writer.write(serializePayload(ctx_data.value, ctx_data.pendingMetadata));
+    final metadata_header = createMetadataHeader(
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{
+        if (ctx_id.pendingMetadata.isNotEmpty)
+          'id': Map<String, dynamic>.from(ctx_id.pendingMetadata),
+        if (ctx_data.pendingMetadata.isNotEmpty)
+          'data': Map<String, dynamic>.from(ctx_data.pendingMetadata),
+      },
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(ctx_id.value);
+    runPostWrite(const [], ctx_id);
+    writer.write(ctx_data.value);
     runPostWrite(const [StubHook()], ctx_data);
   }
 }
@@ -67,12 +84,12 @@ class AutoFieldModelAdapter extends PTypeAdapter<AutoFieldModel> {
   AutoFieldModel read(BinaryReader reader) {
     // id (index 0)
     final raw_id = reader.read();
-    final ctx_id = extractPayload(raw_id);
+    final ctx_id = PHiveCtx()..value = raw_id;
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // token (index 1)
     final raw_token = reader.read();
-    final ctx_token = extractPayload(raw_token);
+    final ctx_token = PHiveCtx()..value = raw_token;
     runPostRead(const [], ctx_token);
     final res_token = ctx_token.value as String;
     return AutoFieldModel(res_id, res_token);
@@ -83,12 +100,12 @@ class AutoFieldModelAdapter extends PTypeAdapter<AutoFieldModel> {
     // id (index 0)
     final ctx_id = PHiveCtx()..value = obj.id;
     runPreWrite(const [], ctx_id);
-    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
+    writer.write(ctx_id.value);
     runPostWrite(const [], ctx_id);
     // token (index 1)
     final ctx_token = PHiveCtx()..value = obj.token;
     runPreWrite(const [], ctx_token);
-    writer.write(serializePayload(ctx_token.value, ctx_token.pendingMetadata));
+    writer.write(ctx_token.value);
     runPostWrite(const [], ctx_token);
   }
 }
@@ -111,14 +128,20 @@ class HybridAutoFieldModelAdapter extends PTypeAdapter<HybridAutoFieldModel> {
 
   @override
   HybridAutoFieldModel read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+
     // token (index 0)
     final raw_token = reader.read();
-    final ctx_token = extractPayload(raw_token);
+    final ctx_token = PHiveCtx()..value = raw_token;
+    applyMetadata(ctx_token, metadata_header.globalMetadata);
+    applyMetadata(ctx_token, metadata_header.metadataForField('token'));
     runPostRead(const [StubHook()], ctx_token);
     final res_token = ctx_token.value as String;
     // id (index 1)
     final raw_id = reader.read();
-    final ctx_id = extractPayload(raw_id);
+    final ctx_id = PHiveCtx()..value = raw_id;
+    applyMetadata(ctx_id, metadata_header.globalMetadata);
+    applyMetadata(ctx_id, metadata_header.metadataForField('id'));
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     return HybridAutoFieldModel(res_id, res_token);
@@ -126,15 +149,26 @@ class HybridAutoFieldModelAdapter extends PTypeAdapter<HybridAutoFieldModel> {
 
   @override
   void write(BinaryWriter writer, HybridAutoFieldModel obj) {
+    final global_metadata = const <String, dynamic>{};
     // token (index 0)
     final ctx_token = PHiveCtx()..value = obj.token;
     runPreWrite(const [StubHook()], ctx_token);
-    writer.write(serializePayload(ctx_token.value, ctx_token.pendingMetadata));
-    runPostWrite(const [StubHook()], ctx_token);
     // id (index 1)
     final ctx_id = PHiveCtx()..value = obj.id;
     runPreWrite(const [], ctx_id);
-    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
+    final metadata_header = createMetadataHeader(
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{
+        if (ctx_token.pendingMetadata.isNotEmpty)
+          'token': Map<String, dynamic>.from(ctx_token.pendingMetadata),
+        if (ctx_id.pendingMetadata.isNotEmpty)
+          'id': Map<String, dynamic>.from(ctx_id.pendingMetadata),
+      },
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(ctx_token.value);
+    runPostWrite(const [StubHook()], ctx_token);
+    writer.write(ctx_id.value);
     runPostWrite(const [], ctx_id);
   }
 }
@@ -159,27 +193,25 @@ class ClassHookModelAdapter extends PTypeAdapter<ClassHookModel> {
 
   @override
   ClassHookModel read(BinaryReader reader) {
-    final raw_class_metadata = reader.read();
-    final has_class_metadata = isClassMetadataEnvelope(raw_class_metadata);
-    final class_metadata = has_class_metadata
-        ? extractClassMetadataEnvelope(raw_class_metadata)
-        : const <String, dynamic>{};
+    final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final raw_id = has_class_metadata ? reader.read() : raw_class_metadata;
-    final ctx_id = extractPayload(raw_id);
-    applySharedMetadata(ctx_id, class_metadata);
+    final raw_id = reader.read();
+    final ctx_id = PHiveCtx()..value = raw_id;
+    applyMetadata(ctx_id, metadata_header.globalMetadata);
+    applyMetadata(ctx_id, metadata_header.metadataForField('id'));
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // token (index 1)
     final raw_token = reader.read();
-    final ctx_token = extractPayload(raw_token);
-    applySharedMetadata(ctx_token, class_metadata);
+    final ctx_token = PHiveCtx()..value = raw_token;
+    applyMetadata(ctx_token, metadata_header.globalMetadata);
+    applyMetadata(ctx_token, metadata_header.metadataForField('token'));
     runPostRead(const [], ctx_token);
     final res_token = ctx_token.value as String;
     final result = ClassHookModel(res_id, res_token);
     final ctx_obj = PHiveCtx()..value = result;
-    applySharedMetadata(ctx_obj, class_metadata);
+    applyMetadata(ctx_obj, metadata_header.globalMetadata);
     runPostRead(const [StubHook()], ctx_obj);
     return ctx_obj.value as ClassHookModel;
   }
@@ -188,20 +220,27 @@ class ClassHookModelAdapter extends PTypeAdapter<ClassHookModel> {
   void write(BinaryWriter writer, ClassHookModel obj) {
     final ctx_obj = PHiveCtx()..value = obj;
     runPreWrite(const [StubHook()], ctx_obj);
-    final class_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
-    writer.write(serializeClassMetadataEnvelope(class_metadata));
+    final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
     final write_obj = ctx_obj.value as ClassHookModel;
     // id (index 0)
     final ctx_id = PHiveCtx()..value = write_obj.id;
     runPreWrite(const [], ctx_id);
-    applySharedPendingMetadata(ctx_id, class_metadata);
-    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
-    runPostWrite(const [], ctx_id);
     // token (index 1)
     final ctx_token = PHiveCtx()..value = write_obj.token;
     runPreWrite(const [], ctx_token);
-    applySharedPendingMetadata(ctx_token, class_metadata);
-    writer.write(serializePayload(ctx_token.value, ctx_token.pendingMetadata));
+    final metadata_header = createMetadataHeader(
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{
+        if (ctx_id.pendingMetadata.isNotEmpty)
+          'id': Map<String, dynamic>.from(ctx_id.pendingMetadata),
+        if (ctx_token.pendingMetadata.isNotEmpty)
+          'token': Map<String, dynamic>.from(ctx_token.pendingMetadata),
+      },
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(ctx_id.value);
+    runPostWrite(const [], ctx_id);
+    writer.write(ctx_token.value);
     runPostWrite(const [], ctx_token);
     runPostWrite(const [StubHook()], ctx_obj);
   }
@@ -230,12 +269,12 @@ class RouterModelAdapter extends PTypeAdapter<RouterModel> {
   RouterModel read(BinaryReader reader) {
     // id (index 0)
     final raw_id = reader.read();
-    final ctx_id = extractPayload(raw_id);
+    final ctx_id = PHiveCtx()..value = raw_id;
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // lessonId (index 1)
     final raw_lessonId = reader.read();
-    final ctx_lessonId = extractPayload(raw_lessonId);
+    final ctx_lessonId = PHiveCtx()..value = raw_lessonId;
     runPostRead(const [], ctx_lessonId);
     final res_lessonId = ctx_lessonId.value as String;
     return RouterModel(res_id, res_lessonId);
@@ -246,14 +285,12 @@ class RouterModelAdapter extends PTypeAdapter<RouterModel> {
     // id (index 0)
     final ctx_id = PHiveCtx()..value = obj.id;
     runPreWrite(const [], ctx_id);
-    writer.write(serializePayload(ctx_id.value, ctx_id.pendingMetadata));
+    writer.write(ctx_id.value);
     runPostWrite(const [], ctx_id);
     // lessonId (index 1)
     final ctx_lessonId = PHiveCtx()..value = obj.lessonId;
     runPreWrite(const [], ctx_lessonId);
-    writer.write(
-      serializePayload(ctx_lessonId.value, ctx_lessonId.pendingMetadata),
-    );
+    writer.write(ctx_lessonId.value);
     runPostWrite(const [], ctx_lessonId);
   }
 }
@@ -301,7 +338,7 @@ class SingletonRouterModelAdapter extends PTypeAdapter<SingletonRouterModel> {
   SingletonRouterModel read(BinaryReader reader) {
     // username (index 0)
     final raw_username = reader.read();
-    final ctx_username = extractPayload(raw_username);
+    final ctx_username = PHiveCtx()..value = raw_username;
     runPostRead(const [], ctx_username);
     final res_username = ctx_username.value as String;
     return SingletonRouterModel(res_username);
@@ -312,9 +349,7 @@ class SingletonRouterModelAdapter extends PTypeAdapter<SingletonRouterModel> {
     // username (index 0)
     final ctx_username = PHiveCtx()..value = obj.username;
     runPreWrite(const [], ctx_username);
-    writer.write(
-      serializePayload(ctx_username.value, ctx_username.pendingMetadata),
-    );
+    writer.write(ctx_username.value);
     runPostWrite(const [], ctx_username);
   }
 }

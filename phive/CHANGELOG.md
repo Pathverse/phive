@@ -1,3 +1,8 @@
+## Unreleased
+
+- Redesigned PHive hook metadata storage to use one versioned record header with `global` and `perField` sections.
+- Removed the legacy `%PVR%` and `%PAR%` payload/envelope formats and the associated runtime helper surface.
+
 ## 0.3.0
 - added true classhooks
 

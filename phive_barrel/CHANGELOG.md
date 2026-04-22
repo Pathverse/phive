@@ -1,3 +1,8 @@
+## Unreleased
+
+- Compatibility update for the PHive header-based metadata redesign.
+- Barrel hooks now operate against PHive's versioned `global` and `perField` metadata header model rather than legacy payload wrappers.
+
 ## 0.3.0
 - added true classhooks
 

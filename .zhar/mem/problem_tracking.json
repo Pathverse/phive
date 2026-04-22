@@ -1,0 +1,21 @@
+{
+  "89606": {
+    "id": "89606",
+    "group": "problem_tracking",
+    "node_type": "known_issue",
+    "summary": "Preserve non-string PHive payload types on read",
+    "status": "archived",
+    "tags": [],
+    "source": "phive/lib/src/core.dart",
+    "content": "Root cause: PTypeAdapter.serializePayload coerced values to strings, including plain numeric fields and metadata-wrapped values such as TTL-managed ints. Generated adapters then restored a String and failed at casts like \\\\ctx.value as int?\\\\. Fix: preserve the original runtime value when no metadata is present, and wrap metadata-bearing payloads in a typed envelope map while keeping the legacy string-delimited format readable for existing stored data.",
+    "created_at": "2026-04-22T21:52:53Z",
+    "updated_at": "2026-04-22T21:53:06Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "severity": "med",
+      "issue_type": "bug"
+    },
+    "custom": {}
+  }
+}

@@ -7,7 +7,7 @@ import 'router_collection.dart';
 /// Emits the full Dart source for one `PTypeAdapter` subclass and its optional
 /// router descriptor class.
 ///
-/// Entry point is [emitAdapter].  Both [PhiveGenerator] and
+/// Entry point is [emitAdapter]. Both [PhiveGenerator] and
 /// [PhiveAutoTypeGenerator] delegate here after resolving their respective
 /// [typeId] sources.
 
@@ -31,36 +31,49 @@ String emitAdapter({
   required String modelHooksSource,
   required String classHooksSource,
 }) {
+  final writePreparationBlocks = <String>[];
   final writeBlocks = <String>[];
   final readBlocks = <String>[];
   final constructorArgs = <String>[];
-  final hasClassHooks = classHooksSource.trim() != '[]';
+  final hasClassHooks = _hasHooks(classHooksSource);
+  final hasMetadataHeader =
+      hasClassHooks ||
+      mappedFields.any(
+        (field) =>
+            _hasHooks(mergeHooksSource(modelHooksSource, field.hooksSource)),
+      );
   final writeTarget = hasClassHooks ? 'write_obj' : 'obj';
 
   for (final field in mappedFields) {
     final hooks = mergeHooksSource(modelHooksSource, field.hooksSource);
-    final rawReadSource = hasClassHooks && field == mappedFields.first
-      ? 'has_class_metadata ? reader.read() : raw_class_metadata'
-      : 'reader.read()';
-  final readSharedMetadataLine = hasClassHooks
-    ? '    applySharedMetadata(ctx_${field.name}, class_metadata);\n'
-    : '';
-  final writeSharedMetadataLine = hasClassHooks
-    ? '    applySharedPendingMetadata(ctx_${field.name}, class_metadata);\n'
-    : '';
+    final readMetadataLines = hasMetadataHeader
+        ? "    applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);\n"
+            "    applyMetadata(ctx_${field.name}, metadata_header.metadataForField('${field.name}'));\n"
+        : '';
 
-    writeBlocks.add('''
+    if (hasMetadataHeader) {
+      writePreparationBlocks.add('''
+    // ${field.name} (index ${field.index})
+    final ctx_${field.name} = PHiveCtx()..value = $writeTarget.${field.name};
+    runPreWrite(const $hooks, ctx_${field.name});''');
+
+      writeBlocks.add('''
+    writer.write(ctx_${field.name}.value);
+    runPostWrite(const $hooks, ctx_${field.name});''');
+    } else {
+      writeBlocks.add('''
     // ${field.name} (index ${field.index})
     final ctx_${field.name} = PHiveCtx()..value = $writeTarget.${field.name};
     runPreWrite(const $hooks, ctx_${field.name});
-${writeSharedMetadataLine}    writer.write(serializePayload(ctx_${field.name}.value, ctx_${field.name}.pendingMetadata));
+    writer.write(ctx_${field.name}.value);
     runPostWrite(const $hooks, ctx_${field.name});''');
+    }
 
     readBlocks.add('''
     // ${field.name} (index ${field.index})
-    final raw_${field.name} = $rawReadSource;
-    final ctx_${field.name} = extractPayload(raw_${field.name});
-${readSharedMetadataLine}    runPostRead(const $hooks, ctx_${field.name});
+    final raw_${field.name} = reader.read();
+    final ctx_${field.name} = PHiveCtx()..value = raw_${field.name};
+${readMetadataLines}    runPostRead(const $hooks, ctx_${field.name});
     final res_${field.name} = ctx_${field.name}.value as ${field.type};''');
   }
 
@@ -88,18 +101,28 @@ class ${className}Adapter extends PTypeAdapter<$className> {
 
   @override
   $className read(BinaryReader reader) {
-${_emitReadClassHooksPrelude(classHooksSource)}
+${_emitReadMetadataHeaderPrelude(hasMetadataHeader)}
 ${readBlocks.join('\n')}
 ${_emitReadReturnBlock(
     className: className,
     constructorArgs: constructorArgs,
+    hasMetadataHeader: hasMetadataHeader,
     classHooksSource: classHooksSource,
   )}
   }
 
   @override
   void write(BinaryWriter writer, $className obj) {
-${_emitWriteClassHooksPrelude(className: className, classHooksSource: classHooksSource)}
+${_emitWriteClassHooksPrelude(
+    className: className,
+    classHooksSource: classHooksSource,
+    hasMetadataHeader: hasMetadataHeader,
+  )}
+${writePreparationBlocks.join('\n')}
+${_emitMetadataHeaderWriteBlock(
+    mappedFields: mappedFields,
+    hasMetadataHeader: hasMetadataHeader,
+  )}
 ${writeBlocks.join('\n')}
 ${_emitWriteClassHooksPostlude(className: className, classHooksSource: classHooksSource)}
   }
@@ -110,6 +133,12 @@ $descriptorBlock
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
+/// Returns whether one generated hook-list expression contains hooks.
+bool _hasHooks(String hooksSource) {
+  return hooksSource.trim() != '[]';
+}
+
+/// Finds one collected field that matches the supplied constructor parameter.
 CollectedField? _findFieldByName(List<CollectedField> fields, String name) {
   for (final field in fields) {
     if (field.name == name) return field;
@@ -117,8 +146,10 @@ CollectedField? _findFieldByName(List<CollectedField> fields, String name) {
   return null;
 }
 
+/// Emits the whole-object post-read hook block for metadata-aware models.
 String _emitReadClassHooksBlock({
   required String className,
+  required bool hasMetadataHeader,
   required String classHooksSource,
 }) {
   if (classHooksSource.trim() == '[]') {
@@ -126,14 +157,15 @@ String _emitReadClassHooksBlock({
   }
 
   return '''    final ctx_obj = PHiveCtx()..value = result;
-    applySharedMetadata(ctx_obj, class_metadata);
-    runPostRead(const $classHooksSource, ctx_obj);
+${hasMetadataHeader ? '    applyMetadata(ctx_obj, metadata_header.globalMetadata);\n' : ''}    runPostRead(const $classHooksSource, ctx_obj);
     return ctx_obj.value as $className;''';
 }
 
+/// Emits the generated return block for the adapter read method.
 String _emitReadReturnBlock({
   required String className,
   required List<String> constructorArgs,
+  required bool hasMetadataHeader,
   required String classHooksSource,
 }) {
   if (classHooksSource.trim() == '[]') {
@@ -145,22 +177,32 @@ ${constructorArgs.join(',\n')}
   return '''    final result = $className(
 ${constructorArgs.join(',\n')}
     );
-${_emitReadClassHooksBlock(className: className, classHooksSource: classHooksSource)}''';
+${_emitReadClassHooksBlock(
+    className: className,
+    hasMetadataHeader: hasMetadataHeader,
+    classHooksSource: classHooksSource,
+  )}''';
 }
 
+/// Emits the write prelude that prepares global metadata before field writes.
 String _emitWriteClassHooksPrelude({
   required String className,
   required String classHooksSource,
+  required bool hasMetadataHeader,
 }) {
-  if (classHooksSource.trim() == '[]') return '';
+  if (!hasMetadataHeader) return '';
+
+  if (classHooksSource.trim() == '[]') {
+    return '    final global_metadata = const <String, dynamic>{};';
+  }
 
   return '''    final ctx_obj = PHiveCtx()..value = obj;
     runPreWrite(const $classHooksSource, ctx_obj);
-    final class_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
-    writer.write(serializeClassMetadataEnvelope(class_metadata));
+    final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
     final write_obj = ctx_obj.value as $className;''';
 }
 
+/// Emits the whole-object post-write hook block for generated adapters.
 String _emitWriteClassHooksPostlude({
   required String className,
   required String classHooksSource,
@@ -170,18 +212,37 @@ String _emitWriteClassHooksPostlude({
   return '    runPostWrite(const $classHooksSource, ctx_obj);';
 }
 
-/// Emits the read-side class metadata prelude when whole-object hooks exist.
-String _emitReadClassHooksPrelude(String classHooksSource) {
-  if (classHooksSource.trim() == '[]') return '';
+/// Emits the read-side metadata header prelude when hooks are present.
+String _emitReadMetadataHeaderPrelude(bool hasMetadataHeader) {
+  if (!hasMetadataHeader) return '';
 
-  return '''    final raw_class_metadata = reader.read();
-    final has_class_metadata = isClassMetadataEnvelope(raw_class_metadata);
-    final class_metadata = has_class_metadata
-        ? extractClassMetadataEnvelope(raw_class_metadata)
-        : const <String, dynamic>{};
-''';
+  return '    final metadata_header = extractMetadataHeader(reader.read());\n';
 }
 
+/// Emits the single metadata header write for metadata-aware adapters.
+String _emitMetadataHeaderWriteBlock({
+  required List<CollectedField> mappedFields,
+  required bool hasMetadataHeader,
+}) {
+  if (!hasMetadataHeader) return '';
+
+  final perFieldEntries = mappedFields
+      .map(
+        (field) =>
+            "        if (ctx_${field.name}.pendingMetadata.isNotEmpty) '${field.name}': Map<String, dynamic>.from(ctx_${field.name}.pendingMetadata),",
+      )
+      .join('\n');
+
+  return '''    final metadata_header = createMetadataHeader(
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{
+$perFieldEntries
+      },
+    );
+    writer.write(serializeMetadataHeader(metadata_header));''';
+}
+
+/// Emits the optional generated router descriptor for the annotated model.
 String _emitRouterDescriptorBlock({
   required String className,
   required RouterDescriptorConfig? descriptor,

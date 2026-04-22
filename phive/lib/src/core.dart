@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:hive_ce/hive.dart';
 
 /// Carries the current value plus persisted and pending metadata during hooks.
@@ -15,6 +13,51 @@ class PHiveCtx {
 
   /// Creates an empty hook context for one field value.
   PHiveCtx();
+}
+
+/// Immutable metadata header written once per hooked PHive record.
+class PHiveMetadataHeader {
+  /// Current binary layout version for metadata-aware PHive records.
+  static const int currentVersion = 2;
+
+  /// Version tag for the stored metadata header layout.
+  final int version;
+
+  /// Shared metadata visible to all fields and the whole-object hook context.
+  final Map<String, dynamic> globalMetadata;
+
+  /// Field-scoped metadata keyed by generated field name.
+  final Map<String, Map<String, dynamic>> perFieldMetadata;
+
+  /// Creates one normalized metadata header for a single PHive record.
+  PHiveMetadataHeader({
+    this.version = currentVersion,
+    Map<String, dynamic>? globalMetadata,
+    Map<String, Map<String, dynamic>>? perFieldMetadata,
+  }) : globalMetadata = Map<String, dynamic>.unmodifiable(
+         globalMetadata ?? const <String, dynamic>{},
+       ),
+       perFieldMetadata = Map<String, Map<String, dynamic>>.unmodifiable(
+         <String, Map<String, dynamic>>{
+           for (final entry
+               in (perFieldMetadata ?? const <String, Map<String, dynamic>>{})
+                   .entries)
+             if (entry.value.isNotEmpty)
+               entry.key: Map<String, dynamic>.unmodifiable(
+                 Map<String, dynamic>.from(entry.value),
+               ),
+         },
+       );
+
+  /// Returns one field metadata mapping or an empty mapping when absent.
+  Map<String, dynamic> metadataForField(String fieldName) {
+    return perFieldMetadata[fieldName] ?? const <String, dynamic>{};
+  }
+
+  /// Reports whether this header carries no global or per-field metadata.
+  bool get isEmpty {
+    return globalMetadata.isEmpty && perFieldMetadata.isEmpty;
+  }
 }
 
 /// Base contract for value-transforming lifecycle hooks used by generated adapters.
@@ -37,116 +80,80 @@ abstract class PHiveHook {
 
 /// Shared base adapter that provides PHive metadata and hook orchestration helpers.
 abstract class PTypeAdapter<T> extends TypeAdapter<T> {
-  /// Delimiter between encoded metadata and the serialized field value.
-  static const String metaDelimiter = '%PVR%';
+  /// Storage key for the version number inside the metadata header map.
+  static const String metadataHeaderVersionKey = 'v';
 
-  /// Delimiter surrounding the encoded class-level metadata envelope.
-  static const String classMetaDelimiter = '%PAR%';
+  /// Storage key for shared metadata inside the metadata header map.
+  static const String metadataHeaderGlobalKey = 'global';
 
-  /// Combines a value and optional metadata into a PHive payload.
-  ///
-  /// Returns `null` directly when [value] is null so that Hive stores a true
-  /// null rather than the string `"null"`.  When metadata is present the
-  /// payload is a base64-encoded JSON header joined to the value by
-  /// [metaDelimiter]; otherwise the raw value string is returned unchanged.
-  dynamic serializePayload(dynamic value, Map<String, dynamic> meta) {
-    if (value == null) return null;
+  /// Storage key for field metadata inside the metadata header map.
+  static const String metadataHeaderPerFieldKey = 'perField';
 
-    /// If no metadata exists, we can save space and omit the delimiter entirely
-    if (meta.isEmpty) {
-      return value.toString();
-    }
-
-    final encodedMeta = base64Url.encode(utf8.encode(jsonEncode(meta)));
-    return encodedMeta + metaDelimiter + value.toString();
-  }
-
-  /// Encodes shared class-level metadata into a dedicated adapter envelope.
-  ///
-  /// The returned string is always emitted for adapters that declare
-  /// `classHooks`, even when [meta] is empty, so the read side can reliably
-  /// detect and consume the class-metadata slot before field payloads.
-  String serializeClassMetadataEnvelope(Map<String, dynamic> meta) {
-    final encodedMeta = base64Url.encode(utf8.encode(jsonEncode(meta)));
-    return classMetaDelimiter + encodedMeta + classMetaDelimiter;
-  }
-
-  /// Splits a raw payload into its value and metadata components.
-  PHiveCtx extractPayload(dynamic rawPayload) {
-    final ctx = PHiveCtx();
-    if (rawPayload is! String || !rawPayload.contains(metaDelimiter)) {
-      ctx.value = rawPayload;
-      return ctx;
-    }
-
-    final parts = rawPayload.split(metaDelimiter);
-    if (parts.length == 2) {
-      final decodedMeta = jsonDecode(utf8.decode(base64Url.decode(parts[0])));
-      if (decodedMeta is Map<String, dynamic>) {
-        ctx.metadata.addAll(decodedMeta);
-      }
-      ctx.value = parts[1];
-    } else {
-      ctx.value = rawPayload;
-    }
-
-    return ctx;
-  }
-
-  /// Decodes the shared class-level metadata envelope when present.
-  ///
-  /// Returns an empty map when [rawEnvelope] is not a valid class metadata
-  /// record. This keeps the read path defensive for malformed payloads.
-  bool isClassMetadataEnvelope(dynamic rawEnvelope) {
-    return rawEnvelope is String &&
-        rawEnvelope.startsWith(classMetaDelimiter) &&
-        rawEnvelope.endsWith(classMetaDelimiter);
-  }
-
-  /// Decodes the shared class-level metadata envelope when present.
-  ///
-  /// Returns an empty map when [rawEnvelope] is not a valid class metadata
-  /// record. This keeps the read path defensive for malformed payloads.
-  Map<String, dynamic> extractClassMetadataEnvelope(dynamic rawEnvelope) {
-    if (!isClassMetadataEnvelope(rawEnvelope)) {
-      return {};
-    }
-
-    final rawEnvelopeString = rawEnvelope as String;
-    final encodedMeta = rawEnvelope.substring(
-      classMetaDelimiter.length,
-      rawEnvelopeString.length - classMetaDelimiter.length,
+  /// Creates one normalized metadata header from global and per-field inputs.
+  PHiveMetadataHeader createMetadataHeader({
+    Map<String, dynamic>? globalMetadata,
+    Map<String, Map<String, dynamic>>? perFieldMetadata,
+  }) {
+    return PHiveMetadataHeader(
+      globalMetadata: globalMetadata,
+      perFieldMetadata: perFieldMetadata,
     );
-    if (encodedMeta.isEmpty) return {};
-
-    final decodedMeta = jsonDecode(utf8.decode(base64Url.decode(encodedMeta)));
-    if (decodedMeta is Map<String, dynamic>) {
-      return decodedMeta;
-    }
-
-    return {};
   }
 
-  /// Merges shared class metadata into a field or object read context.
+  /// Serializes one metadata header into a Hive-storable map value.
+  Map<String, dynamic> serializeMetadataHeader(PHiveMetadataHeader header) {
+    return <String, dynamic>{
+      metadataHeaderVersionKey: header.version,
+      metadataHeaderGlobalKey: Map<String, dynamic>.from(
+        header.globalMetadata,
+      ),
+      metadataHeaderPerFieldKey: <String, Map<String, dynamic>>{
+        for (final entry in header.perFieldMetadata.entries)
+          entry.key: Map<String, dynamic>.from(entry.value),
+      },
+    };
+  }
+
+  /// Restores one metadata header from the leading stored record value.
   ///
-  /// Existing keys already restored from the field payload win over the shared
-  /// metadata so per-field nonces and overrides remain intact.
-  void applySharedMetadata(PHiveCtx ctx, Map<String, dynamic> sharedMetadata) {
-    for (final entry in sharedMetadata.entries) {
+  /// Throws [StateError] when [rawHeader] does not match the current header
+  /// schema, because the redesigned format intentionally drops legacy support.
+  PHiveMetadataHeader extractMetadataHeader(dynamic rawHeader) {
+    if (rawHeader is! Map) {
+      throw StateError('Expected PHive metadata header map, got $rawHeader.');
+    }
+
+    final rawVersion = rawHeader[metadataHeaderVersionKey];
+    if (rawVersion is! int || rawVersion != PHiveMetadataHeader.currentVersion) {
+      throw StateError(
+        'Unsupported PHive metadata header version: $rawVersion.',
+      );
+    }
+
+    final rawGlobal = rawHeader[metadataHeaderGlobalKey];
+    final rawPerField = rawHeader[metadataHeaderPerFieldKey];
+
+    return PHiveMetadataHeader(
+      version: rawVersion,
+      globalMetadata: rawGlobal is Map
+          ? Map<String, dynamic>.from(rawGlobal)
+          : const <String, dynamic>{},
+      perFieldMetadata: rawPerField is Map
+          ? <String, Map<String, dynamic>>{
+              for (final entry in rawPerField.entries)
+                if (entry.key is String && entry.value is Map)
+                  entry.key as String: Map<String, dynamic>.from(
+                    entry.value as Map,
+                  ),
+            }
+          : const <String, Map<String, dynamic>>{},
+    );
+  }
+
+  /// Merges one metadata mapping into a hook context without overwriting keys.
+  void applyMetadata(PHiveCtx ctx, Map<String, dynamic> metadata) {
+    for (final entry in metadata.entries) {
       ctx.metadata.putIfAbsent(entry.key, () => entry.value);
-    }
-  }
-
-  /// Merges shared class metadata into a field write context.
-  ///
-  /// Existing pending metadata written by field hooks wins over the shared
-  /// metadata so field-specific values override class defaults when needed.
-  void applySharedPendingMetadata(
-    PHiveCtx ctx,
-    Map<String, dynamic> sharedMetadata,
-  ) {
-    for (final entry in sharedMetadata.entries) {
-      ctx.pendingMetadata.putIfAbsent(entry.key, () => entry.value);
     }
   }
 

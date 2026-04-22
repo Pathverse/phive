@@ -16,12 +16,12 @@ class DemoLessonAdapter extends PTypeAdapter<DemoLesson> {
   DemoLesson read(BinaryReader reader) {
     // lessonId (index 0)
     final raw_lessonId = reader.read();
-    final ctx_lessonId = extractPayload(raw_lessonId);
+    final ctx_lessonId = PHiveCtx()..value = raw_lessonId;
     runPostRead(const [], ctx_lessonId);
     final res_lessonId = ctx_lessonId.value as String;
     // title (index 1)
     final raw_title = reader.read();
-    final ctx_title = extractPayload(raw_title);
+    final ctx_title = PHiveCtx()..value = raw_title;
     runPostRead(const [], ctx_title);
     final res_title = ctx_title.value as String;
     return DemoLesson(lessonId: res_lessonId, title: res_title);
@@ -32,14 +32,12 @@ class DemoLessonAdapter extends PTypeAdapter<DemoLesson> {
     // lessonId (index 0)
     final ctx_lessonId = PHiveCtx()..value = obj.lessonId;
     runPreWrite(const [], ctx_lessonId);
-    writer.write(
-      serializePayload(ctx_lessonId.value, ctx_lessonId.pendingMetadata),
-    );
+    writer.write(ctx_lessonId.value);
     runPostWrite(const [], ctx_lessonId);
     // title (index 1)
     final ctx_title = PHiveCtx()..value = obj.title;
     runPreWrite(const [], ctx_title);
-    writer.write(serializePayload(ctx_title.value, ctx_title.pendingMetadata));
+    writer.write(ctx_title.value);
     runPostWrite(const [], ctx_title);
   }
 }

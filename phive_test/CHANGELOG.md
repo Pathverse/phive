@@ -1,3 +1,8 @@
+## Unreleased
+
+- Regenerated integration fixtures for the header-based PHive metadata format.
+- Updated integration coverage to validate raw typed field storage plus versioned `global` and `perField` metadata headers.
+
 ## 0.0.2
 
 - Added `AutoNote` fixture and `auto_type_test.dart` for `@PHiveAutoType` integration coverage.

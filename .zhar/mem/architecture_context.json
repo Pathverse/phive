@@ -100,5 +100,22 @@
       "agent": "zhar-agent"
     },
     "custom": {}
+  },
+  "8ba1a": {
+    "id": "8ba1a",
+    "group": "architecture_context",
+    "node_type": "architecture",
+    "summary": "Redesign PHive metadata layout to header global/perField model",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": "PHive will stop embedding metadata into per-field payloads and will stop preserving compatibility with the legacy %PVR%/%PAR% surfaces. New adapter generation will write a single versioned metadata header with global and perField sections, while field values are always written to Hive as raw typed values. This removes type instability caused by metadata-bearing field wrappers and eliminates duplicated class metadata across fields.",
+    "created_at": "2026-04-22T22:05:29Z",
+    "updated_at": "2026-04-22T22:05:29Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent"
+    },
+    "custom": {}
   }
 }

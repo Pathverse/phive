@@ -142,8 +142,8 @@ dart run build_runner build --delete-conflicting-outputs
 
 - Model-level hooks declared on `@PHiveType(... hooks: [...])` are merged with field-level hooks.
 - Whole-object hooks can be declared with `classHooks: [...]`; they run once around the constructed model instance instead of once per field.
-- `classHooks` can transform the object value and persist shared metadata through a `%PAR%...%PAR%` class envelope.
-- Shared class metadata is merged into each field pipeline while preserving field-specific metadata overrides.
+- Hooked adapters emit one versioned metadata header with `global` and `perField` sections before writing raw field values.
+- Whole-object hooks write `global` metadata once, while field hooks read the merged `global` and `perField[fieldName]` metadata during restore.
 - `autoFields` is best for new models; explicit `@PHiveField(index)` remains the safer migration path for persisted schemas.
 - Hook-driven cleanup behavior is not encoded in descriptors. Hooks declare behaviors through `PHiveActionException`, and routers execute them at read time.
 - Keep generated files committed if your workflow requires reproducible builds.

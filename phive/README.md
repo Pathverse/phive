@@ -116,12 +116,12 @@ PHive annotations expose two hook scopes:
 
 - `hooks` on `@PHiveType` and `@PHiveAutoType` are merged into each mapped field pipeline.
 - `classHooks` run once around the whole model instance during generated adapter read/write.
-- `classHooks` persist shared metadata in a dedicated `%PAR%...%PAR%` class envelope written before field payloads.
-- Shared class metadata is merged into each field context without overwriting field-specific metadata.
+- Hooked models write one versioned metadata header with `global` and `perField` sections before raw field values.
+- Global metadata is visible to whole-object hooks and field hooks, while per-field metadata remains scoped to the owning field.
 
 ## Nullable Fields
 
-`PTypeAdapter.serializePayload` handles null correctly: a null value is stored as Hive null rather than the string `"null"`. Nullable field types (`int?`, `bool?`, etc.) round-trip safely through the hook pipeline.
+Hooked fields keep their native Hive value types because metadata now lives in the record header instead of being encoded into field payloads. Nullable field types (`int?`, `bool?`, etc.) therefore round-trip without string coercion.
 
 ## Notes
 

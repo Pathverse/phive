@@ -150,5 +150,24 @@
       "source_ref": "phive/lib/src/core.dart"
     },
     "custom": {}
+  },
+  "8c58b": {
+    "id": "8c58b",
+    "group": "decision_trail",
+    "node_type": "decision",
+    "summary": "Drop legacy per-field metadata wrappers in favor of header metadata",
+    "status": "active",
+    "tags": [],
+    "source": null,
+    "content": null,
+    "created_at": "2026-04-22T22:05:29Z",
+    "updated_at": "2026-04-22T22:05:29Z",
+    "expires_at": null,
+    "metadata": {
+      "agent": "zhar-agent",
+      "alternatives_considered": "keep_current_wrappers",
+      "tradeoffs": "breaking_format"
+    },
+    "custom": {}
   }
 }

@@ -1,4 +1,4 @@
-## Unreleased
+## 0.6.0
 
 - Redesigned generated adapters to emit a single versioned metadata header with `global` and `perField` sections before raw field values.
 - Removed generation of the legacy `%PVR%` and `%PAR%` metadata wrapper/envelope surfaces.

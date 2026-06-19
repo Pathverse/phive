@@ -1,5 +1,8 @@
-## Unreleased
+## 0.6.0
 
+- Added `PHiveRouter.clear()` — empties every primary box and ref store while keeping boxes/`BoxCollection` open and the schema intact (data reset, not teardown).
+- Added `PHiveRouter.clearType<T>()` — empties one type's primary box without cascading into ref stores.
+- Added `PHiveRouter.getAll<T>()` — enumerates every stored item of a type, skipping entries a hook rejects on read.
 - Redesigned PHive hook metadata storage to use one versioned record header with `global` and `perField` sections.
 - Removed the legacy `%PVR%` and `%PAR%` payload/envelope formats and the associated runtime helper surface.
 

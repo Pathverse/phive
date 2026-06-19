@@ -239,10 +239,41 @@ class PHiveStaticRouter implements PHiveRouter {
   }
 
   @override
+  /// Reads every item from one type's primary box, skipping rejected entries.
+  Future<List<T>> getAll<T>() async {
+    final reg = _requireRegistration<T>();
+    final box = await _getBox(reg.boxName);
+    final results = <T>[];
+    for (final key in await box.getAllKeys()) {
+      final item = await _readPrimaryValue<T>(reg, key);
+      if (item != null) results.add(item);
+    }
+    return results;
+  }
+
+  @override
   Future<void> delete<T>(String key) async {
     final reg = _requireRegistration<T>();
     final box = await _getBox(reg.boxName);
     await box.delete(key);
+  }
+
+  @override
+  /// Empties every primary and ref box in the collection, schema intact.
+  Future<void> clear() async {
+    for (final reg in _types.values) {
+      await (await _getBox(reg.boxName)).clear();
+    }
+    for (final ref in _refs) {
+      await (await _getBox(ref.refBoxName)).clear();
+    }
+  }
+
+  @override
+  /// Empties one type's primary box without touching ref stores.
+  Future<void> clearType<T>() async {
+    final reg = _requireRegistration<T>();
+    await (await _getBox(reg.boxName)).clear();
   }
 
   @override

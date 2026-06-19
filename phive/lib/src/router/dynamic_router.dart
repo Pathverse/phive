@@ -162,6 +162,19 @@ class PHiveDynamicRouter implements PHiveRouter {
   }
 
   @override
+  /// Reads every item from one type's primary box, skipping rejected entries.
+  Future<List<T>> getAll<T>() async {
+    final reg = _requireRegistration<T>();
+    final box = await _openBox<T>(reg.boxName);
+    final results = <T>[];
+    for (final key in box.keys) {
+      final item = await _readPrimaryValue<T>(reg, key.toString());
+      if (item != null) results.add(item);
+    }
+    return results;
+  }
+
+  @override
   /// Deletes one primary item without cascading through ref boxes.
   Future<void> delete<T>(String key) async {
     final reg = _requireRegistration<T>();
@@ -169,6 +182,27 @@ class PHiveDynamicRouter implements PHiveRouter {
     await box.delete(key);
     // Intentionally does not clean ref stores.
     // Use deleteContainer / deleteWithChildren for cascade behaviour.
+  }
+
+  @override
+  /// Empties every primary and ref box, keeping the schema and boxes open.
+  Future<void> clear() async {
+    for (final reg in _types.values) {
+      await _ensurePrimaryBox(reg);
+      await _boxCache[reg.boxName]!.clear();
+    }
+    for (final ref in _refs) {
+      final refBox = await _openRefBox(ref.refBoxName);
+      await refBox.clear();
+    }
+  }
+
+  @override
+  /// Empties one type's primary box without touching ref stores.
+  Future<void> clearType<T>() async {
+    final reg = _requireRegistration<T>();
+    final box = await _openBox<T>(reg.boxName);
+    await box.clear();
   }
 
   @override

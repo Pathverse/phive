@@ -474,6 +474,94 @@ void main() {
     });
   });
 
+  // ── 6b. getAll — full type enumeration (dynamic) ──────────────────────────
+
+  group('getAll — dynamic type enumeration', () {
+    test('returns every stored item of a type', () async {
+      final router = _baseRouter();
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.store(TestLesson(lessonId: 'L002', title: 'B'));
+      await router.store(TestLesson(lessonId: 'L003', title: 'C'));
+
+      final all = await router.getAll<TestLesson>();
+      expect(all.length, 3);
+      expect(all.map((l) => l.lessonId), containsAll(['L001', 'L002', 'L003']));
+    });
+
+    test('returns empty list when nothing is stored', () async {
+      final router = _baseRouter();
+      expect(await router.getAll<TestLesson>(), isEmpty);
+    });
+
+    test('only returns items of the requested type', () async {
+      final router = _baseRouter();
+      await router.store(TestLesson(lessonId: 'L001', title: 'Lesson'));
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'Card'));
+
+      final lessons = await router.getAll<TestLesson>();
+      expect(lessons.length, 1);
+      expect(lessons.first.lessonId, 'L001');
+    });
+
+    test('throws StateError for unregistered type', () async {
+      final router = PHiveDynamicRouter();
+      expect(() => router.getAll<TestLesson>(), throwsStateError);
+    });
+  });
+
+  // ── 6c. clear / clearType (dynamic) ───────────────────────────────────────
+
+  group('clear — dynamic full content reset', () {
+    test('clear empties all primary content', () async {
+      final router = _baseRouter();
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'X'));
+
+      await router.clear();
+
+      expect(await router.get<TestLesson>('L001'), isNull);
+      expect(await router.get<TestCard>('C001'), isNull);
+      expect(await router.getAll<TestLesson>(), isEmpty);
+    });
+
+    test('clear empties all ref stores', () async {
+      final router = _baseRouter();
+      final lesson = TestLesson(lessonId: 'L001', title: 'A');
+      await router.store(lesson);
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'X'));
+
+      await router.clear();
+
+      final handle = router.containerOf<TestCard, TestLesson>(lesson);
+      expect(await router.getContainer<TestCard>(handle), isEmpty);
+    });
+
+    test('schema survives clear — store/get works without re-registration', () async {
+      final router = _baseRouter();
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.clear();
+
+      await router.store(TestLesson(lessonId: 'L002', title: 'B'));
+      expect((await router.get<TestLesson>('L002'))!.title, 'B');
+    });
+
+    test('clearType empties only the targeted type', () async {
+      final router = _baseRouter();
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'X'));
+
+      await router.clearType<TestCard>();
+
+      expect(await router.get<TestCard>('C001'), isNull);
+      expect(await router.get<TestLesson>('L001'), isNotNull);
+    });
+
+    test('clearType throws StateError for unregistered type', () async {
+      final router = PHiveDynamicRouter();
+      expect(() => router.clearType<TestLesson>(), throwsStateError);
+    });
+  });
+
   // ── 7. PHiveStaticRouter ──────────────────────────────────────────────────
 
   group('PHiveStaticRouter — registration lock + full CRUD', () {
@@ -635,6 +723,71 @@ void main() {
       expect(await router.get<TestLesson>('L001'), isNull);
       expect(await router.get<TestCard>('C001'), isNull);
       expect(await router.get<TestCard>('C002'), isNull);
+    });
+
+    // ── getAll ───────────────────────────────────────────────────────────────
+
+    test('getAll returns every stored item of a type', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.store(TestLesson(lessonId: 'L002', title: 'B'));
+
+      final all = await router.getAll<TestLesson>();
+      expect(all.length, 2);
+      expect(all.map((l) => l.lessonId), containsAll(['L001', 'L002']));
+    });
+
+    test('getAll returns empty list when nothing is stored', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+      expect(await router.getAll<TestLesson>(), isEmpty);
+    });
+
+    // ── clear / clearType ──────────────────────────────────────────────────
+
+    test('clear empties all primary and ref content', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      final lesson = TestLesson(lessonId: 'L001', title: 'A');
+      await router.store(lesson);
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'X'));
+
+      await router.clear();
+
+      expect(await router.get<TestLesson>('L001'), isNull);
+      expect(await router.get<TestCard>('C001'), isNull);
+      expect(
+        await router.getContainer<TestCard>(
+            router.containerOf<TestCard, TestLesson>(lesson)),
+        isEmpty,
+      );
+    });
+
+    test('schema survives clear — store/get works without re-opening', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.clear();
+
+      await router.store(TestLesson(lessonId: 'L002', title: 'B'));
+      expect((await router.get<TestLesson>('L002'))!.title, 'B');
+    });
+
+    test('clearType empties only the targeted type', () async {
+      final router = _baseStaticRouter(tempDir.path);
+      await router.ensureOpen();
+
+      await router.store(TestLesson(lessonId: 'L001', title: 'A'));
+      await router.store(TestCard(cardId: 'C001', lessonId: 'L001', content: 'X'));
+
+      await router.clearType<TestCard>();
+
+      expect(await router.get<TestCard>('C001'), isNull);
+      expect(await router.get<TestLesson>('L001'), isNotNull);
     });
   });
 }

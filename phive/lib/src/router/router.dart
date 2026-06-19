@@ -58,6 +58,13 @@ abstract class PHiveRouter {
   /// Throws [StateError] if [T] has not been registered.
   Future<T?> get<T>(String key);
 
+  /// Retrieve every stored item of type [T] from its primary box.
+  ///
+  /// Returns an empty list when the box holds no items. Entries that a hook
+  /// rejects on read (e.g. expired) are skipped, mirroring [get].
+  /// Throws [StateError] if [T] has not been registered.
+  Future<List<T>> getAll<T>();
+
   /// Delete an item of type [T] by its primary [key].
   ///
   /// Does NOT cascade into ref stores — orphan ref entries are possible.
@@ -77,6 +84,22 @@ abstract class PHiveRouter {
   /// Delete [item] from its primary box and cascade-delete all children
   /// across every ref relationship where [T] is the parent type.
   Future<void> deleteWithChildren<T>(T item);
+
+  /// Remove all stored content — every primary box and every ref store —
+  /// while keeping the boxes (and the static router's [BoxCollection]) open and
+  /// the registered schema intact. The router is reusable immediately after,
+  /// with no re-registration required.
+  ///
+  /// This clears data, not structure: it does not delete boxes from disk.
+  Future<void> clear();
+
+  /// Remove all stored items of type [T] from its primary box, leaving every
+  /// other type and the schema intact.
+  ///
+  /// Like [delete], this does NOT cascade into ref stores; orphan ref entries
+  /// are tolerated on read (see [getContainer]).
+  /// Throws [StateError] if [T] has not been registered.
+  Future<void> clearType<T>();
 
   /// Pre-open all registered boxes.
   ///

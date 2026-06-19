@@ -113,7 +113,10 @@ Declares a parent-child containership where `T` is the child type and `P` is the
 ```dart
 Future<void> store<T>(T item)
 Future<T?> get<T>(String key)
+Future<List<T>> getAll<T>()
 Future<void> delete<T>(String key)
+Future<void> clear()
+Future<void> clearType<T>()
 PHiveContainerHandle<T> containerOf<T, P>(P parent)
 Future<List<T>> getContainer<T>(PHiveContainerHandle<T> handle)
 Future<void> deleteContainer<T>(PHiveContainerHandle<T> handle)
@@ -125,7 +128,10 @@ Behavior summary:
 
 - `store` writes the primary item and updates all matching ref stores.
 - `get` loads one item by primary key.
+- `getAll` loads every item of one type from its primary box, skipping entries a hook rejects on read.
 - `delete` removes only the primary item.
+- `clear` empties every primary box and every ref store while keeping the boxes (and the static router's `BoxCollection`) open and the schema intact — it clears data, not structure, so it does not delete boxes from disk.
+- `clearType` empties one type's primary box only; like `delete` it does not cascade into ref stores.
 - `containerOf` resolves one parent-child container handle.
 - `getContainer` loads all children referenced by one handle.
 - `deleteContainer` deletes all children referenced by one handle and clears the ref entry.

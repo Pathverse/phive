@@ -1,2 +1,12 @@
 [zmem]
 commit = "auto"
+
+[bdd]
+stack = ["python", "dart-flutter"]
+enforcement = "hard"
+allow_runtime_override = true
+default_exceptions = ["prototype", "generated_code", "configuration_only", "spike"]
+override_active = false
+override_reason = ""
+override_scope = ""
+override_exception_class = ""

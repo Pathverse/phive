@@ -45,7 +45,7 @@ The generator pipeline (`phive_generator`) turns annotated Dart models into `PTy
 - **WHEN** `emitAdapter` runs for a model with mapped fields and a constructor
 - **THEN** it returns a `PTypeAdapter<T>` subclass whose `typeId` matches the resolved id and whose read/write methods run the merged hook pipeline per field.
 
-> Coverage gap: adapter emission is verified by generator golden/round-trip tests (`phive_test`), not by a behave scenario.
+> Coverage: generator golden tests verify adapter emission. The `proof_hook_metadata` behave scenario exercises generated adapters through stored-byte round trips in `phive_test`; it does not cover every emission variant.
 
 ### Requirement: Metadata header emission is gated on hook presence
 
@@ -81,3 +81,22 @@ Generated adapters SHALL emit a metadata header write and read prelude only when
 - **THEN** collection throws `InvalidGenerationSourceError`.
 
 > Coverage gap: descriptor collection is verified by generator unit tests over the `phive_test` models, not by a behave scenario.
+
+### Requirement: Generated adapters preserve scoped metadata precedence
+
+Adapters generated for explicit-ID and automatic-ID models SHALL restore each field with its persisted field metadata taking precedence over global defaults. They SHALL preserve the version-2 header format, field serialization order, and whole-object global metadata scope while applying this precedence. Hookless models SHALL retain their existing header-free format.
+
+#### Scenario: Both annotation modes honor field overrides
+
+- **WHEN** equivalent explicit-ID and automatic-ID models declare class and field hooks that persist conflicting metadata
+- **THEN** both generated adapters restore the field-specific value for the overridden field and the global value for a field without an override.
+
+#### Scenario: Existing version-2 bytes remain readable
+
+- **WHEN** a regenerated adapter reads a record encoded in the existing version-2 layout
+- **THEN** it restores the record using field-over-global metadata precedence without requiring a storage migration.
+
+#### Scenario: Hookless serialization remains unchanged
+
+- **WHEN** a model without hooks is regenerated
+- **THEN** its adapter writes and reads the existing header-free field sequence.

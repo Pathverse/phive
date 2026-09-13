@@ -47,8 +47,8 @@ String emitAdapter({
   for (final field in mappedFields) {
     final hooks = mergeHooksSource(modelHooksSource, field.hooksSource);
     final readMetadataLines = hasMetadataHeader
-        ? "    applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);\n"
-            "    applyMetadata(ctx_${field.name}, metadata_header.metadataForField('${field.name}'));\n"
+        ? "    applyMetadata(ctx_${field.name}, metadata_header.metadataForField('${field.name}'));\n"
+              "    applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);\n"
         : '';
 
     if (hasMetadataHeader) {
@@ -73,7 +73,7 @@ String emitAdapter({
     // ${field.name} (index ${field.index})
     final raw_${field.name} = reader.read();
     final ctx_${field.name} = PHiveCtx()..value = raw_${field.name};
-${readMetadataLines}    runPostRead(const $hooks, ctx_${field.name});
+$readMetadataLines    runPostRead(const $hooks, ctx_${field.name});
     final res_${field.name} = ctx_${field.name}.value as ${field.type};''');
   }
 
@@ -103,26 +103,14 @@ class ${className}Adapter extends PTypeAdapter<$className> {
   $className read(BinaryReader reader) {
 ${_emitReadMetadataHeaderPrelude(hasMetadataHeader)}
 ${readBlocks.join('\n')}
-${_emitReadReturnBlock(
-    className: className,
-    constructorArgs: constructorArgs,
-    hasMetadataHeader: hasMetadataHeader,
-    classHooksSource: classHooksSource,
-  )}
+${_emitReadReturnBlock(className: className, constructorArgs: constructorArgs, hasMetadataHeader: hasMetadataHeader, classHooksSource: classHooksSource)}
   }
 
   @override
   void write(BinaryWriter writer, $className obj) {
-${_emitWriteClassHooksPrelude(
-    className: className,
-    classHooksSource: classHooksSource,
-    hasMetadataHeader: hasMetadataHeader,
-  )}
+${_emitWriteClassHooksPrelude(className: className, classHooksSource: classHooksSource, hasMetadataHeader: hasMetadataHeader)}
 ${writePreparationBlocks.join('\n')}
-${_emitMetadataHeaderWriteBlock(
-    mappedFields: mappedFields,
-    hasMetadataHeader: hasMetadataHeader,
-  )}
+${_emitMetadataHeaderWriteBlock(mappedFields: mappedFields, hasMetadataHeader: hasMetadataHeader)}
 ${writeBlocks.join('\n')}
 ${_emitWriteClassHooksPostlude(className: className, classHooksSource: classHooksSource)}
   }
@@ -177,11 +165,7 @@ ${constructorArgs.join(',\n')}
   return '''    final result = $className(
 ${constructorArgs.join(',\n')}
     );
-${_emitReadClassHooksBlock(
-    className: className,
-    hasMetadataHeader: hasMetadataHeader,
-    classHooksSource: classHooksSource,
-  )}''';
+${_emitReadClassHooksBlock(className: className, hasMetadataHeader: hasMetadataHeader, classHooksSource: classHooksSource)}''';
 }
 
 /// Emits the write prelude that prepares global metadata before field writes.

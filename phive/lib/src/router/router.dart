@@ -46,8 +46,13 @@ abstract class PHiveRouter {
 
   /// Store [item] in its registered box.
   ///
-  /// Also updates every ref store where [T] is registered as a child type,
-  /// appending the item's primary key to the relevant parent entry.
+  /// Reconciles every ref where [T] is a child. After a successful store, its
+  /// key appears exactly once under the resolved parent and under no other
+  /// parent in that relationship. Reused keys repair their old memberships,
+  /// even when their previous primary record is absent or cannot be read.
+  ///
+  /// This scans the relationship's stored ref lists. Serialize mutations to
+  /// the same logical store; updates across boxes are not atomic on failure.
   ///
   /// Throws [StateError] if [T] has not been registered.
   Future<void> store<T>(T item);

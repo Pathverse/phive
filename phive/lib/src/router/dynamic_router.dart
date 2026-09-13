@@ -45,12 +45,14 @@ class PHiveDynamicRouter implements PHiveRouter {
     String? refBoxName,
   }) {
     final name = refBoxName ?? '__ref_${P}_$T';
-    _refs.add(PHiveRefRegistration(
-      childType: T,
-      parentType: P,
-      resolve: (dynamic item) => resolve(item as T),
-      refBoxName: name,
-    ));
+    _refs.add(
+      PHiveRefRegistration(
+        childType: T,
+        parentType: P,
+        resolve: (dynamic item) => resolve(item as T),
+        refBoxName: name,
+      ),
+    );
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -135,19 +137,32 @@ class PHiveDynamicRouter implements PHiveRouter {
   // ── PHiveRouter implementation ─────────────────────────────────────────────
 
   @override
-  /// Stores one item and updates every ref relationship where it is a child.
+  /// Stores one item and reconciles every ref relationship where it is a child.
   Future<void> store<T>(T item) async {
     final reg = _requireRegistration<T>();
     final box = await _openBox<T>(reg.boxName);
     final key = reg.primaryKey(item);
     await box.put(key, item);
 
-    // Update every ref store where T is the child type.
+    // Reconcile without reading the previous primary value: it may be expired
+    // or absent while its old ref entries still exist.
     for (final ref in _refs.where((r) => r.childType == T)) {
       final parentKey = ref.resolve(item);
       final refBox = await _openRefBox(ref.refBoxName);
+      for (final oldParent in refBox.keys.toList()) {
+        if (oldParent == parentKey) continue;
+        final oldKeys = _readRefList(refBox, oldParent as String);
+        if (!oldKeys.contains(key)) continue;
+        oldKeys.removeWhere((candidate) => candidate == key);
+        if (oldKeys.isEmpty) {
+          await refBox.delete(oldParent);
+        } else {
+          await refBox.put(oldParent, oldKeys);
+        }
+      }
       final keys = _readRefList(refBox, parentKey);
-      if (!keys.contains(key)) {
+      if (keys.where((candidate) => candidate == key).length != 1) {
+        keys.removeWhere((candidate) => candidate == key);
         keys.add(key);
         await refBox.put(parentKey, keys);
       }

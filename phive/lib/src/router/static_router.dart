@@ -61,10 +61,7 @@ class PHiveStaticRouter implements PHiveRouter {
   BoxCollection? _collection;
   bool _isOpen = false;
 
-  PHiveStaticRouter({
-    this.collectionName = 'phive_static',
-    this.path,
-  });
+  PHiveStaticRouter({this.collectionName = 'phive_static', this.path});
 
   // ── Registration guard ────────────────────────────────────────────────────
 
@@ -101,12 +98,14 @@ class PHiveStaticRouter implements PHiveRouter {
   }) {
     _assertMutable('register refs');
     final name = refBoxName ?? '__ref_${P}_$T';
-    _refs.add(PHiveRefRegistration(
-      childType: T,
-      parentType: P,
-      resolve: (dynamic item) => resolve(item as T),
-      refBoxName: name,
-    ));
+    _refs.add(
+      PHiveRefRegistration(
+        childType: T,
+        parentType: P,
+        resolve: (dynamic item) => resolve(item as T),
+        refBoxName: name,
+      ),
+    );
   }
 
   // ── Internal helpers ──────────────────────────────────────────────────────
@@ -121,6 +120,7 @@ class PHiveStaticRouter implements PHiveRouter {
     }
     return reg;
   }
+
   /// Returns one open storage box that holds primitive string payloads.
   Future<CollectionBox<String>> _getBox(String boxName) async {
     final cached = _boxCache[boxName];
@@ -220,12 +220,24 @@ class PHiveStaticRouter implements PHiveRouter {
     final key = reg.primaryKey(item);
     await box.put(key, _encodeValue(item));
 
-    // Update every ref store where T is the child type.
+    // Reconcile existing ref payloads without deserializing the previous item.
     for (final ref in _refs.where((r) => r.childType == T)) {
       final parentKey = ref.resolve(item);
       final refBox = await _getBox(ref.refBoxName);
+      for (final oldParent in List<String>.of(await refBox.getAllKeys())) {
+        if (oldParent == parentKey) continue;
+        final oldKeys = _parseRefList(await refBox.get(oldParent));
+        if (!oldKeys.contains(key)) continue;
+        oldKeys.removeWhere((candidate) => candidate == key);
+        if (oldKeys.isEmpty) {
+          await refBox.delete(oldParent);
+        } else {
+          await refBox.put(oldParent, _encodeValue(oldKeys));
+        }
+      }
       final keys = _parseRefList(await refBox.get(parentKey));
-      if (!keys.contains(key)) {
+      if (keys.where((candidate) => candidate == key).length != 1) {
+        keys.removeWhere((candidate) => candidate == key);
         keys.add(key);
         await refBox.put(parentKey, _encodeValue(keys));
       }

@@ -27,8 +27,9 @@ List<CollectedField> collectMappedFields({
   required bool autoFields,
 }) {
   final fieldsByName = <String, CollectedField>{};
-  final constructorFields =
-      constr.formalParameters.map((it) => it.displayName).toSet();
+  final constructorFields = constr.formalParameters
+      .map((it) => it.displayName)
+      .toSet();
 
   for (final param in constr.formalParameters) {
     final spec = _fieldFromParameter(param, autoFields: autoFields);
@@ -84,8 +85,10 @@ CollectedField? _fieldFromParameter(
   FormalParameterElement param, {
   required bool autoFields,
 }) {
-  final phiveFieldMeta =
-      findAnnotationNamed(param.metadata.annotations, 'PHiveField');
+  final phiveFieldMeta = findAnnotationNamed(
+    param.metadata.annotations,
+    'PHiveField',
+  );
   if (phiveFieldMeta == null && !autoFields) return null;
 
   final config = _parseFieldAnnotation(phiveFieldMeta);
@@ -104,10 +107,10 @@ CollectedField? _fieldFromAccessor(
   required bool autoFields,
 }) {
   final fieldVar = accessor.variable;
-  final phiveFieldMeta = findAnnotationNamed(
-    [...fieldVar.metadata.annotations, ...accessor.metadata.annotations],
-    'PHiveField',
-  );
+  final phiveFieldMeta = findAnnotationNamed([
+    ...fieldVar.metadata.annotations,
+    ...accessor.metadata.annotations,
+  ], 'PHiveField');
   final shouldInfer =
       autoFields && constructorFields.contains(accessor.displayName);
   if (phiveFieldMeta == null && !shouldInfer) return null;
@@ -162,14 +165,18 @@ List<CollectedField> _assignResolvedIndexes(
   }
 
   var nextIndex = 0;
-  return fields.map((field) {
-    if (field.index != null) return field;
-    while (usedIndexes.containsKey(nextIndex)) nextIndex += 1;
-    final resolved = field.copyWith(index: nextIndex);
-    usedIndexes[nextIndex] = field.name;
-    nextIndex += 1;
-    return resolved;
-  }).toList(growable: false);
+  return fields
+      .map((field) {
+        if (field.index != null) return field;
+        while (usedIndexes.containsKey(nextIndex)) {
+          nextIndex += 1;
+        }
+        final resolved = field.copyWith(index: nextIndex);
+        usedIndexes[nextIndex] = field.name;
+        nextIndex += 1;
+        return resolved;
+      })
+      .toList(growable: false);
 }
 
 // ── Data classes ──────────────────────────────────────────────────────────────
@@ -223,5 +230,8 @@ class CollectedField {
 class _FieldAnnotationConfig {
   final int? index;
   final String hooksSource;
-  const _FieldAnnotationConfig({required this.index, required this.hooksSource});
+  const _FieldAnnotationConfig({
+    required this.index,
+    required this.hooksSource,
+  });
 }

@@ -19,45 +19,45 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
     // id (index 0)
     final raw_id = reader.read();
     final ctx_id = PHiveCtx()..value = raw_id;
-    applyMetadata(ctx_id, metadata_header.globalMetadata);
     applyMetadata(ctx_id, metadata_header.metadataForField('id'));
+    applyMetadata(ctx_id, metadata_header.globalMetadata);
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // secretToken (index 1)
     final raw_secretToken = reader.read();
     final ctx_secretToken = PHiveCtx()..value = raw_secretToken;
-    applyMetadata(ctx_secretToken, metadata_header.globalMetadata);
     applyMetadata(
       ctx_secretToken,
       metadata_header.metadataForField('secretToken'),
     );
+    applyMetadata(ctx_secretToken, metadata_header.globalMetadata);
     runPostRead(const [GCMEncrypted()], ctx_secretToken);
     final res_secretToken = ctx_secretToken.value as String;
     // cachedData (index 2)
     final raw_cachedData = reader.read();
     final ctx_cachedData = PHiveCtx()..value = raw_cachedData;
-    applyMetadata(ctx_cachedData, metadata_header.globalMetadata);
     applyMetadata(
       ctx_cachedData,
       metadata_header.metadataForField('cachedData'),
     );
+    applyMetadata(ctx_cachedData, metadata_header.globalMetadata);
     runPostRead(const [TTL(3600)], ctx_cachedData);
     final res_cachedData = ctx_cachedData.value as String;
     // legacyToken (index 3)
     final raw_legacyToken = reader.read();
     final ctx_legacyToken = PHiveCtx()..value = raw_legacyToken;
-    applyMetadata(ctx_legacyToken, metadata_header.globalMetadata);
     applyMetadata(
       ctx_legacyToken,
       metadata_header.metadataForField('legacyToken'),
     );
+    applyMetadata(ctx_legacyToken, metadata_header.globalMetadata);
     runPostRead(const [AESEncrypted()], ctx_legacyToken);
     final res_legacyToken = ctx_legacyToken.value as String;
     // metadata (index 4)
     final raw_metadata = reader.read();
     final ctx_metadata = PHiveCtx()..value = raw_metadata;
-    applyMetadata(ctx_metadata, metadata_header.globalMetadata);
     applyMetadata(ctx_metadata, metadata_header.metadataForField('metadata'));
+    applyMetadata(ctx_metadata, metadata_header.globalMetadata);
     runPostRead(const [UniversalEncrypted()], ctx_metadata);
     final res_metadata = ctx_metadata.value as Map<String, dynamic>;
     return DemoUser(

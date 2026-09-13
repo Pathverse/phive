@@ -1,6 +1,8 @@
 // BDD bound integration proofs for the phive library.
 //
-// Each test is tagged to match exactly one @proof_<id> scenario in features/.
+// Acceptance tests are tagged to match @proof_<id> scenarios in features/.
+// Metadata storage coverage lives in phive_test; reparenting is in
+// test/reparenting_test.dart. The metadata helper test below is unit coverage.
 // Run individually via:   flutter test --tags proof_<id>   (from phive/)
 // Run all proofs via:     flutter test test/proofs/        (from phive/)
 //
@@ -67,9 +69,13 @@ class ProofExpiringAdapter extends TypeAdapter<ProofExpiringEntry> {
     final id = r.read() as String;
     throw PHiveActionException(
       'Proof: entry $id expired',
-      behaviors: {PHiveActionBehavior.deleteEntry, PHiveActionBehavior.returnNull},
+      behaviors: {
+        PHiveActionBehavior.deleteEntry,
+        PHiveActionBehavior.returnNull,
+      },
     );
   }
+
   @override
   void write(BinaryWriter w, ProofExpiringEntry obj) => w.write(obj.entryId);
 }
@@ -181,21 +187,20 @@ void main() {
   test(
     'router static layout: schema locks after ensureOpen, CRUD works across BoxCollection',
     () async {
-      final router = PHiveStaticRouter(
-        collectionName: 'bdd_proof_static',
-        path: _tempDir.path,
-      )
-        ..register<ProofLesson>(primaryKey: (l) => l.lessonId)
-        ..register<ProofCard>(primaryKey: (c) => c.cardId)
-        ..createRef<ProofCard, ProofLesson>(resolve: (c) => c.lessonId);
+      final router =
+          PHiveStaticRouter(
+              collectionName: 'bdd_proof_static',
+              path: _tempDir.path,
+            )
+            ..register<ProofLesson>(primaryKey: (l) => l.lessonId)
+            ..register<ProofCard>(primaryKey: (c) => c.cardId)
+            ..createRef<ProofCard, ProofLesson>(resolve: (c) => c.lessonId);
 
       await router.ensureOpen();
 
       // Registration after open throws.
       expect(
-        () => router.register<ProofExpiringEntry>(
-          primaryKey: (e) => e.entryId,
-        ),
+        () => router.register<ProofExpiringEntry>(primaryKey: (e) => e.entryId),
         throwsStateError,
       );
 
@@ -213,7 +218,7 @@ void main() {
     tags: ['proof_router_static_layout'],
   );
 
-  // ── proof_hook_metadata ───────────────────────────────────────────────────
+  // Helper-level coverage; the storage acceptance proof lives in phive_test.
 
   test(
     'hook metadata: global and per-field metadata round-trips through serialize/extract',
@@ -238,7 +243,6 @@ void main() {
       expect(decoded.metadataForField('token')['nonce'], 'proof-nonce');
       expect(decoded.metadataForField('absent'), isEmpty);
     },
-    tags: ['proof_hook_metadata'],
   );
 
   // ── proof_hook_action_exception ───────────────────────────────────────────

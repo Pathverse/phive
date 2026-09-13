@@ -4,6 +4,8 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:phive/phive.dart';
 import 'package:source_gen/source_gen.dart';
+// Hive CE exposes constructor resolution only through this helper.
+// ignore: implementation_imports
 import 'package:hive_ce_generator/src/helper/helper.dart' as hive_helper;
 
 import 'adapter_emitter.dart';

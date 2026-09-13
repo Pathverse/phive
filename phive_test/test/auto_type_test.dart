@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +13,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// the annotation itself.
 ///
 /// These tests verify:
-/// 1. The hand-authored [AutoNoteAdapter] (matching generated output) works
+/// 1. The generated [AutoNoteAdapter] works
 ///    correctly with a real Hive CE box.
 /// 2. Plain fields round-trip unchanged.
 /// 3. The [GCMEncrypted] hook on `body` transparently encrypts on write and
@@ -36,10 +37,10 @@ void main() {
   });
 
   group('AutoNote — @PHiveAutoType integration', () {
-    late Box<AutoNote> box;
+    late LazyBox<AutoNote> box;
 
     setUp(() async {
-      box = await Hive.openBox<AutoNote>('auto_note_box');
+      box = await Hive.openLazyBox<AutoNote>('auto_note_box');
     });
 
     tearDown(() async {
@@ -59,7 +60,7 @@ void main() {
       );
 
       await box.put(note.id, note);
-      final retrieved = box.get('note_001');
+      final retrieved = await box.get('note_001');
 
       expect(retrieved, isNotNull);
       expect(retrieved!.id, equals('note_001'));
@@ -74,7 +75,14 @@ void main() {
       );
 
       await box.put(note.id, note);
-      final retrieved = box.get('note_002');
+      final persisted = latin1.decode(await File(box.path!).readAsBytes());
+      expect(persisted, isNot(contains('my_secret_passphrase')));
+      final retrieved = await box.get('note_002');
+      expect(
+        identical(retrieved, note),
+        isFalse,
+        reason: 'The adapter must reconstruct the persisted value.',
+      );
 
       expect(
         retrieved!.body,
@@ -83,22 +91,25 @@ void main() {
       );
     });
 
-    test('multiple notes coexist in the same box without id collisions', () async {
-      final notes = [
-        AutoNote(id: 'note_a', title: 'Alpha', body: 'Content A'),
-        AutoNote(id: 'note_b', title: 'Beta', body: 'Content B'),
-        AutoNote(id: 'note_c', title: 'Gamma', body: 'Content C'),
-      ];
+    test(
+      'multiple notes coexist in the same box without id collisions',
+      () async {
+        final notes = [
+          AutoNote(id: 'note_a', title: 'Alpha', body: 'Content A'),
+          AutoNote(id: 'note_b', title: 'Beta', body: 'Content B'),
+          AutoNote(id: 'note_c', title: 'Gamma', body: 'Content C'),
+        ];
 
-      for (final note in notes) {
-        await box.put(note.id, note);
-      }
+        for (final note in notes) {
+          await box.put(note.id, note);
+        }
 
-      expect(box.length, equals(3));
-      expect(box.get('note_a')?.title, equals('Alpha'));
-      expect(box.get('note_b')?.title, equals('Beta'));
-      expect(box.get('note_c')?.title, equals('Gamma'));
-    });
+        expect(box.length, equals(3));
+        expect((await box.get('note_a'))?.title, equals('Alpha'));
+        expect((await box.get('note_b'))?.title, equals('Beta'));
+        expect((await box.get('note_c'))?.title, equals('Gamma'));
+      },
+    );
 
     test('overwriting a key replaces the note', () async {
       final original = AutoNote(
@@ -115,7 +126,7 @@ void main() {
       await box.put('note_x', original);
       await box.put('note_x', updated);
 
-      final retrieved = box.get('note_x');
+      final retrieved = await box.get('note_x');
       expect(retrieved!.title, equals('Published'));
       expect(retrieved.body, equals('Final content'));
     });
@@ -128,10 +139,10 @@ void main() {
       );
 
       await box.put(note.id, note);
-      expect(box.get('note_del'), isNotNull);
+      expect(await box.get('note_del'), isNotNull);
 
       await box.delete('note_del');
-      expect(box.get('note_del'), isNull);
+      expect(await box.get('note_del'), isNull);
     });
   });
 }

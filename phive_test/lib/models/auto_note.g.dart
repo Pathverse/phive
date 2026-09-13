@@ -19,22 +19,22 @@ class AutoNoteAdapter extends PTypeAdapter<AutoNote> {
     // id (index 0)
     final raw_id = reader.read();
     final ctx_id = PHiveCtx()..value = raw_id;
-    applyMetadata(ctx_id, metadata_header.globalMetadata);
     applyMetadata(ctx_id, metadata_header.metadataForField('id'));
+    applyMetadata(ctx_id, metadata_header.globalMetadata);
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // title (index 1)
     final raw_title = reader.read();
     final ctx_title = PHiveCtx()..value = raw_title;
-    applyMetadata(ctx_title, metadata_header.globalMetadata);
     applyMetadata(ctx_title, metadata_header.metadataForField('title'));
+    applyMetadata(ctx_title, metadata_header.globalMetadata);
     runPostRead(const [], ctx_title);
     final res_title = ctx_title.value as String;
     // body (index 2)
     final raw_body = reader.read();
     final ctx_body = PHiveCtx()..value = raw_body;
-    applyMetadata(ctx_body, metadata_header.globalMetadata);
     applyMetadata(ctx_body, metadata_header.metadataForField('body'));
+    applyMetadata(ctx_body, metadata_header.globalMetadata);
     runPostRead(const [GCMEncrypted()], ctx_body);
     final res_body = ctx_body.value as String;
     return AutoNote(id: res_id, title: res_title, body: res_body);

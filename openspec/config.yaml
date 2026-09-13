@@ -18,3 +18,65 @@ schema: spec-driven
 #       - Always include a "Non-goals" section
 #     tasks:
 #       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - | # over:decision-propose
+      Resolve material scope and behavior choices with evidence-backed prompts before proposing dependent work. Wait for explicit answers and preserve decisions already settled during exploration.
+    - | # over:prototype-propose
+      Settle prototype need before dependent planning: ask for a bounded experiment or state concrete evidence that makes one unnecessary. Preserve an earlier explicit answer.
+  tasks:
+    - | # over:evidence-tasks
+      Make each task state its observable completion evidence. Keep required work pending until its full scope is satisfied; distinguish utility verification from application integration.
+    - | # over:utility-mature
+      During ff-change, use overspec-utilities in mature mode through the native tasks stage: verify planned utilities through observed RED, implementation, and GREEN; leave application wiring for apply.
+  design:
+    - | # over:utility-plan
+      Use overspec-utilities in plan mode through the native design stage. Record the Ponytail reuse assessment, utility contracts, and focused verification in the accepted utility plan.
+operations:
+  apply:
+    guidance:
+      - | # over:evidence-apply
+        Match completion claims to observed results and the full accepted scope. Report what was verified, what was not run, and what remains pending.
+      - | # over:integration-test-policies
+        Verify integration behavior through actual public inputs and observable outputs or state. Keep pure case matrices in unit tests, and use controlled external dependencies for repeatability.
+      - | # over:bdd-behave,bdd-cucumber,bdd-flutter
+        From this project's root, run:
+        overspec trait resolve --attach operations.apply.guidance --trait bdd-behave --trait bdd-cucumber --trait bdd-flutter
+        Supply --context-file <path> when current invocation context is available, and apply the returned guidance to this operation.
+        For an active change, obtain changeRoot from OpenSpec using openspec status --change <name> --json (preserving the selected --store), then append --change-root <changeRoot> to this command. Without a selected change, use project variables only.
+  archive:
+    guidance:
+      - | # over:zmem-archive
+        Ask the user to choose: discard, archive normally, dissolve into zmem, or only form specs.
+        Wait for their answer before changing lifecycle artifacts. Commit OpenSpec artifacts
+        retained by the chosen outcome; use zmem-author-commits for the final review when available.
+      - | # over:do-not-archive-openspec-change
+        From this project's root, run:
+        overspec trait resolve --attach operations.archive.guidance --trait do-not-archive-openspec-change
+        Supply --context-file <path> when current invocation context is available, and apply the returned guidance to this operation.
+        For an active change, obtain changeRoot from OpenSpec using openspec status --change <name> --json (preserving the selected --store), then append --change-root <changeRoot> to this command. Without a selected change, use project variables only.
+context: |
+  During exploration: Present evidence-backed choices for unresolved material decisions, explain the recommendation and tradeoffs, and wait for explicit answers before dependent work. Preserve settled decisions.
+  <!-- over:decision-explore -->
+
+  During exploration: Ask whether a bounded prototype is needed unless concrete current evidence establishes that none is needed. State the evidence when bypassing the choice.
+  <!-- over:prototype-explore -->
+
+  Before behavioral implementation, read and apply Superpowers' test-driven-development:
+  https://raw.githubusercontent.com/obra/superpowers/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/test-driven-development/SKILL.md
+  Read its sibling writing-good-tests.md at the same revision. Complete each
+  behavior through observed RED, minimal implementation, GREEN, then refactor;
+  report the evidence. If either reference is unavailable, report it and pause
+  behavioral implementation rather than claiming compliance.
+  <!-- over:tdd -->
+
+  Use codegraph for current code structure and zmem for decisions and lessons.
+  Before changing behavior, resolve the symbol with codegraph and recall zmem for
+  its file or module. Keep repository memory authoritative in zmem and record new
+  decisions and lessons on the commit carrying the change.
+  <!-- over:require-zmem -->
+
+  Invoke zmem-author-commits after each verified source implementation milestone
+  for implementation commits and durable memory. Include .over, config, tests, and
+  all other nonignored work; exclude only the active change's own artifacts.
+  <!-- over:zmem-commits -->

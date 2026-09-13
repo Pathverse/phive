@@ -144,6 +144,7 @@ dart run build_runner build --delete-conflicting-outputs
 - Whole-object hooks can be declared with `classHooks: [...]`; they run once around the constructed model instance instead of once per field.
 - Hooked adapters emit one versioned metadata header with `global` and `perField` sections before writing raw field values.
 - Whole-object hooks write `global` metadata once, while field hooks read the merged `global` and `perField[fieldName]` metadata during restore.
+- Generated field reads apply persisted field metadata first, then fill missing keys from global metadata. A present null remains an override; whole-object read hooks see global metadata only. Regenerate adapters after upgrading the generator to apply this precedence without changing the version-2 byte layout.
 - `autoFields` is best for new models; explicit `@PHiveField(index)` remains the safer migration path for persisted schemas.
 - Hook-driven cleanup behavior is not encoded in descriptors. Hooks declare behaviors through `PHiveActionException`, and routers execute them at read time.
 - Keep generated files committed if your workflow requires reproducible builds.

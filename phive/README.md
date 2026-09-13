@@ -102,6 +102,31 @@ Manual registration remains available when you do not want generated descriptors
 
 Use the dynamic router when the type set is flexible. Use the static router when a fixed set of types and refs should share one logical database, especially on web.
 
+### Updating relationships
+
+Storing a child with the same primary key and a different parent moves its
+membership to the new parent's container. After `store` succeeds, the old
+container no longer returns that child, and deleting the old container or parent
+does not delete the moved child. Existing container handles remain usable.
+
+Each store scans the affected relationship's existing reference lists, removes
+old memberships, and retains exactly one destination membership. This also
+repairs stale links when a primary key is reused after `delete` or `clearType`,
+without reading the old value or triggering its hooks. Untouched stale keys are
+not swept. Cost grows with the number and size of lists in each relationship.
+
+Serialize mutations to the same logical store. Primary and reference writes are
+not an atomic transaction; storage errors propagate and can leave partial
+updates. `delete` and `clearType` still remove primary values only, and reads
+continue to tolerate missing children.
+
+### Metadata precedence
+
+On generated reads, a field's persisted metadata takes precedence over global
+defaults, including an explicitly stored null. Missing field keys inherit global
+values. Whole-object hooks receive only global metadata. Regenerate adapters to
+apply this ordering; the version-2 header and field byte layout are unchanged.
+
 ## Exception Behavior Model
 
 PHive uses behavior-driven hook exceptions for read-side cleanup and fallback handling.

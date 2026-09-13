@@ -21,15 +21,15 @@ class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
     // id (index 0)
     final raw_id = reader.read();
     final ctx_id = PHiveCtx()..value = raw_id;
-    applyMetadata(ctx_id, metadata_header.globalMetadata);
     applyMetadata(ctx_id, metadata_header.metadataForField('id'));
+    applyMetadata(ctx_id, metadata_header.globalMetadata);
     runPostRead(const [], ctx_id);
     final res_id = ctx_id.value as String;
     // data (index 1)
     final raw_data = reader.read();
     final ctx_data = PHiveCtx()..value = raw_data;
-    applyMetadata(ctx_data, metadata_header.globalMetadata);
     applyMetadata(ctx_data, metadata_header.metadataForField('data'));
+    applyMetadata(ctx_data, metadata_header.globalMetadata);
     runPostRead(const [AutoStubHook()], ctx_data);
     final res_data = ctx_data.value as String;
     return AutoTypeSimple(res_id, res_data);
@@ -133,8 +133,8 @@ class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
     // token (index 0)
     final raw_token = reader.read();
     final ctx_token = PHiveCtx()..value = raw_token;
-    applyMetadata(ctx_token, metadata_header.globalMetadata);
     applyMetadata(ctx_token, metadata_header.metadataForField('token'));
+    applyMetadata(ctx_token, metadata_header.globalMetadata);
     runPostRead(const [
       ...[AutoStubHook()],
       ...[AutoStubHook()],
@@ -192,8 +192,8 @@ class AutoTypeWithClassHooksAdapter
     // token (index 0)
     final raw_token = reader.read();
     final ctx_token = PHiveCtx()..value = raw_token;
-    applyMetadata(ctx_token, metadata_header.globalMetadata);
     applyMetadata(ctx_token, metadata_header.metadataForField('token'));
+    applyMetadata(ctx_token, metadata_header.globalMetadata);
     runPostRead(const [], ctx_token);
     final res_token = ctx_token.value as String;
     final result = AutoTypeWithClassHooks(res_token);

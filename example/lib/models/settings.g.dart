@@ -19,32 +19,32 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
     // username (index 0)
     final raw_username = reader.read();
     final ctx_username = PHiveCtx()..value = raw_username;
-    applyMetadata(ctx_username, metadata_header.globalMetadata);
     applyMetadata(ctx_username, metadata_header.metadataForField('username'));
+    applyMetadata(ctx_username, metadata_header.globalMetadata);
     runPostRead(const [], ctx_username);
     final res_username = ctx_username.value as String;
     // secretKey (index 1)
     final raw_secretKey = reader.read();
     final ctx_secretKey = PHiveCtx()..value = raw_secretKey;
-    applyMetadata(ctx_secretKey, metadata_header.globalMetadata);
     applyMetadata(ctx_secretKey, metadata_header.metadataForField('secretKey'));
+    applyMetadata(ctx_secretKey, metadata_header.globalMetadata);
     runPostRead(const [GCMEncrypted()], ctx_secretKey);
     final res_secretKey = ctx_secretKey.value as String;
     // cachedToken (index 2)
     final raw_cachedToken = reader.read();
     final ctx_cachedToken = PHiveCtx()..value = raw_cachedToken;
-    applyMetadata(ctx_cachedToken, metadata_header.globalMetadata);
     applyMetadata(
       ctx_cachedToken,
       metadata_header.metadataForField('cachedToken'),
     );
+    applyMetadata(ctx_cachedToken, metadata_header.globalMetadata);
     runPostRead(const [TTL(10)], ctx_cachedToken);
     final res_cachedToken = ctx_cachedToken.value as String;
     // config (index 3)
     final raw_config = reader.read();
     final ctx_config = PHiveCtx()..value = raw_config;
-    applyMetadata(ctx_config, metadata_header.globalMetadata);
     applyMetadata(ctx_config, metadata_header.metadataForField('config'));
+    applyMetadata(ctx_config, metadata_header.globalMetadata);
     runPostRead(const [UniversalEncrypted()], ctx_config);
     final res_config = ctx_config.value as Map<String, dynamic>;
     return Settings(

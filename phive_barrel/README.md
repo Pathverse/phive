@@ -53,8 +53,9 @@ Then regenerate adapters with `build_runner`.
 - hooks run through `PHiveCtx`
 - model-level hooks declared on `@PHiveType` are merged with field-level hooks on `@PHiveField`
 - whole-object hooks can be declared with `classHooks` and run once around the full model value
-- `classHooks` persist shared metadata through a `%PAR%...%PAR%` class envelope before field payloads
+- `classHooks` persist shared metadata in the version-2 record header's `global` section before field payloads
 - shared class metadata is merged into each field context without overwriting field-specific metadata
+- field-specific values, including null, take precedence; fields without an override inherit the global value, and whole-object hooks receive global metadata only
 - encryption hooks may attach metadata such as nonces into the PHive payload envelope
 - hooks declare read-side cleanup through `PHiveActionException` and `PHiveActionBehavior`
 - routers remain responsible for applying storage side effects such as delete or clear

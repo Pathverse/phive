@@ -19,29 +19,29 @@ class DemoLessonCardAdapter extends PTypeAdapter<DemoLessonCard> {
     // cardId (index 0)
     final raw_cardId = reader.read();
     final ctx_cardId = PHiveCtx()..value = raw_cardId;
-    applyMetadata(ctx_cardId, metadata_header.globalMetadata);
     applyMetadata(ctx_cardId, metadata_header.metadataForField('cardId'));
+    applyMetadata(ctx_cardId, metadata_header.globalMetadata);
     runPostRead(const [GCMEncrypted()], ctx_cardId);
     final res_cardId = ctx_cardId.value as String;
     // lessonId (index 1)
     final raw_lessonId = reader.read();
     final ctx_lessonId = PHiveCtx()..value = raw_lessonId;
-    applyMetadata(ctx_lessonId, metadata_header.globalMetadata);
     applyMetadata(ctx_lessonId, metadata_header.metadataForField('lessonId'));
+    applyMetadata(ctx_lessonId, metadata_header.globalMetadata);
     runPostRead(const [], ctx_lessonId);
     final res_lessonId = ctx_lessonId.value as String;
     // prompt (index 2)
     final raw_prompt = reader.read();
     final ctx_prompt = PHiveCtx()..value = raw_prompt;
-    applyMetadata(ctx_prompt, metadata_header.globalMetadata);
     applyMetadata(ctx_prompt, metadata_header.metadataForField('prompt'));
+    applyMetadata(ctx_prompt, metadata_header.globalMetadata);
     runPostRead(const [], ctx_prompt);
     final res_prompt = ctx_prompt.value as String;
     // answer (index 3)
     final raw_answer = reader.read();
     final ctx_answer = PHiveCtx()..value = raw_answer;
-    applyMetadata(ctx_answer, metadata_header.globalMetadata);
     applyMetadata(ctx_answer, metadata_header.metadataForField('answer'));
+    applyMetadata(ctx_answer, metadata_header.globalMetadata);
     runPostRead(const [], ctx_answer);
     final res_answer = ctx_answer.value as String;
     return DemoLessonCard(

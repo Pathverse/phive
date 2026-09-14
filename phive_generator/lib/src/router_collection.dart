@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'annotation_helpers.dart';
@@ -79,16 +82,24 @@ RouterDescriptorConfig? collectRouterDescriptorConfig({
       fieldType: member.type,
       annotationName: 'PHiveRef',
     );
-    refs.add(RouterRefConfig(
-      fieldName: member.name,
-      parentTypeSource: member.refParentTypeSource!,
-      refBoxNameSource: member.refBoxNameSource,
-    ));
+    refs.add(
+      RouterRefConfig(
+        fieldName: member.name,
+        parentTypeSource: member.refParentTypeSource!,
+        refBoxNameSource:
+            member.refBoxNameSource ??
+            _dartStringLiteral(
+              '__ref_${member.refParentSimpleName}_${element.displayName}',
+            ),
+      ),
+    );
   }
 
   return RouterDescriptorConfig(
     primaryKeyFieldName: primaryKey.name,
-    boxNameSource: primaryKey.boxNameSource,
+    boxNameSource:
+        primaryKey.boxNameSource ??
+        _dartStringLiteral(element.displayName.toLowerCase()),
     refs: refs,
   );
 }
@@ -96,10 +107,14 @@ RouterDescriptorConfig? collectRouterDescriptorConfig({
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 _RouterMember? _routerMemberFromParameter(FormalParameterElement param) {
-  final primaryKeyAnnotation =
-      findAnnotationNamed(param.metadata.annotations, 'PHivePrimaryKey');
-  final refAnnotation =
-      findAnnotationNamed(param.metadata.annotations, 'PHiveRef');
+  final primaryKeyAnnotation = findAnnotationNamed(
+    param.metadata.annotations,
+    'PHivePrimaryKey',
+  );
+  final refAnnotation = findAnnotationNamed(
+    param.metadata.annotations,
+    'PHiveRef',
+  );
   if (primaryKeyAnnotation == null && refAnnotation == null) return null;
 
   final pkConfig = _parsePrimaryKeyAnnotation(primaryKeyAnnotation);
@@ -110,6 +125,7 @@ _RouterMember? _routerMemberFromParameter(FormalParameterElement param) {
     isPrimaryKey: pkConfig.isPrimaryKey,
     boxNameSource: pkConfig.boxNameSource,
     refParentTypeSource: refConfig.parentTypeSource,
+    refParentSimpleName: refConfig.parentSimpleName,
     refBoxNameSource: refConfig.refBoxNameSource,
     hasExplicitAnnotation: true,
   );
@@ -120,8 +136,10 @@ _RouterMember? _routerMemberFromAccessor(PropertyAccessorElement accessor) {
     ...accessor.variable.metadata.annotations,
     ...accessor.metadata.annotations,
   ];
-  final primaryKeyAnnotation =
-      findAnnotationNamed(annotations, 'PHivePrimaryKey');
+  final primaryKeyAnnotation = findAnnotationNamed(
+    annotations,
+    'PHivePrimaryKey',
+  );
   final refAnnotation = findAnnotationNamed(annotations, 'PHiveRef');
   if (primaryKeyAnnotation == null && refAnnotation == null) return null;
 
@@ -133,6 +151,7 @@ _RouterMember? _routerMemberFromAccessor(PropertyAccessorElement accessor) {
     isPrimaryKey: pkConfig.isPrimaryKey,
     boxNameSource: pkConfig.boxNameSource,
     refParentTypeSource: refConfig.parentTypeSource,
+    refParentSimpleName: refConfig.parentSimpleName,
     refBoxNameSource: refConfig.refBoxNameSource,
     hasExplicitAnnotation: true,
   );
@@ -142,25 +161,64 @@ _PrimaryKeyConfig _parsePrimaryKeyAnnotation(ElementAnnotation? annotation) {
   if (annotation == null) {
     return const _PrimaryKeyConfig(isPrimaryKey: false, boxNameSource: null);
   }
-  final source = annotation.toSource();
   return _PrimaryKeyConfig(
     isPrimaryKey: true,
-    boxNameSource: extractNamedStringArgument(source, 'boxName'),
+    boxNameSource: _readNameLiteral(annotation, 'boxName'),
   );
 }
 
 _RefConfig _parseRefAnnotation(ElementAnnotation? annotation) {
   if (annotation == null) {
-    return const _RefConfig(parentTypeSource: null, refBoxNameSource: null);
+    return const _RefConfig(
+      parentTypeSource: null,
+      parentSimpleName: null,
+      refBoxNameSource: null,
+    );
   }
   final source = annotation.toSource();
-  final parentMatch =
-      RegExp(r'@PHiveRef\(\s*([A-Za-z0-9_\.]+)').firstMatch(source);
+  final parentMatch = RegExp(
+    r'@PHiveRef\(\s*([A-Za-z0-9_\.]+)',
+  ).firstMatch(source);
+  final parentType = annotation
+      .computeConstantValue()
+      ?.getField('parentType')
+      ?.toTypeValue();
+  if (parentMatch == null || parentType is! InterfaceType) {
+    throw InvalidGenerationSourceError(
+      'Cannot resolve the parent model in $source. Use a concrete model type in @PHiveRef.',
+      element: annotation.element,
+    );
+  }
   return _RefConfig(
-    parentTypeSource: parentMatch?.group(1),
-    refBoxNameSource: extractNamedStringArgument(source, 'refBoxName'),
+    parentTypeSource: parentMatch.group(1),
+    parentSimpleName: parentType.element.displayName,
+    refBoxNameSource: _readNameLiteral(annotation, 'refBoxName'),
   );
 }
+
+String? _readNameLiteral(ElementAnnotation annotation, String field) {
+  final value = annotation.computeConstantValue()?.getField(field);
+  if (value == null) {
+    throw InvalidGenerationSourceError(
+      'Cannot resolve $field in ${annotation.toSource()}.',
+      element: annotation.element,
+    );
+  }
+  if (value.isNull) return null;
+  final name = value.toStringValue();
+  if (name == null) {
+    throw InvalidGenerationSourceError(
+      '$field must resolve to a constant string.',
+      element: annotation.element,
+    );
+  }
+  return _dartStringLiteral(name);
+}
+
+// JSON handles quotes, backslashes and control characters. Dart additionally
+// requires dollar signs to be escaped to prevent interpolation.
+String _dartStringLiteral(String value) =>
+    jsonEncode(value).replaceAll(r'$', r'\$');
 
 void _validateRouterStringField({
   required InterfaceElement element,
@@ -184,8 +242,8 @@ class RouterDescriptorConfig {
   /// Field used for generated `register<T>()` primary-key extraction.
   final String primaryKeyFieldName;
 
-  /// Optional source text for the generated box-name override.
-  final String? boxNameSource;
+  /// Resolved Dart literal for the generated primary store name.
+  final String boxNameSource;
 
   /// Generated child-to-parent ref registrations for this model.
   final List<RouterRefConfig> refs;
@@ -206,8 +264,8 @@ class RouterRefConfig {
   /// Source text for the parent type argument.
   final String parentTypeSource;
 
-  /// Optional source text for the ref-box name override.
-  final String? refBoxNameSource;
+  /// Resolved Dart literal for the generated relationship store name.
+  final String refBoxNameSource;
 
   /// Creates an immutable generated ref description.
   const RouterRefConfig({
@@ -224,6 +282,7 @@ class _RouterMember {
   final bool isPrimaryKey;
   final String? boxNameSource;
   final String? refParentTypeSource;
+  final String? refParentSimpleName;
   final String? refBoxNameSource;
   final bool hasExplicitAnnotation;
 
@@ -233,6 +292,7 @@ class _RouterMember {
     required this.isPrimaryKey,
     required this.boxNameSource,
     required this.refParentTypeSource,
+    required this.refParentSimpleName,
     required this.refBoxNameSource,
     required this.hasExplicitAnnotation,
   });
@@ -241,11 +301,19 @@ class _RouterMember {
 class _PrimaryKeyConfig {
   final bool isPrimaryKey;
   final String? boxNameSource;
-  const _PrimaryKeyConfig({required this.isPrimaryKey, required this.boxNameSource});
+  const _PrimaryKeyConfig({
+    required this.isPrimaryKey,
+    required this.boxNameSource,
+  });
 }
 
 class _RefConfig {
   final String? parentTypeSource;
+  final String? parentSimpleName;
   final String? refBoxNameSource;
-  const _RefConfig({required this.parentTypeSource, required this.refBoxNameSource});
+  const _RefConfig({
+    required this.parentTypeSource,
+    required this.parentSimpleName,
+    required this.refBoxNameSource,
+  });
 }

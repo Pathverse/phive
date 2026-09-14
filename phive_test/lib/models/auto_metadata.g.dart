@@ -114,7 +114,7 @@ class AutoMetadataRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<AutoMetadata>(
       primaryKey: (item) => item.id,
-      boxName: 'auto_metadata',
+      boxName: "auto_metadata",
     );
   }
 }

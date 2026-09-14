@@ -96,7 +96,7 @@ class UserProfileRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<UserProfile>(
       primaryKey: (item) => item.storageKey,
-      boxName: 'user_sessions',
+      boxName: "user_sessions",
     );
   }
 }

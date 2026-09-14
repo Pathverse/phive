@@ -1,3 +1,14 @@
+## Unreleased
+
+- Generated descriptors now supply literal primary and relationship store names
+  for both type-ID annotation modes, independent of runtime minification.
+- Resolve explicit names from constant values and exclude parent import prefixes
+  from default names. Explicit overrides remain authoritative.
+- **Breaking storage naming change:** Regenerate adapters; previously minified
+  default stores require application-owned recreation or migration. No automatic
+  migration or deletion is performed. Record formats and type IDs are unchanged.
+- Add native and two-build minified browser persistence proofs.
+
 ## 0.6.0
 
 - Redesigned generated adapters to emit a single versioned metadata header with `global` and `perField` sections before raw field values.

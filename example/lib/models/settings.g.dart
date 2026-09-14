@@ -106,7 +106,7 @@ class SettingsRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<Settings>(
       primaryKey: (item) => item.storageKey,
-      boxName: 'app_config',
+      boxName: "app_config",
     );
   }
 }

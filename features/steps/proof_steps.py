@@ -12,6 +12,7 @@ PROOF_PACKAGES = {
     "proof_router_reparenting": "phive",
     "proof_hook_action_exception": "phive",
     "proof_hook_metadata": "phive_test",
+    "proof_generated_store_names": "phive_test",
 }
 
 
@@ -53,4 +54,28 @@ def step_passes(context):
         f"package: {context.proof_package}\ncommand: {context.proof_command}\n"
         f"stdout:\n{r.stdout}\n"
         f"stderr:\n{r.stderr}"
+    )
+
+
+@given("the minified release naming proof is available")
+def step_release_bound(context):
+    context.proof_tag = _proof_tag(context)
+    assert context.proof_tag == "proof_release_store_names", "Unknown release proof"
+    context.proof_package = PROJECT_ROOT
+    context.proof_runner = PROJECT_ROOT / "tool" / "verify_store_names_web.py"
+    assert context.proof_runner.is_file(), "Release naming proof runner is missing"
+
+
+@when("the minified release naming proof is executed")
+def step_release_execute(context):
+    uv = shutil.which("uv")
+    assert uv, "uv executable not found on PATH"
+    context.proof_command = [uv, "run", "--with", "playwright", "python", str(context.proof_runner)]
+    context.result = subprocess.run(
+        context.proof_command,
+        cwd=str(context.proof_package),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )

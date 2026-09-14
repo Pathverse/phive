@@ -45,7 +45,8 @@ class PHiveField {
 
 /// Marks the field that should back generated router registration for a model.
 class PHivePrimaryKey {
-  /// Optional box name override used by generated router descriptors.
+  /// Overrides the generated literal name (the model's simple name, lowercase).
+  /// Use an explicit name to preserve storage identity through class renames.
   final String? boxName;
 
   /// Creates a primary-key annotation for generated router descriptors.
@@ -57,7 +58,8 @@ class PHiveRef {
   /// Parent model type used to build `createRef<Child, Parent>()` calls.
   final Type parentType;
 
-  /// Optional ref-box name override used by generated router descriptors.
+  /// Overrides the generated literal `__ref_Parent_Child` name, using declared
+  /// simple names without import prefixes. Explicit names survive class renames.
   final String? refBoxName;
 
   /// Creates a ref annotation for generator-driven router descriptors.

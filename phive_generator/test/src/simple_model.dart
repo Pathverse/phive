@@ -304,11 +304,11 @@ class RouterModelRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<RouterModel>(
       primaryKey: (item) => item.id,
-      boxName: 'router_models',
+      boxName: "router_models",
     );
     router.createRef<RouterModel, SimpleModel>(
       resolve: (item) => item.lessonId,
-      refBoxName: 'router_models_by_simple',
+      refBoxName: "router_models_by_simple",
     );
   }
 }
@@ -363,7 +363,7 @@ class SingletonRouterModelRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<SingletonRouterModel>(
       primaryKey: (item) => item.storageKey,
-      boxName: 'singleton_models',
+      boxName: "singleton_models",
     );
   }
 }

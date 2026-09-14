@@ -279,9 +279,13 @@ class AutoTypeRouterRouterDescriptor implements PHiveRouterDescriptor {
 
   @override
   void apply(PHiveRouter router) {
-    router.register<AutoTypeRouter>(primaryKey: (item) => item.id);
+    router.register<AutoTypeRouter>(
+      primaryKey: (item) => item.id,
+      boxName: "autotyperouter",
+    );
     router.createRef<AutoTypeRouter, AutoTypeSimple>(
       resolve: (item) => item.parentId,
+      refBoxName: "__ref_AutoTypeSimple_AutoTypeRouter",
     );
   }
 }

@@ -114,7 +114,7 @@ class ExplicitMetadataRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<ExplicitMetadata>(
       primaryKey: (item) => item.id,
-      boxName: 'explicit_metadata',
+      boxName: "explicit_metadata",
     );
   }
 }

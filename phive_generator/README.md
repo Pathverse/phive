@@ -67,6 +67,26 @@ Generated output includes:
 
 ## Generated Router Descriptors
 
+Generated descriptors always include literal store names. With no override,
+`LessonCard` uses `boxName: 'lessoncard'`, and a reference to `Lesson` uses
+`refBoxName: '__ref_Lesson_LessonCard'`. These strings survive release
+minification. Parent import prefixes do not contribute to names; existing Hive
+backend name normalization still applies.
+
+Explicit `boxName` and `refBoxName` values win, including constant string
+expressions. Use explicit names when models may be renamed, when simple names
+collide across libraries or case, or when separate relationships need distinct
+stores. Opaque IDs such as `'s001'` are allowed; store names are not encryption
+or protection against reverse engineering.
+
+**Upgrade:** Regenerate committed adapters. Previously minified default names
+can point to different stores after regeneration. Recreate and repopulate those
+stores when acceptable, or arrange an application-owned migration before
+upgrading. PHive does not discover, migrate, or delete legacy stores. Explicitly
+named stores keep their identities, and record formats and type IDs are unchanged.
+Manual router registration retains its runtime-name fallback and should supply
+explicit names for production persistence.
+
 Use `@PHivePrimaryKey` to drive generated `register<T>()` calls and `@PHiveRef` to drive generated `createRef<T, P>()` calls.
 
 ```dart

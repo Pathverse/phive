@@ -18,6 +18,8 @@ abstract class PHiveRouter {
   ///
   /// [primaryKey] — extracts the storage key from an instance of [T].
   /// [boxName]    — override the default box name (defaults to T.toString().toLowerCase()).
+  /// Supply an explicit name for manual registration in production: runtime type
+  /// strings may be minified. Generated descriptors supply literal names.
   void register<T>({
     required String Function(T item) primaryKey,
     String? boxName,
@@ -28,6 +30,8 @@ abstract class PHiveRouter {
   /// [T] is the child type. [P] is the parent type.
   /// [resolve] extracts the parent's primary key from a child instance.
   /// [refBoxName] overrides the default ref box name.
+  /// Supply it for release-stable manual registration; generated descriptors
+  /// already supply a literal relationship name.
   ///
   /// Example:
   /// ```dart

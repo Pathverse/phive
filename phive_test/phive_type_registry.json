@@ -1,4 +1,6 @@
 {
   "AutoNote": 10,
-  "AutoMetadata": 12
+  "AutoMetadata": 12,
+  "AutoNamingCard": 22,
+  "AutoCustomNamingCard": 24
 }

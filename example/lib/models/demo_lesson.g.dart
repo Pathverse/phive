@@ -51,7 +51,7 @@ class DemoLessonRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<DemoLesson>(
       primaryKey: (item) => item.lessonId,
-      boxName: 'demo_lessons',
+      boxName: "demo_lessons",
     );
   }
 }

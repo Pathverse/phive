@@ -236,18 +236,15 @@ String _emitRouterDescriptorBlock({
   final lines = <String>[
     '    router.register<$className>(',
     '      primaryKey: (item) => item.${descriptor.primaryKeyFieldName},',
+    '      boxName: ${descriptor.boxNameSource},',
   ];
-  if (descriptor.boxNameSource != null) {
-    lines.add('      boxName: ${descriptor.boxNameSource},');
-  }
   lines.add('    );');
 
   for (final ref in descriptor.refs) {
     lines.addAll([
       '    router.createRef<$className, ${ref.parentTypeSource}>(',
       '      resolve: (item) => item.${ref.fieldName},',
-      if (ref.refBoxNameSource != null)
-        '      refBoxName: ${ref.refBoxNameSource},',
+      '      refBoxName: ${ref.refBoxNameSource},',
       '    );',
     ]);
   }

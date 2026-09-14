@@ -101,11 +101,11 @@ class DemoLessonCardRouterDescriptor implements PHiveRouterDescriptor {
   void apply(PHiveRouter router) {
     router.register<DemoLessonCard>(
       primaryKey: (item) => item.cardId,
-      boxName: 'demo_lesson_cards',
+      boxName: "demo_lesson_cards",
     );
     router.createRef<DemoLessonCard, DemoLesson>(
       resolve: (item) => item.lessonId,
-      refBoxName: 'demo_lesson_cards_by_lesson',
+      refBoxName: "demo_lesson_cards_by_lesson",
     );
   }
 }

@@ -96,6 +96,20 @@ Manual registration remains available when you do not want generated descriptors
 
 ## Router Model
 
+Generated descriptors embed literal storage names: the lowercase model name for
+primary stores, and `__ref_Parent_Child` for relationships using declared simple
+names. Minification does not change these literals. Override them with
+`@PHivePrimaryKey(boxName: 'cards_v1')` and
+`@PHiveRef(Lesson, refBoxName: 'cards_by_lesson_v1')` when names must survive class
+renames or distinguish same-named models. Backend normalization still applies.
+
+For manual registration, pass `boxName` to `register` and `refBoxName` to
+`createRef`: their fallback still uses runtime type strings. Regenerate adapters
+on upgrade; formerly minified default stores may need application-owned
+recreation/repopulation or migration. PHive does not automatically migrate or
+delete them. Readable or opaque store names are identifiers, not a security
+boundary; serialization and encryption behavior are unchanged.
+
 - `PHiveDynamicRouter` uses runtime registration and `LazyBox<T>` for primary values so keyed reads can apply hook-driven exception behaviors.
 - `PHiveStaticRouter` uses one Hive CE `BoxCollection` with multiple named stores.
 - Both routers preserve PHive-generated adapter semantics and hook pipelines.

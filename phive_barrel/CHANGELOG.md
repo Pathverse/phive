@@ -1,5 +1,6 @@
-## Unreleased
+## 0.7.0
 
+- Align the PHive runtime dependency to ^0.7.0; encryption and TTL hook APIs are unchanged.
 - Compatibility update for the PHive header-based metadata redesign.
 - Barrel hooks now operate against PHive's versioned `global` and `perField` metadata header model rather than legacy payload wrappers.
 

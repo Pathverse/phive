@@ -1,5 +1,7 @@
-## Unreleased
+## 0.7.0
 
+- Restore field metadata before global defaults, preserving field overrides and
+  the existing version-2 record layout.
 - Generated descriptors now supply literal primary and relationship store names
   for both type-ID annotation modes, independent of runtime minification.
 - Resolve explicit names from constant values and exclude parent import prefixes

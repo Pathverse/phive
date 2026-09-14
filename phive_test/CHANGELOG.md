@@ -1,5 +1,9 @@
-## Unreleased
+## 0.7.0
 
+- Align all local PHive package constraints to ^0.7.0.
+- Force real adapter deserialization in persistence tests; verify metadata
+  precedence, fixed version-2 compatibility, and stable generated store names.
+- Add native and two-build minified browser proofs for generated naming.
 - Regenerated integration fixtures for the header-based PHive metadata format.
 - Updated integration coverage to validate raw typed field storage plus versioned `global` and `perField` metadata headers.
 

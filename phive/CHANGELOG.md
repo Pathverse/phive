@@ -1,3 +1,13 @@
+## 0.7.0
+
+- Reconcile child references on successful stores in both routers, so moving a
+  child removes former-parent membership and protects it from former-container
+  deletion. Primary-only deletion/reset semantics and record formats are unchanged.
+- Document stable generated store names and explicit names for manual registration.
+- Align with generator and hook packages at 0.7.0. Regenerated default descriptors
+  may target different stores than earlier minified builds; recreate affected
+  stores or arrange an application-owned migration.
+
 ## 0.6.0
 
 - Added `PHiveRouter.clear()` — empties every primary box and ref store while keeping boxes/`BoxCollection` open and the schema intact (data reset, not teardown).

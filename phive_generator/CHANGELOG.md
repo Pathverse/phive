@@ -1,3 +1,19 @@
+## 0.7.1
+
+- Widen the `analyzer` constraint to `>=10.0.1 <15.0.0` so the generator can be
+  used alongside `build_runner` 2.16 and `freezed` 4, both of which require
+  `analyzer` 14. The generator's own sources needed no change; only the upper
+  bound was holding consumers back. The range is verified at both ends: the suite
+  passes on a pub-solved `analyzer` 10.2.0 set and on `analyzer` 14.4.0. Sibling
+  constraints are deliberately unchanged, because raising the `hive_ce_generator`
+  floor to a release that requires `analyzer` 14 would narrow compatibility
+  rather than widen it.
+- Assert generated store-name literals against the generated source text instead
+  of the analyzer AST. `analyzer` 14 removed `NamedExpression` in favour of
+  `NamedArgument`, so the previous AST-walking test could only ever compile
+  against one analyzer major; the text form holds across the supported range and
+  still rejects interpolated or non-literal store names.
+
 ## 0.7.0
 
 - Restore field metadata before global defaults, preserving field overrides and

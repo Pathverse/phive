@@ -1,34 +1,63 @@
 import 'dart:convert';
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:analyzer/dart/analysis/utilities.dart';
-import 'package:source_gen_test/source_gen_test.dart';
-import 'package:phive_generator/src/phive_generator.dart';
+
 import 'package:phive_generator/src/auto_type_generator.dart';
+import 'package:phive_generator/src/phive_generator.dart';
 import 'package:phive_generator/src/type_registry.dart';
+import 'package:source_gen_test/source_gen_test.dart';
 import 'package:test/test.dart';
 
-class _Names extends RecursiveAstVisitor<void> {
-  final values = <String, String>{};
-  @override
-  void visitNamedExpression(NamedExpression node) {
-    final name = node.name.label.name;
-    if (name == 'boxName' || name == 'refBoxName') {
-      expect(
-        node.expression,
-        isA<StringLiteral>(),
-        reason: 'Storage identity must be emitted as a literal',
-      );
-      final literal = node.expression as StringLiteral;
-      expect(
-        literal.stringValue,
-        isNotNull,
-        reason: 'Storage names must not interpolate runtime values',
-      );
-      values[name] = literal.stringValue!;
+/// Storage identity must be emitted as a compile-time literal, never an
+/// interpolation that would resolve a box name at runtime.
+///
+/// This is asserted against the generated source text rather than the analyzer
+/// AST on purpose: analyzer 14 removed `NamedExpression` in favour of
+/// `NamedArgument`, so an AST-walking version of this test would compile only
+/// against a single analyzer major and would narrow the range this package
+/// supports. The text form holds across the whole `analyzer` constraint.
+final _namedArgument = RegExp(
+  r'^\s*(boxName|refBoxName):\s*(.*?),?\s*$',
+  multiLine: true,
+);
+
+/// Decodes a Dart string literal, asserting it carries no live interpolation.
+String _literalValue(String key, String source) {
+  final quote = source.isEmpty ? '' : source[0];
+  expect(
+    (quote == '"' || quote == "'") && source.length >= 2 && source.endsWith(quote),
+    isTrue,
+    reason: 'Storage identity `$key` must be emitted as a literal, got: $source',
+  );
+  final body = source.substring(1, source.length - 1);
+  final out = StringBuffer();
+  for (var i = 0; i < body.length; i++) {
+    final char = body[i];
+    if (char == r'\' && i + 1 < body.length) {
+      final escaped = body[++i];
+      out.write(switch (escaped) {
+        'n' => '\n',
+        't' => '\t',
+        'r' => '\r',
+        _ => escaped,
+      });
+      continue;
     }
-    super.visitNamedExpression(node);
+    expect(
+      char,
+      isNot(r'$'),
+      reason: 'Storage identity `$key` must not interpolate a runtime value: $source',
+    );
+    out.write(char);
   }
+  return out.toString();
+}
+
+Map<String, String> _storeNames(String output) {
+  final names = <String, String>{};
+  for (final match in _namedArgument.allMatches(output)) {
+    final key = match.group(1)!;
+    names[key] = _literalValue(key, match.group(2)!);
+  }
+  return names;
 }
 
 Future<void> main() async {
@@ -63,17 +92,16 @@ Future<void> main() async {
                 reader,
                 name,
               );
-        final names = _Names();
-        final parsed = parseString(content: output);
-        expect(parsed.errors, isEmpty);
-        parsed.unit.accept(names);
         final custom = switch (suffix) {
           'Custom' => ('cards_v1', 'links_v1'),
           'Constant' => (r'''cards_$'"\path''', 'relations_v1'),
           'BeforeRename' || 'AfterRename' => ('stable_cards', 'stable_links'),
           _ => (name.toLowerCase(), '__ref_NamingParent_$name'),
         };
-        expect(names.values, {'boxName': custom.$1, 'refBoxName': custom.$2});
+        expect(_storeNames(output), {
+          'boxName': custom.$1,
+          'refBoxName': custom.$2,
+        });
         expect(
           output,
           contains(

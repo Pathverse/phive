@@ -20,7 +20,7 @@ Use this package to define model annotations, hook pipelines, generated adapter 
 ```yaml
 dependencies:
   hive_ce: ^2.19.3
-  phive: ^0.0.1
+  phive: ^0.8.0
 ```
 
 If you are in this monorepo:

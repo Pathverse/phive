@@ -8,7 +8,7 @@ Use this package when you want common behaviors like TTL and encryption without 
 
 ```yaml
 dependencies:
-  phive_barrel: ^0.0.1
+  phive_barrel: ^0.8.0
 ```
 
 If you are in this monorepo:

@@ -1,9 +1,14 @@
-## Unreleased
+## 0.8.0
 
 - `deleteWithChildren` removes descendants at every level of registered
   relationships and cleans up their traversed ref entries. Previously it
   deleted only direct children. To delete only direct children, use
   `deleteContainer` for the applicable containers, then `delete` the parent.
+
+- Fix typed child-box opening during cascade deletion and give container
+  handles value equality.
+- Reconcile relationships from current storage across sequential writes by
+  multiple routers. Batch static-router reads while honoring hook policies.
 
 ## 0.7.0
 

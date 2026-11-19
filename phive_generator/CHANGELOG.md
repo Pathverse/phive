@@ -1,3 +1,14 @@
+## 0.8.0
+
+- Run `preRead` with restored metadata before `postRead`. Generate direct
+  reads and writes for fields without hooks.
+- Resolve constant field indices and preserve nested hook-list arguments.
+  Before regenerating deployed models, compare field order and pin literal
+  indices where necessary to keep existing records readable.
+- Reject duplicate and out-of-range registry IDs. Recognize annotated classes
+  in the assignment CLI without matching comments or string literals.
+- Require PHive runtime `^0.8.0`.
+
 ## 0.7.1
 
 - Widen the `analyzer` constraint to `>=10.0.1 <15.0.0` so the generator can be

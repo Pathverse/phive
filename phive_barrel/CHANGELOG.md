@@ -1,3 +1,11 @@
+## 0.8.0
+
+- Validate AES seed lengths and return read-only seed snapshots.
+- Reject malformed AES-CBC IVs, ciphertext and padding with `FormatException`.
+  Valid records written by earlier versions remain readable.
+- Share GCM cipher setup across the string and universal hooks.
+- Require PHive runtime `^0.8.0`.
+
 ## 0.7.0
 
 - Align the PHive runtime dependency to ^0.7.0; encryption and TTL hook APIs are unchanged.

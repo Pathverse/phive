@@ -1,3 +1,8 @@
+## 0.8.0
+
+- Align PHive dependencies to `^0.8.0` and regenerate integration adapters.
+- Verify the read-hook lifecycle and legacy field layout with persisted data.
+
 ## 0.7.0
 
 - Align all local PHive package constraints to ^0.7.0.

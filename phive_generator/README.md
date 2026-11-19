@@ -10,8 +10,8 @@ Generated adapters are the serialization layer used by both PHive routers. They 
 
 ```yaml
 dev_dependencies:
-	build_runner: ^2.4.14
-	phive_generator: ^0.0.1
+  build_runner: ^2.4.14
+  phive_generator: ^0.8.0
 ```
 
 If you are in this monorepo:
@@ -28,8 +28,8 @@ Your model package should also depend on:
 
 ```yaml
 dependencies:
-	phive: ^0.0.1
-	hive_ce: ^2.19.3
+  phive: ^0.8.0
+  hive_ce: ^2.19.3
 ```
 
 ## Generate Files

@@ -7,17 +7,36 @@ import 'dart:convert';
 /// `phive_type_registry.json` in the package root and committed to version
 /// control so that `build_runner` can read it as a stable input.
 ///
-/// Hive CE reserves type identifiers 0–223 for user-defined types.  The
-/// registry enforces no upper bound itself; callers are responsible for
-/// staying within the valid range.
+/// Hive CE supports user-defined identifiers from 0 through 65439.
 class TypeIdRegistry {
+  static const int minUserTypeId = 0;
+  static const int maxUserTypeId = 65439;
+
   final Map<String, int> _assignments;
 
-  /// Creates a registry from a pre-validated assignment map.
+  /// Creates a registry and validates the assignments.
   ///
   /// Prefer the named constructors [fromJson] and [empty] at call sites.
   TypeIdRegistry(Map<String, int> assignments)
-      : _assignments = Map.unmodifiable(assignments);
+    : _assignments = Map.unmodifiable(assignments) {
+    final namesById = <int, String>{};
+    for (final entry in _assignments.entries) {
+      _validateId(entry.value);
+      final previous = namesById[entry.value];
+      if (previous != null) {
+        throw StateError(
+          'Duplicate typeId ${entry.value} for "$previous" and "${entry.key}".',
+        );
+      }
+      namesById[entry.value] = entry.key;
+    }
+  }
+
+  static void _validateId(int id) {
+    if (id < minUserTypeId || id > maxUserTypeId) {
+      throw StateError('TypeId $id must be in $minUserTypeId..$maxUserTypeId.');
+    }
+  }
 
   /// Creates an empty registry with no assignments.
   factory TypeIdRegistry.empty() => TypeIdRegistry({});
@@ -54,7 +73,11 @@ class TypeIdRegistry {
       assignments[entry.key as String] = value;
     }
 
-    return TypeIdRegistry(assignments);
+    try {
+      return TypeIdRegistry(assignments);
+    } on StateError catch (error) {
+      throw FormatException(error.message, source);
+    }
   }
 
   // ── Queries ──────────────────────────────────────────────────────────────────
@@ -110,7 +133,11 @@ class TypeIdRegistry {
         'Use lookupTypeId to retrieve it.',
       );
     }
+    _validateId(startAt);
     final newId = nextAvailableId(startAt: startAt);
+    if (newId > maxUserTypeId) {
+      throw StateError('No sequential typeId remains for "$className".');
+    }
     return TypeIdRegistry({..._assignments, className: newId});
   }
 
@@ -134,8 +161,7 @@ class TypeIdRegistry {
   /// is readable when new classes are added.
   String toJson() {
     final sorted = Map.fromEntries(
-      _assignments.entries.toList()
-        ..sort((a, b) => a.value.compareTo(b.value)),
+      _assignments.entries.toList()..sort((a, b) => a.value.compareTo(b.value)),
     );
     return const JsonEncoder.withIndent('  ').convert(sorted);
   }

@@ -91,7 +91,7 @@ CollectedField? _fieldFromParameter(
   );
   if (phiveFieldMeta == null && !autoFields) return null;
 
-  final config = _parseFieldAnnotation(phiveFieldMeta);
+  final config = _parseFieldAnnotation(phiveFieldMeta, param);
   return CollectedField(
     name: param.displayName,
     index: config.index,
@@ -115,7 +115,7 @@ CollectedField? _fieldFromAccessor(
       autoFields && constructorFields.contains(accessor.displayName);
   if (phiveFieldMeta == null && !shouldInfer) return null;
 
-  final config = _parseFieldAnnotation(phiveFieldMeta);
+  final config = _parseFieldAnnotation(phiveFieldMeta, accessor);
   return CollectedField(
     name: accessor.displayName,
     index: config.index,
@@ -125,24 +125,29 @@ CollectedField? _fieldFromAccessor(
   );
 }
 
-_FieldAnnotationConfig _parseFieldAnnotation(ElementAnnotation? annotation) {
+_FieldAnnotationConfig _parseFieldAnnotation(
+  ElementAnnotation? annotation,
+  Element field,
+) {
   if (annotation == null) {
     return const _FieldAnnotationConfig(index: null, hooksSource: '[]');
   }
 
-  String hooksSource = '[]';
-  int? index;
-
-  try {
-    final source = annotation.toSource();
-    final hooksMatch = RegExp(r'hooks:\s*(\[.*?\])').firstMatch(source);
-    if (hooksMatch != null) hooksSource = hooksMatch.group(1)!;
-
-    final indexMatch = RegExp(r'@PHiveField\(\s*(\d+)').firstMatch(source);
-    if (indexMatch != null) index = int.parse(indexMatch.group(1)!);
-  } catch (_) {}
-
-  return _FieldAnnotationConfig(index: index, hooksSource: hooksSource);
+  final index = annotation
+      .computeConstantValue()
+      ?.getField('index')
+      ?.toIntValue();
+  if (index == null) {
+    throw InvalidGenerationSourceError(
+      'The PHiveField index for ${field.displayName} must resolve to a constant integer.',
+      element: field,
+    );
+  }
+  return _FieldAnnotationConfig(
+    index: index,
+    hooksSource:
+        extractBalancedListArgument(annotation.toSource(), 'hooks') ?? '[]',
+  );
 }
 
 List<CollectedField> _assignResolvedIndexes(

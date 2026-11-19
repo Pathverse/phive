@@ -21,6 +21,8 @@ library;
 
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:phive_generator/src/type_registry.dart';
 
 Future<void> main(List<String> args) async {
@@ -29,7 +31,9 @@ Future<void> main(List<String> args) async {
 
   final scanDir = Directory(options.scanDir);
   if (!scanDir.existsSync()) {
-    stderr.writeln('Error: scan directory "${options.scanDir}" does not exist.');
+    stderr.writeln(
+      'Error: scan directory "${options.scanDir}" does not exist.',
+    );
     exitCode = 1;
     return;
   }
@@ -50,8 +54,9 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final newClasses =
-      discovered.where((name) => !registry.contains(name)).toList();
+  final newClasses = discovered
+      .where((name) => !registry.contains(name))
+      .toList();
 
   if (newClasses.isEmpty) {
     stdout.writeln(
@@ -76,7 +81,9 @@ Future<void> main(List<String> args) async {
   // ── Write registry ────────────────────────────────────────────────────────
 
   if (options.dryRun) {
-    stdout.writeln('\n[dry-run] Registry NOT written to "${options.registryPath}".');
+    stdout.writeln(
+      '\n[dry-run] Registry NOT written to "${options.registryPath}".',
+    );
     stdout.writeln('Resulting registry would be:');
     stdout.writeln(updated.toJson());
     return;
@@ -88,47 +95,26 @@ Future<void> main(List<String> args) async {
 
 // ── Scanner ───────────────────────────────────────────────────────────────────
 
-/// Finds all class names annotated with `@PHiveAutoType` under [dir].
-///
-/// Uses a two-step forward-scan strategy:
-/// 1. Locate every `@PHiveAutoType` occurrence in the file.
-/// 2. From each occurrence, scan forward up to [_scanWindowSize] characters
-///    looking for the next `class ClassName` token.  The scan is aborted if
-///    an opening brace `{` appears before the `class` keyword, which would
-///    mean the annotation is inside an existing class body rather than
-///    preceding a top-level declaration.
-///
-/// This handles all real-world layouts including multi-line annotation args,
-/// Freezed `abstract class`, and stacked annotations such as
-/// `@PHiveAutoType() @JsonSerializable() class MyModel`.
-const int _scanWindowSize = 600;
-
+/// Finds annotated top-level classes using the Dart parser, without resolution.
 List<String> _scanForAutoTypeClasses(Directory dir) {
-  final annotationRe = RegExp(r'@PHiveAutoType');
-  final classRe = RegExp(r'\bclass\s+(\w+)');
-
   final names = <String>{};
   final dartFiles = dir
       .listSync(recursive: true)
       .whereType<File>()
-      .where((f) => f.path.endsWith('.dart'));
+      .where((file) => file.path.endsWith('.dart'));
 
   for (final file in dartFiles) {
-    final source = file.readAsStringSync();
-    for (final ann in annotationRe.allMatches(source)) {
-      final end = (ann.start + _scanWindowSize).clamp(0, source.length);
-      final window = source.substring(ann.start, end);
-
-      final classMatch = classRe.firstMatch(window);
-      if (classMatch == null) continue;
-
-      // Abort if a class body opens before the class keyword — the annotation
-      // is inside an existing class rather than preceding a new declaration.
-      final braceIdx = window.indexOf('{');
-      if (braceIdx != -1 && braceIdx < classMatch.start) continue;
-
-      final name = classMatch.group(1);
-      if (name != null) names.add(name);
+    final unit = parseString(
+      content: file.readAsStringSync(),
+      path: file.path,
+      throwIfDiagnostics: false,
+    ).unit;
+    for (final declaration in unit.declarations.whereType<ClassDeclaration>()) {
+      if (declaration.metadata.any(
+        (annotation) => annotation.name.name.split('.').last == 'PHiveAutoType',
+      )) {
+        names.add(declaration.namePart.typeName.lexeme);
+      }
     }
   }
 

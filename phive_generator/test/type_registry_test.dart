@@ -1,10 +1,71 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:test/test.dart';
 import 'package:phive_generator/src/type_registry.dart';
 
 /// Unit tests for [TypeIdRegistry] covering parse, lookup, assign, and serialise.
 void main() {
+  test('registry retains single-byte and extended Hive CE IDs', () {
+    final registry = TypeIdRegistry.fromJson(
+      '{"A":0,"B":223,"C":224,"D":65439}',
+    );
+    expect(jsonDecode(registry.toJson()), {
+      'A': 0,
+      'B': 223,
+      'C': 224,
+      'D': 65439,
+    });
+  });
+
+  for (final json in ['{"A":5,"B":5}', '{"A":-1}', '{"A":65440}']) {
+    test('registry rejects invalid assignments in $json', () {
+      expect(() => TypeIdRegistry.fromJson(json), throwsFormatException);
+    });
+  }
+
+  for (final floor in [-1, 65440]) {
+    test('registry rejects allocation starting at $floor', () {
+      expect(
+        () => TypeIdRegistry.empty().assign('A', startAt: floor),
+        throwsStateError,
+      );
+    });
+  }
+
+  test('registry rejects allocation after the last type ID', () {
+    final registry = TypeIdRegistry.fromJson('{"A":65439}');
+    expect(() => registry.assign('B'), throwsStateError);
+  });
+
+  test(
+    'CLI assigns IDs only to annotated classes with nested arguments',
+    () async {
+      final dir = Directory.systemTemp.createTempSync('phive-type-ids-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/models.dart').writeAsStringSync('''
+// @PHiveAutoType() class LineComment {}
+/* @PHiveAutoType() class BlockComment {} */
+const text = r'@PHiveAutoType() class StringLiteral {}';
+class Unannotated {}
+@PHiveAutoType(hooks: [Hook({'brace': [1, 2], 'text': ') class Wrong'})])
+@Other({'key': 1})
+abstract class Model {}
+''');
+      final registry = File('${dir.path}/registry.json');
+      final result = await Process.run(Platform.resolvedExecutable, [
+        '--packages=.dart_tool/package_config.json',
+        'bin/assign_type_ids.dart',
+        '--dir',
+        dir.path,
+        '--registry',
+        registry.path,
+      ]);
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      expect(jsonDecode(registry.readAsStringSync()), {'Model': 0});
+    },
+  );
+
   group('TypeIdRegistry.fromJson', () {
     test('parses an empty object as an empty registry', () {
       final registry = TypeIdRegistry.fromJson('{}');
@@ -77,16 +138,12 @@ void main() {
     });
 
     test('respects an explicit startAt floor when all ids are below it', () {
-      final registry = TypeIdRegistry.fromJson(
-        jsonEncode({'A': 0, 'B': 1}),
-      );
+      final registry = TypeIdRegistry.fromJson(jsonEncode({'A': 0, 'B': 1}));
       expect(registry.nextAvailableId(startAt: 10), equals(10));
     });
 
     test('startAt is ignored when max assigned id exceeds it', () {
-      final registry = TypeIdRegistry.fromJson(
-        jsonEncode({'A': 15, 'B': 16}),
-      );
+      final registry = TypeIdRegistry.fromJson(jsonEncode({'A': 15, 'B': 16}));
       expect(registry.nextAvailableId(startAt: 5), equals(17));
     });
   });
@@ -190,10 +247,7 @@ void main() {
     });
 
     test('isNotEmpty is true for a populated registry', () {
-      expect(
-        TypeIdRegistry.fromJson(jsonEncode({'X': 0})).isNotEmpty,
-        isTrue,
-      );
+      expect(TypeIdRegistry.fromJson(jsonEncode({'X': 0})).isNotEmpty, isTrue);
     });
   });
 }

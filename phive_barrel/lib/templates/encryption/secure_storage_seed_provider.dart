@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -17,7 +18,7 @@ class SecureStorageSeedProvider implements PhiveSeedProvider {
   final Set<String> _seedIds;
 
   /// In-memory cache of loaded seed material keyed by seed id.
-  final Map<String, List<int>> _cache = {};
+  final Map<String, Uint8List> _cache = {};
 
   /// Creates a provider backed by Flutter secure storage.
   ///
@@ -44,15 +45,18 @@ class SecureStorageSeedProvider implements PhiveSeedProvider {
     final storageKey = _storageKeyForSeed(seedId);
     final existing = await _secureStorage.read(key: storageKey);
     if (existing != null && existing.isNotEmpty) {
-      _cache[seedId] = base64Url.decode(existing);
+      _cache[seedId] = base64Url.decode(existing).asUnmodifiableView();
       return;
     }
 
     final random = Random.secure();
-    final key = List<int>.generate(32, (_) => random.nextInt(256), growable: false);
+    final key = Uint8List(32);
+    for (var i = 0; i < key.length; i++) {
+      key[i] = random.nextInt(256);
+    }
     final keyString = base64Url.encode(key);
     await _secureStorage.write(key: storageKey, value: keyString);
-    _cache[seedId] = key;
+    _cache[seedId] = key.asUnmodifiableView();
   }
 
   @override

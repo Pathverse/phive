@@ -1,9 +1,22 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phive/phive.dart';
 import 'package:phive_barrel/phive_barrel.dart';
+
+class _MemorySeedProvider implements PhiveSeedProvider {
+  _MemorySeedProvider(int length) : bytes = Uint8List(length);
+
+  final Uint8List bytes;
+
+  @override
+  List<int> getSeedSync(String? seedId) => bytes;
+
+  @override
+  Future<void> init() async {}
+}
 
 /// Exercises seed preloading and custom-seed hook usage for barrel encryption hooks.
 void main() {
@@ -33,6 +46,62 @@ void main() {
     expect(secondSeed, hasLength(32));
     expect(base64Url.encode(secondSeed), base64Url.encode(firstSeed));
   });
+
+  for (final existing in [false, true]) {
+    test(
+      '${existing ? 'reloaded' : 'generated'} seeds are read-only',
+      () async {
+        const storageKey = 'phive_test_key';
+        FlutterSecureStorage.setMockInitialValues(
+          existing ? {storageKey: base64Url.encode(Uint8List(32))} : {},
+        );
+        final provider = SecureStorageSeedProvider(
+          defaultStorageKey: storageKey,
+        );
+        await provider.init();
+        final seed = provider.getSeedSync(null);
+        final original = seed.first;
+
+        expect(() => seed[0] = original ^ 1, throwsUnsupportedError);
+        expect(provider.getSeedSync(null).first, original);
+      },
+    );
+  }
+
+  for (final length in [16, 24, 32]) {
+    test('registry accepts ${length}-byte AES seeds', () {
+      PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(length));
+      expect(PhiveMetaRegistry.requireSeedSync(null), hasLength(length));
+    });
+  }
+
+  test('registry rejects a seed with an invalid AES length', () {
+    PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(17));
+    expect(
+      () => PhiveMetaRegistry.requireSeedSync(null),
+      throwsA(
+        isA<StateError>().having((e) => e.message, 'message', contains('17')),
+      ),
+    );
+  });
+
+  test('registry returns read-only seeds', () {
+    PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(16));
+    final seed = PhiveMetaRegistry.requireSeedSync(null);
+    expect(() => seed[0] = 8, throwsUnsupportedError);
+  });
+
+  test(
+    'previous registry snapshots survive mutations by a custom provider',
+    () {
+      final provider = _MemorySeedProvider(16);
+      PhiveMetaRegistry.registerSeedProvider(provider);
+      final seed = PhiveMetaRegistry.requireSeedSync(null);
+      provider.bytes[0] = 8;
+      expect(seed[0], 0);
+      expect(PhiveMetaRegistry.requireSeedSync(null)[0], 8);
+    },
+  );
 
   test('custom seed ids work with encryption hooks after preload', () async {
     FlutterSecureStorage.setMockInitialValues({});

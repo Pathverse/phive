@@ -69,6 +69,65 @@ void main() {
           TestCard(cardId: 'moving', lessonId: parent, content: content);
 
       test(
+        'two open routers reconcile sequential moves and preserve siblings',
+        () async {
+          final first = await open();
+          final second = await open();
+          final c = TestLesson(lessonId: 'C', title: 'Final parent');
+          await first.store(child('A'));
+          await first.store(
+            TestCard(cardId: 'stay', lessonId: 'A', content: 'sibling'),
+          );
+          await second.store(child('B'));
+          await first.store(child('C', content: 'updated'));
+
+          await Hive.close();
+          Hive.init(directory.path);
+          final reader = await open();
+          expect(
+            (await reader.getContainer(
+              reader.containerOf<TestCard, TestLesson>(a),
+            )).map((card) => card.cardId),
+            ['stay'],
+          );
+          expect(
+            await reader.getContainer(
+              reader.containerOf<TestCard, TestLesson>(b),
+            ),
+            isEmpty,
+          );
+          final finalContainer = reader.containerOf<TestCard, TestLesson>(c);
+          expect(
+            (await reader.getContainer(finalContainer)).single.content,
+            'updated',
+          );
+          await reader.deleteWithChildren(b);
+          expect(
+            (await reader.getContainer(finalContainer)).single.cardId,
+            'moving',
+          );
+        },
+      );
+
+      if (backend == 'static') {
+        test('reconciliation uses the original long parent key', () async {
+          final router = await open();
+          final former = TestLesson(
+            lessonId: List.filled(300, 'a').join(),
+            title: 'Long key',
+          );
+          await router.store(child(former.lessonId));
+          await router.store(child(b.lessonId));
+          expect(
+            await router.getContainer(
+              router.containerOf<TestCard, TestLesson>(former),
+            ),
+            isEmpty,
+          );
+        });
+      }
+
+      test(
         'moving a child updates retained containers and preserves siblings',
         () async {
           final router = await open();

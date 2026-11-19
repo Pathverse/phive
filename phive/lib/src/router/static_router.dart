@@ -1,7 +1,6 @@
 // ignore_for_file: implementation_imports
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:hive_ce/hive.dart';
 import 'package:hive_ce/src/binary/binary_reader_impl.dart';
@@ -45,6 +44,8 @@ import 'router.dart';
 /// This preserves generated adapter behavior, including PHive hook execution,
 /// across native and web storage backends.
 class PHiveStaticRouter extends PHiveBaseRouter {
+  static const _usesIndexedDb = bool.fromEnvironment('dart.library.js_interop');
+
   /// Name of the [BoxCollection].
   final String collectionName;
 
@@ -103,8 +104,7 @@ class PHiveStaticRouter extends PHiveBaseRouter {
   /// Deserializes one base64 payload through Hive's adapter pipeline.
   T? _decodeValue<T>(String? payload) {
     if (payload == null) return null;
-    final bytes = Uint8List.fromList(base64Decode(payload));
-    final reader = BinaryReaderImpl(bytes, Hive);
+    final reader = BinaryReaderImpl(base64Decode(payload), Hive);
     return reader.read() as T?;
   }
 
@@ -129,8 +129,38 @@ class PHiveStaticRouter extends PHiveBaseRouter {
       _decodeValue<T>(await (await _getBox(reg.boxName)).get(key));
 
   @override
-  Future<List<String>> primaryKeys(PHiveTypeRegistration reg) async =>
-      (await _getBox(reg.boxName)).getAllKeys();
+  Future<List<T>> readAllPrimary<T>(PHiveTypeRegistration reg) async {
+    final payloads = await _readAllPayloads(reg.boxName);
+    final items = <T>[];
+    for (final entry in payloads.entries) {
+      final (item, cleared) = await readWithPolicy(
+        reg,
+        entry.key,
+        () => _decodeValue<T>(entry.value),
+      );
+      // The snapshot still contains records removed by the hook.
+      if (cleared) break;
+      if (item != null) items.add(item);
+    }
+    return items;
+  }
+
+  Future<Map<String, String>> _readAllPayloads(String name) async {
+    final box = await _getBox(name);
+    final values = await box.getAllValues();
+    if (_usesIndexedDb) return values;
+
+    // Native Hive can return hashed backing keys from getAllValues().
+    // Resolve the public keys before using them in writes or read policies.
+    final keys = await box.getAllKeys();
+    if (keys.length == values.length && keys.every(values.containsKey)) {
+      return values;
+    }
+    final resolved = await box.getAll(keys);
+    return {
+      for (var i = 0; i < keys.length; i++) keys[i]: ?resolved[i],
+    };
+  }
 
   @override
   Future<void> deletePrimary(
@@ -149,12 +179,20 @@ class PHiveStaticRouter extends PHiveBaseRouter {
   }
 
   @override
-  Future<List<String>> refParentKeys(String name) async =>
-      (await _getBox(name)).getAllKeys();
+  Future<Map<String, List<String>>> readRefMemberships(String name) async =>
+      (await _readAllPayloads(
+        name,
+      )).map((key, payload) => MapEntry(key, _parseRefList(payload)));
 
   @override
-  Future<List<String>> readRefList(String name, String parentKey) async =>
-      _parseRefList(await (await _getBox(name)).get(parentKey));
+  Future<List<String>> readRefList(String name, String parentKey) async {
+    final box = await _getBox(name);
+    // IndexedDB keyed reads can return a previous router's local snapshot.
+    final payload = _usesIndexedDb
+        ? (await box.getAllValues())[parentKey]
+        : await box.get(parentKey);
+    return _parseRefList(payload);
+  }
 
   @override
   Future<void> writeRefList(

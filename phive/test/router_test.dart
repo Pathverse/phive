@@ -28,7 +28,7 @@ class TestDeck {
   TestDeck({required this.deckId, required this.lessonId});
 }
 
-/// Test model whose adapter always throws during reads.
+/// Test model whose adapter can request a storage action during reads.
 class ExpiringEntry {
   /// Stable key used by router policy tests.
   final String entryId;
@@ -102,10 +102,15 @@ class ExpiringEntryAdapter extends TypeAdapter<ExpiringEntry> {
   ExpiringEntry read(BinaryReader reader) {
     final entryId = reader.read() as String;
     final value = reader.read() as String;
+    if (value == 'before' || value == 'after') {
+      return ExpiringEntry(entryId: entryId, value: value);
+    }
     throw PHiveActionException(
       'Expired entry: $entryId / $value',
       behaviors: {
-        PHiveActionBehavior.deleteEntry,
+        value == 'clear'
+            ? PHiveActionBehavior.clearBox
+            : PHiveActionBehavior.deleteEntry,
         PHiveActionBehavior.returnNull,
       },
     );
@@ -868,6 +873,37 @@ void main() {
     });
 
     // ── getAll ───────────────────────────────────────────────────────────────
+
+    for (final action in ['delete', 'clear']) {
+      test('getAll honors $action without returning removed values', () async {
+        final router = PHiveStaticRouter(
+          collectionName: 'bulk_policy',
+          path: tempDir.path,
+        )..register<ExpiringEntry>(primaryKey: (entry) => entry.entryId);
+        await router.ensureOpen();
+        final rejectedKey = 'b${List.filled(300, 'b').join()}';
+        await router.store(ExpiringEntry(entryId: '0', value: 'before'));
+        await router.store(ExpiringEntry(entryId: rejectedKey, value: action));
+        await router.store(ExpiringEntry(entryId: 'z', value: 'after'));
+
+        final result = await router.getAll<ExpiringEntry>();
+        expect(
+          result.map((entry) => entry.value),
+          action == 'clear' ? ['before'] : ['before', 'after'],
+        );
+        final collection = await BoxCollection.open(
+          'bulk_policy',
+          {'expiringentry'},
+          path: tempDir.path,
+        );
+        final entries = await collection.openBox<String>('expiringentry');
+        expect(await entries.getAllKeys(), isNot(contains(rejectedKey)));
+        expect(
+          (await router.get<ExpiringEntry>('z'))?.value,
+          action == 'clear' ? null : 'after',
+        );
+      });
+    }
 
     test('getAll returns every stored item of a type', () async {
       final router = _baseStaticRouter(tempDir.path);

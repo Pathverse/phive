@@ -18,10 +18,10 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   Future<BoxBase<dynamic>> openRegisteredBox<T>(String name);
   Future<void> writePrimary<T>(PHiveTypeRegistration reg, String key, T item);
   Future<T?> readPrimary<T>(PHiveTypeRegistration reg, String key);
-  Future<List<String>> primaryKeys(PHiveTypeRegistration reg);
+  Future<List<T>> readAllPrimary<T>(PHiveTypeRegistration reg);
   Future<void> deletePrimary(PHiveTypeRegistration reg, Iterable<String> keys);
   Future<void> clearPrimary(PHiveTypeRegistration reg);
-  Future<List<String>> refParentKeys(String name);
+  Future<Map<String, List<String>>> readRefMemberships(String name);
   Future<List<String>> readRefList(String name, String parentKey);
   Future<void> writeRefList(String name, String parentKey, List<String> keys);
   Future<void> deleteRefEntry(String name, String parentKey);
@@ -75,9 +75,11 @@ abstract class PHiveBaseRouter implements PHiveRouter {
     for (final ref in _refs.where((ref) => ref.childType == T)) {
       final parentKey = ref.resolve(item);
       final name = ref.refBoxName;
-      for (final previousParent in await refParentKeys(name)) {
+      final memberships = await readRefMemberships(name);
+      for (final entry in memberships.entries) {
+        final previousParent = entry.key;
         if (previousParent == parentKey) continue;
-        final keys = await readRefList(name, previousParent);
+        final keys = entry.value;
         if (!keys.contains(key)) continue;
         keys.removeWhere((candidate) => candidate == key);
         if (keys.isEmpty) {
@@ -86,7 +88,7 @@ abstract class PHiveBaseRouter implements PHiveRouter {
           await writeRefList(name, previousParent, keys);
         }
       }
-      final keys = await readRefList(name, parentKey);
+      final keys = memberships[parentKey] ?? <String>[];
       if (keys.where((candidate) => candidate == key).length != 1) {
         keys.removeWhere((candidate) => candidate == key);
         keys.add(key);
@@ -129,14 +131,10 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   }
 
   @override
-  Future<List<T>> getAll<T>() async => readAllPrimary<T>(_requireRegistration<T>());
+  Future<List<T>> getAll<T>() async =>
+      readAllPrimary<T>(_requireRegistration<T>());
 
-  Future<List<T>> readAllPrimary<T>(PHiveTypeRegistration reg) async {
-    final keys = await primaryKeys(reg);
-    return _readKeys<T>(reg, keys);
-  }
-
-  Future<List<T>> _readKeys<T>(
+  Future<List<T>> readKeys<T>(
     PHiveTypeRegistration reg,
     Iterable<String> keys,
   ) async {
@@ -191,7 +189,7 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   Future<List<T>> getContainer<T>(PHiveContainerHandle<T> handle) async {
     final keys = await readRefList(handle.refBoxName, handle.parentKey);
     if (keys.isEmpty) return [];
-    return _readKeys<T>(_requireRegistration<T>(), keys);
+    return readKeys<T>(_requireRegistration<T>(), keys);
   }
 
   @override

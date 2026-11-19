@@ -65,8 +65,12 @@ class PHiveDynamicRouter extends PHiveBaseRouter {
   }
 
   @override
-  Future<List<String>> primaryKeys(PHiveTypeRegistration reg) async =>
-      (await _primaryBox(reg)).keys.map((key) => key.toString()).toList();
+  Future<List<T>> readAllPrimary<T>(PHiveTypeRegistration reg) async {
+    final keys = (await _primaryBox(
+      reg,
+    )).keys.map((key) => key.toString()).toList();
+    return readKeys<T>(reg, keys);
+  }
 
   @override
   Future<void> deletePrimary(
@@ -85,14 +89,20 @@ class PHiveDynamicRouter extends PHiveBaseRouter {
   }
 
   @override
-  Future<List<String>> refParentKeys(String name) async =>
-      (await _refBox(name)).keys.cast<String>().toList();
+  Future<Map<String, List<String>>> readRefMemberships(String name) async {
+    final box = await _refBox(name);
+    return {
+      for (final key in box.keys.cast<String>())
+        key: _parseRefList(box.get(key)),
+    };
+  }
 
   @override
-  Future<List<String>> readRefList(String name, String parentKey) async {
-    final raw = (await _refBox(name)).get(parentKey);
-    return raw == null ? <String>[] : List<String>.from(raw as List);
-  }
+  Future<List<String>> readRefList(String name, String parentKey) async =>
+      _parseRefList((await _refBox(name)).get(parentKey));
+
+  List<String> _parseRefList(Object? raw) =>
+      raw == null ? <String>[] : List<String>.from(raw as List);
 
   @override
   Future<void> writeRefList(

@@ -1,3 +1,10 @@
+## Unreleased
+
+- `deleteWithChildren` removes descendants at every level of registered
+  relationships and cleans up their traversed ref entries. Previously it
+  deleted only direct children. To delete only direct children, use
+  `deleteContainer` for the applicable containers, then `delete` the parent.
+
 ## 0.7.0
 
 - Reconcile child references on successful stores in both routers, so moving a

@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:phive/phive.dart';
 
+import 'fixtures/first_node.dart' as first;
+import 'fixtures/second_node.dart' as second;
+
 // ─── Test Models ─────────────────────────────────────────────────────────────
 
 class TestLesson {
@@ -146,6 +149,8 @@ void main() {
     Hive.registerAdapter(TestCardAdapter());
     Hive.registerAdapter(TestDeckAdapter());
     Hive.registerAdapter(ExpiringEntryAdapter());
+    Hive.registerAdapter(first.NodeAdapter());
+    Hive.registerAdapter(second.NodeAdapter());
   });
 
   setUp(() async {
@@ -422,6 +427,117 @@ void main() {
   // ── 6. deleteWithChildren ─────────────────────────────────────────────────
 
   group('deleteWithChildren — parent + cascade', () {
+    test(
+      'opens a cold child box with its registered type after reopen',
+      () async {
+        final lesson = TestLesson(lessonId: 'lesson', title: 'Lesson');
+        final card = TestCard(
+          cardId: 'card',
+          lessonId: 'lesson',
+          content: 'Card',
+        );
+        final writer = _baseRouter();
+        await writer.store(lesson);
+        await writer.store(card);
+        await Hive.close();
+        Hive.init(tempDir.path);
+
+        final reopened = _baseRouter();
+        await reopened.deleteWithChildren(lesson);
+        expect(await reopened.get<TestCard>('card'), isNull);
+        await reopened.store(card);
+        expect((await reopened.get<TestCard>('card'))?.content, 'Card');
+      },
+    );
+
+    for (final staticBackend in [false, true]) {
+      final name = staticBackend ? 'static' : 'dynamic';
+      test('$name deletes three levels and their intermediate refs', () async {
+        final PHiveRouter router = staticBackend
+            ? _baseStaticRouter(tempDir.path)
+            : _baseRouter();
+        router
+          ..register<TestDeck>(primaryKey: (deck) => deck.deckId)
+          ..createRef<TestDeck, TestCard>(
+            resolve: (deck) => deck.lessonId,
+            refBoxName: 'card_decks',
+          );
+        if (staticBackend) await router.ensureOpen();
+        final lesson = TestLesson(lessonId: 'lesson', title: 'Lesson');
+        final card = TestCard(
+          cardId: 'card',
+          lessonId: 'lesson',
+          content: 'Card',
+        );
+        await router.store(lesson);
+        await router.store(card);
+        await router.store(TestDeck(deckId: 'deck', lessonId: 'card'));
+
+        await router.deleteWithChildren(lesson);
+        expect(await router.get<TestLesson>('lesson'), isNull);
+        expect(await router.get<TestCard>('card'), isNull);
+        expect(await router.get<TestDeck>('deck'), isNull);
+        if (staticBackend) {
+          final collection = await BoxCollection.open('test_static', {
+            'card_decks',
+          }, path: tempDir.path);
+          final refs = await collection.openBox<String>('card_decks');
+          expect(await refs.getAllKeys(), isEmpty);
+        } else {
+          expect(Hive.box<dynamic>('card_decks').keys, isEmpty);
+        }
+      });
+
+      test(
+        '$name terminates a cycle through different types named Node',
+        () async {
+          final PHiveRouter router = staticBackend
+              ? PHiveStaticRouter(collectionName: 'cycle', path: tempDir.path)
+              : PHiveDynamicRouter();
+          router
+            ..register<first.Node>(
+              primaryKey: (node) => node.id,
+              boxName: 'first_node',
+            )
+            ..register<second.Node>(
+              primaryKey: (node) => node.id,
+              boxName: 'second_node',
+            )
+            ..createRef<first.Node, second.Node>(
+              resolve: (node) => node.id,
+              refBoxName: 'first_ref',
+            )
+            ..createRef<second.Node, first.Node>(
+              resolve: (node) => node.id,
+              refBoxName: 'second_ref',
+            );
+          if (staticBackend) await router.ensureOpen();
+          const parent = first.Node('same-key');
+          const child = second.Node('same-key');
+          await router.store(parent);
+          await router.store(child);
+
+          await router.deleteWithChildren(parent);
+          expect(await router.get<first.Node>('same-key'), isNull);
+          expect(await router.get<second.Node>('same-key'), isNull);
+          // Reusing a key in one primary store would expose a leftover incoming ref.
+          if (!staticBackend) {
+            expect(Hive.box<dynamic>('first_ref').keys, isEmpty);
+            expect(Hive.box<dynamic>('second_ref').keys, isEmpty);
+          } else {
+            final collection = await BoxCollection.open('cycle', {
+              'first_ref',
+              'second_ref',
+            }, path: tempDir.path);
+            for (final name in ['first_ref', 'second_ref']) {
+              final refs = await collection.openBox<String>(name);
+              expect(await refs.getAllKeys(), isEmpty);
+            }
+          }
+        },
+      );
+    }
+
     test('removes parent item and all registered children', () async {
       final router = _baseRouter();
       final lesson = TestLesson(lessonId: 'L001', title: 'Lesson');
@@ -473,6 +589,32 @@ void main() {
       expect(await router.get<TestDeck>('D001'), isNull);
     });
   });
+
+  test(
+    'container handles compare and hash by relationship, parent and type',
+    () {
+      final router = _baseRouter();
+      final parent = TestLesson(lessonId: 'id', title: 'A');
+      final handle = router.containerOf<TestCard, TestLesson>(parent);
+      final equalHandle = router.containerOf<TestCard, TestLesson>(parent);
+      expect(handle, equalHandle);
+      expect(handle.hashCode, equalHandle.hashCode);
+      expect({handle: 'value'}[equalHandle], 'value');
+      expect(handle.toString(), contains(handle.parentKey));
+
+      const integer = PHiveContainerHandle<int>(
+        refBoxName: 'ref',
+        parentKey: 'id',
+      );
+      const number = PHiveContainerHandle<num>(
+        refBoxName: 'ref',
+        parentKey: 'id',
+      );
+      expect(integer == number, isFalse);
+      expect(number == integer, isFalse);
+      expect({integer, number}, hasLength(2));
+    },
+  );
 
   // ── 6b. getAll — full type enumeration (dynamic) ──────────────────────────
 

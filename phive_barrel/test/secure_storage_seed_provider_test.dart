@@ -147,4 +147,83 @@ void main() {
       ),
     );
   });
+
+  group('encrypted records', () {
+    setUp(() {
+      PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(16));
+    });
+
+    // Captured from the previous writers using a 16-byte zero test key.
+    for (final (hook, key, parameter, ciphertext, plaintext) in [
+      (
+        const AESEncrypted(),
+        'iv',
+        'NB2YuhARercV-vQmW2sLZA==',
+        's2SYaqFWGbNoTCYYUrCSCiCm7jR1mYH1kMJhrOHcl9g=',
+        'existing CBC record',
+      ),
+      (
+        const GCMEncrypted(),
+        'nonce',
+        'Ya6haAtYkfYC9V9z',
+        'Z91Rry_Btxzq_0h3pjm7yKyXHOiQ0xOWyJMXc3W2wkT_Euw=',
+        'existing GCM record',
+      ),
+      (
+        const UniversalEncrypted(),
+        'nonce_u',
+        'ZRY2a--OqBA0WtPo',
+        'YeRw4ZVelsOMoMawaqmDKN_CJ9BnEs9r-q5Z87w=',
+        {'answer': 42},
+      ),
+    ]) {
+      test('${hook.runtimeType} reads a record from the previous writer', () {
+        final ctx = PHiveCtx()..value = ciphertext;
+        ctx.metadata[key] = parameter;
+        hook.postRead(ctx);
+        expect(ctx.value, plaintext);
+      });
+    }
+
+    const cbc = AESEncrypted();
+    for (final plaintext in ['', 'abcdefghijklmnop']) {
+      test('CBC round-trips ${plaintext.length} bytes of plaintext', () {
+        final ctx = PHiveCtx()..value = plaintext;
+        cbc.preWrite(ctx);
+        ctx.metadata.addAll(ctx.pendingMetadata);
+        cbc.postRead(ctx);
+        expect(ctx.value, plaintext);
+      });
+    }
+
+    for (final size in [15, 17]) {
+      test('CBC rejects a ${size}-byte IV', () {
+        final ctx = PHiveCtx()..value = base64Url.encode(Uint8List(16));
+        ctx.metadata['iv'] = base64Url.encode(Uint8List(size));
+        expect(() => cbc.postRead(ctx), throwsFormatException);
+      });
+    }
+
+    for (final size in [0, 17]) {
+      test('CBC rejects ${size} bytes of ciphertext', () {
+        final ctx = PHiveCtx()..value = base64Url.encode(Uint8List(size));
+        ctx.metadata['iv'] = base64Url.encode(Uint8List(16));
+        expect(() => cbc.postRead(ctx), throwsFormatException);
+      });
+    }
+
+    // Independently encrypted blocks using the zero test key and zero IV.
+    const invalidPadding = {
+      'zero padding length': 'MTGBMwUoBn62VnOvczKItA==',
+      'oversized padding length': 'tb7vckaMP07sKgw5wsc9dg==',
+      'inconsistent padding': '0xG2pMVVDKr8-pCvxa7XYw==',
+    };
+    for (final entry in invalidPadding.entries) {
+      test('CBC rejects ${entry.key}', () {
+        final ctx = PHiveCtx()..value = entry.value;
+        ctx.metadata['iv'] = base64Url.encode(Uint8List(16));
+        expect(() => cbc.postRead(ctx), throwsFormatException);
+      });
+    }
+  });
 }

@@ -15,30 +15,16 @@ class NamingCardAdapter extends PTypeAdapter<NamingCard> {
   @override
   NamingCard read(BinaryReader reader) {
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // parentId (index 1)
-    final raw_parentId = reader.read();
-    final ctx_parentId = PHiveCtx()..value = raw_parentId;
-    runPostRead(const [], ctx_parentId);
-    final res_parentId = ctx_parentId.value as String;
+    final res_parentId = reader.read() as String;
     return NamingCard(res_id, res_parentId);
   }
 
   @override
   void write(BinaryWriter writer, NamingCard obj) {
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
-    // parentId (index 1)
-    final ctx_parentId = PHiveCtx()..value = obj.parentId;
-    runPreWrite(const [], ctx_parentId);
-    writer.write(ctx_parentId.value);
-    runPostWrite(const [], ctx_parentId);
+    writer.write(obj.id);
+    writer.write(obj.parentId);
   }
 }
 
@@ -69,30 +55,16 @@ class CustomNamingCardAdapter extends PTypeAdapter<CustomNamingCard> {
   @override
   CustomNamingCard read(BinaryReader reader) {
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // parentId (index 1)
-    final raw_parentId = reader.read();
-    final ctx_parentId = PHiveCtx()..value = raw_parentId;
-    runPostRead(const [], ctx_parentId);
-    final res_parentId = ctx_parentId.value as String;
+    final res_parentId = reader.read() as String;
     return CustomNamingCard(res_id, res_parentId);
   }
 
   @override
   void write(BinaryWriter writer, CustomNamingCard obj) {
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
-    // parentId (index 1)
-    final ctx_parentId = PHiveCtx()..value = obj.parentId;
-    runPreWrite(const [], ctx_parentId);
-    writer.write(ctx_parentId.value);
-    runPostWrite(const [], ctx_parentId);
+    writer.write(obj.id);
+    writer.write(obj.parentId);
   }
 }
 
@@ -127,30 +99,16 @@ class AutoNamingCardAdapter extends PTypeAdapter<AutoNamingCard> {
   @override
   AutoNamingCard read(BinaryReader reader) {
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // parentId (index 1)
-    final raw_parentId = reader.read();
-    final ctx_parentId = PHiveCtx()..value = raw_parentId;
-    runPostRead(const [], ctx_parentId);
-    final res_parentId = ctx_parentId.value as String;
+    final res_parentId = reader.read() as String;
     return AutoNamingCard(res_id, res_parentId);
   }
 
   @override
   void write(BinaryWriter writer, AutoNamingCard obj) {
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
-    // parentId (index 1)
-    final ctx_parentId = PHiveCtx()..value = obj.parentId;
-    runPreWrite(const [], ctx_parentId);
-    writer.write(ctx_parentId.value);
-    runPostWrite(const [], ctx_parentId);
+    writer.write(obj.id);
+    writer.write(obj.parentId);
   }
 }
 
@@ -181,30 +139,16 @@ class AutoCustomNamingCardAdapter extends PTypeAdapter<AutoCustomNamingCard> {
   @override
   AutoCustomNamingCard read(BinaryReader reader) {
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // parentId (index 1)
-    final raw_parentId = reader.read();
-    final ctx_parentId = PHiveCtx()..value = raw_parentId;
-    runPostRead(const [], ctx_parentId);
-    final res_parentId = ctx_parentId.value as String;
+    final res_parentId = reader.read() as String;
     return AutoCustomNamingCard(res_id, res_parentId);
   }
 
   @override
   void write(BinaryWriter writer, AutoCustomNamingCard obj) {
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
-    // parentId (index 1)
-    final ctx_parentId = PHiveCtx()..value = obj.parentId;
-    runPreWrite(const [], ctx_parentId);
-    writer.write(ctx_parentId.value);
-    runPostWrite(const [], ctx_parentId);
+    writer.write(obj.id);
+    writer.write(obj.parentId);
   }
 }
 

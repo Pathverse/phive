@@ -35,48 +35,42 @@ String emitAdapter({
   final writeBlocks = <String>[];
   final readBlocks = <String>[];
   final constructorArgs = <String>[];
+  final hookedFields = <CollectedField>[];
   final hasClassHooks = _hasHooks(classHooksSource);
-  final hasMetadataHeader =
-      hasClassHooks ||
-      mappedFields.any(
-        (field) =>
-            _hasHooks(mergeHooksSource(modelHooksSource, field.hooksSource)),
-      );
   final writeTarget = hasClassHooks ? 'write_obj' : 'obj';
 
   for (final field in mappedFields) {
     final hooks = mergeHooksSource(modelHooksSource, field.hooksSource);
-    final readMetadataLines = hasMetadataHeader
-        ? "    applyMetadata(ctx_${field.name}, metadata_header.metadataForField('${field.name}'));\n"
-              "    applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);\n"
-        : '';
+    if (!_hasHooks(hooks)) {
+      writeBlocks.add('    writer.write($writeTarget.${field.name});');
+      readBlocks.add('''
+    // ${field.name} (index ${field.index})
+    final res_${field.name} = reader.read() as ${field.type};''');
+      continue;
+    }
 
-    if (hasMetadataHeader) {
-      writePreparationBlocks.add('''
+    hookedFields.add(field);
+    writePreparationBlocks.add('''
     // ${field.name} (index ${field.index})
     final ctx_${field.name} = PHiveCtx()..value = $writeTarget.${field.name};
     runPreWrite(const $hooks, ctx_${field.name});''');
 
-      writeBlocks.add('''
+    writeBlocks.add('''
     writer.write(ctx_${field.name}.value);
     runPostWrite(const $hooks, ctx_${field.name});''');
-    } else {
-      writeBlocks.add('''
-    // ${field.name} (index ${field.index})
-    final ctx_${field.name} = PHiveCtx()..value = $writeTarget.${field.name};
-    runPreWrite(const $hooks, ctx_${field.name});
-    writer.write(ctx_${field.name}.value);
-    runPostWrite(const $hooks, ctx_${field.name});''');
-    }
 
     readBlocks.add('''
     // ${field.name} (index ${field.index})
     final raw_${field.name} = reader.read();
     final ctx_${field.name} = PHiveCtx()..value = raw_${field.name};
-$readMetadataLines    runPostRead(const $hooks, ctx_${field.name});
+    applyMetadata(ctx_${field.name}, metadata_header.metadataForField('${field.name}'));
+    applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);
+    runPreRead(const $hooks, ctx_${field.name});
+    runPostRead(const $hooks, ctx_${field.name});
     final res_${field.name} = ctx_${field.name}.value as ${field.type};''');
   }
 
+  final hasMetadataHeader = hasClassHooks || hookedFields.isNotEmpty;
   for (final param in constructor.formalParameters) {
     final field = _findFieldByName(mappedFields, param.displayName);
     if (field == null) continue;
@@ -110,7 +104,7 @@ ${_emitReadReturnBlock(className: className, constructorArgs: constructorArgs, h
   void write(BinaryWriter writer, $className obj) {
 ${_emitWriteClassHooksPrelude(className: className, classHooksSource: classHooksSource, hasMetadataHeader: hasMetadataHeader)}
 ${writePreparationBlocks.join('\n')}
-${_emitMetadataHeaderWriteBlock(mappedFields: mappedFields, hasMetadataHeader: hasMetadataHeader)}
+${_emitMetadataHeaderWriteBlock(hookedFields: hookedFields, hasMetadataHeader: hasMetadataHeader)}
 ${writeBlocks.join('\n')}
 ${_emitWriteClassHooksPostlude(className: className, classHooksSource: classHooksSource)}
   }
@@ -134,7 +128,7 @@ CollectedField? _findFieldByName(List<CollectedField> fields, String name) {
   return null;
 }
 
-/// Emits the whole-object post-read hook block for metadata-aware models.
+/// Emits the whole-object read hooks for metadata-aware models.
 String _emitReadClassHooksBlock({
   required String className,
   required bool hasMetadataHeader,
@@ -145,7 +139,8 @@ String _emitReadClassHooksBlock({
   }
 
   return '''    final ctx_obj = PHiveCtx()..value = result;
-${hasMetadataHeader ? '    applyMetadata(ctx_obj, metadata_header.globalMetadata);\n' : ''}    runPostRead(const $classHooksSource, ctx_obj);
+${hasMetadataHeader ? '    applyMetadata(ctx_obj, metadata_header.globalMetadata);\n' : ''}    runPreRead(const $classHooksSource, ctx_obj);
+    runPostRead(const $classHooksSource, ctx_obj);
     return ctx_obj.value as $className;''';
 }
 
@@ -205,12 +200,12 @@ String _emitReadMetadataHeaderPrelude(bool hasMetadataHeader) {
 
 /// Emits the single metadata header write for metadata-aware adapters.
 String _emitMetadataHeaderWriteBlock({
-  required List<CollectedField> mappedFields,
+  required List<CollectedField> hookedFields,
   required bool hasMetadataHeader,
 }) {
   if (!hasMetadataHeader) return '';
 
-  final perFieldEntries = mappedFields
+  final perFieldEntries = hookedFields
       .map(
         (field) =>
             "        if (ctx_${field.name}.pendingMetadata.isNotEmpty) '${field.name}': Map<String, dynamic>.from(ctx_${field.name}.pendingMetadata),",

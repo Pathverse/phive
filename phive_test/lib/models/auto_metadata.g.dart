@@ -17,12 +17,7 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    applyMetadata(ctx_id, metadata_header.metadataForField('id'));
-    applyMetadata(ctx_id, metadata_header.globalMetadata);
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // overridden (index 1)
     final raw_overridden = reader.read();
     final ctx_overridden = PHiveCtx()..value = raw_overridden;
@@ -31,6 +26,7 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
       metadata_header.metadataForField('overridden'),
     );
     applyMetadata(ctx_overridden, metadata_header.globalMetadata);
+    runPreRead(const [OverrideMarker(), ReadMarker()], ctx_overridden);
     runPostRead(const [OverrideMarker(), ReadMarker()], ctx_overridden);
     final res_overridden = ctx_overridden.value as String;
     // inherited (index 2)
@@ -38,6 +34,7 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     final ctx_inherited = PHiveCtx()..value = raw_inherited;
     applyMetadata(ctx_inherited, metadata_header.metadataForField('inherited'));
     applyMetadata(ctx_inherited, metadata_header.globalMetadata);
+    runPreRead(const [ReadMarker()], ctx_inherited);
     runPostRead(const [ReadMarker()], ctx_inherited);
     final res_inherited = ctx_inherited.value as String;
     // nullable (index 3)
@@ -45,6 +42,7 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     final ctx_nullable = PHiveCtx()..value = raw_nullable;
     applyMetadata(ctx_nullable, metadata_header.metadataForField('nullable'));
     applyMetadata(ctx_nullable, metadata_header.globalMetadata);
+    runPreRead(const [NullMarker(), ReadMarker()], ctx_nullable);
     runPostRead(const [NullMarker(), ReadMarker()], ctx_nullable);
     final res_nullable = ctx_nullable.value as String?;
     final result = AutoMetadata(
@@ -55,6 +53,7 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     );
     final ctx_obj = PHiveCtx()..value = result;
     applyMetadata(ctx_obj, metadata_header.globalMetadata);
+    runPreRead(const [GlobalMarker()], ctx_obj);
     runPostRead(const [GlobalMarker()], ctx_obj);
     return ctx_obj.value as AutoMetadata;
   }
@@ -65,9 +64,6 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     runPreWrite(const [GlobalMarker()], ctx_obj);
     final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
     final write_obj = ctx_obj.value as AutoMetadata;
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = write_obj.id;
-    runPreWrite(const [], ctx_id);
     // overridden (index 1)
     final ctx_overridden = PHiveCtx()..value = write_obj.overridden;
     runPreWrite(const [OverrideMarker(), ReadMarker()], ctx_overridden);
@@ -80,8 +76,6 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     final metadata_header = createMetadataHeader(
       globalMetadata: global_metadata,
       perFieldMetadata: <String, Map<String, dynamic>>{
-        if (ctx_id.pendingMetadata.isNotEmpty)
-          'id': Map<String, dynamic>.from(ctx_id.pendingMetadata),
         if (ctx_overridden.pendingMetadata.isNotEmpty)
           'overridden': Map<String, dynamic>.from(
             ctx_overridden.pendingMetadata,
@@ -93,8 +87,7 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
       },
     );
     writer.write(serializeMetadataHeader(metadata_header));
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
+    writer.write(write_obj.id);
     writer.write(ctx_overridden.value);
     runPostWrite(const [OverrideMarker(), ReadMarker()], ctx_overridden);
     writer.write(ctx_inherited.value);

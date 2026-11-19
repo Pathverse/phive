@@ -44,6 +44,20 @@ For watch mode:
 dart run build_runner watch --delete-conflicting-outputs
 ```
 
+### Upgrading models with constant field indices
+
+PHive writes field values in adapter order. The generator now evaluates
+constant expressions in `@PHiveField`. Older versions could infer a
+different index when the annotation used a named constant or an expression.
+
+Before regenerating an adapter for a deployed model, keep a copy of the
+old adapter and compare the order of its field writes with the new output.
+If the order changes, give the affected fields explicit literal indices
+that reproduce the old sequence. Verify that the regenerated adapter
+reads a record written by the old adapter and restores each named field.
+To adopt the new order deliberately, read existing records with the old
+adapter and migrate them to the new layout before deploying the new reader.
+
 ## Example Model
 
 ```dart

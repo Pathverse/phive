@@ -1,0 +1,7 @@
+Starting: Intent { cmp=dev.phive.acceptance.phive_storage_upgrade/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: dev.phive.acceptance.phive_storage_upgrade/.MainActivity
+TotalTime: 9010
+WaitTime: 9085
+Complete

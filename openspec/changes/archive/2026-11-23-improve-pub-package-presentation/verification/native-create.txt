@@ -1,0 +1,14 @@
+Creating project native_upgrade...
+Wrote 34 files.
+
+All done!
+You can find general documentation for Flutter at: https://docs.flutter.dev/
+Detailed API documentation is available at: https://api.flutter.dev/
+If you prefer video documentation, consider: https://www.youtube.com/c/flutterdev
+
+In order to run your empty application, type:
+
+  $ cd native_upgrade
+  $ flutter run
+
+Your empty application code is in native_upgrade/lib/main.dart.

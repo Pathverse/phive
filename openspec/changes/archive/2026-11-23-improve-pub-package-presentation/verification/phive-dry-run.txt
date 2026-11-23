@@ -1,0 +1,50 @@
+Resolving dependencies...
+Downloading packages...
+  material_color_utilities 0.13.0 (0.13.1 available)
+  test_api 0.7.12 (0.7.15 available)
+Got dependencies!
+2 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Publishing phive 0.8.0 to https://pub.dev:
+├── CHANGELOG.md (2 KB)
+├── LICENSE (12 KB)
+├── README.md (6 KB)
+├── analysis_options.yaml (<1 KB)
+├── dart_test.yaml (<1 KB)
+├── example
+│   ├── README.md (1 KB)
+│   ├── analysis_options.yaml (<1 KB)
+│   ├── lib
+│   │   ├── main.dart (<1 KB)
+│   │   ├── note.dart (<1 KB)
+│   │   └── note.g.dart (<1 KB)
+│   └── pubspec.yaml (<1 KB)
+├── lib
+│   ├── phive.dart (<1 KB)
+│   └── src
+│       ├── annotations.dart (3 KB)
+│       ├── core.dart (6 KB)
+│       ├── exception.dart (<1 KB)
+│       ├── policy.dart (<1 KB)
+│       └── router
+│           ├── base_router.dart (6 KB)
+│           ├── dynamic_router.dart (3 KB)
+│           ├── router.dart (7 KB)
+│           └── static_router.dart (6 KB)
+├── pubspec.yaml (<1 KB)
+└── test
+    ├── core_test.dart (3 KB)
+    ├── fixtures
+    │   ├── first_node.dart (<1 KB)
+    │   └── second_node.dart (<1 KB)
+    ├── proofs
+    │   └── bdd_proofs_test.dart (10 KB)
+    ├── reparenting_browser_test.dart (1 KB)
+    ├── reparenting_test.dart (9 KB)
+    └── router_test.dart (36 KB)
+
+Total compressed archive size: 29 KB.
+Validating package...
+The server may enforce additional checks.
+
+Package has 0 warnings.

@@ -1,0 +1,12 @@
+  compiling builders/aot
+  21s compiling builders/aot
+  0s hive_ce_generator:hive_registrar_intermediate_generator on 10 inputs; phive_generator|bin/assign_type_ids.dart
+  3s hive_ce_generator:hive_registrar_intermediate_generator on 10 inputs: 1 no-op; spent 1s analyzing; phive_generator|lib/builder.dart
+  3s hive_ce_generator:hive_registrar_intermediate_generator on 10 inputs: 10 no-op; spent 2s analyzing
+  0s phive_generator:phive_auto on 2 inputs; lib/main.dart
+  0s phive_generator:phive_auto on 2 inputs: 2 no-op
+  0s phive_generator:phive on 2 inputs; lib/main.dart
+  0s phive_generator:phive on 2 inputs: 1 output, 1 no-op
+  0s source_gen:combining_builder on 2 inputs; lib/main.dart
+  0s source_gen:combining_builder on 2 inputs: 1 output, 1 no-op
+  Built with build_runner/aot in 25s; wrote 2 outputs.

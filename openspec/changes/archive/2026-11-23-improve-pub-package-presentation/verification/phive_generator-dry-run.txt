@@ -1,0 +1,51 @@
+Resolving dependencies...
+Downloading packages...
+  built_collection 5.1.2 (6.0.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+Got dependencies!
+2 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Publishing phive_generator 0.8.0 to https://pub.dev:
+├── CHANGELOG.md (3 KB)
+├── LICENSE (12 KB)
+├── README.md (7 KB)
+├── analysis_options.yaml (<1 KB)
+├── bin
+│   └── assign_type_ids.dart (6 KB)
+├── build.yaml (<1 KB)
+├── example
+│   ├── README.md (1 KB)
+│   ├── analysis_options.yaml (<1 KB)
+│   ├── lib
+│   │   ├── main.dart (<1 KB)
+│   │   ├── note.dart (<1 KB)
+│   │   └── note.g.dart (1 KB)
+│   └── pubspec.yaml (<1 KB)
+├── lib
+│   ├── builder.dart (<1 KB)
+│   ├── phive_generator.dart (<1 KB)
+│   └── src
+│       ├── adapter_emitter.dart (8 KB)
+│       ├── annotation_helpers.dart (3 KB)
+│       ├── auto_type_generator.dart (4 KB)
+│       ├── field_collection.dart (7 KB)
+│       ├── phive_generator.dart (1 KB)
+│       ├── router_collection.dart (10 KB)
+│       └── type_registry.dart (5 KB)
+├── pubspec.yaml (<1 KB)
+└── test
+    ├── auto_type_generator_test.dart (1 KB)
+    ├── phive_generator_test.dart (2 KB)
+    ├── src
+    │   ├── auto_type_model.dart (7 KB)
+    │   ├── naming_model.dart (3 KB)
+    │   ├── naming_parent.dart (<1 KB)
+    │   └── simple_model.dart (8 KB)
+    ├── store_names_generator_test.dart (3 KB)
+    └── type_registry_test.dart (9 KB)
+
+Total compressed archive size: 29 KB.
+Validating package...
+The server may enforce additional checks.
+
+Package has 0 warnings.

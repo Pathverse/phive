@@ -1,5 +1,7 @@
 # phive_generator
 
+See the [runnable generation example](example/README.md) for a complete model, generated adapter and descriptor, and storage round trip.
+
 Code generator for PHive model adapters and router descriptors.
 
 Use this package with `build_runner` to generate `*.g.dart` code from `@PHiveType`, `@PHiveAutoType`, `@PHiveField`, `@PHivePrimaryKey`, and `@PHiveRef` annotations.
@@ -29,19 +31,26 @@ Your model package should also depend on:
 ```yaml
 dependencies:
   phive: ^0.8.0
-  hive_ce: ^2.19.3
+  hive_ce: ^2.24.0
 ```
 
 ## Generate Files
 
+The generator accepts build 4 and 5. The current stack uses
+`hive_ce_generator` 1.12.1, build 5, analyzer 14, and build_runner 2.17.1.
+Use build_runner 2.17.1 or a compatible later release with build 5. Older
+consumers can still resolve build 4 and analyzer 10; the public Hive generator
+minimum remains 1.11.1. Run `flutter pub upgrade` to refresh an existing
+compatible toolchain lockfile.
+
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 For watch mode:
 
 ```bash
-dart run build_runner watch --delete-conflicting-outputs
+dart run build_runner watch
 ```
 
 ### Upgrading models with constant field indices

@@ -1,3 +1,16 @@
+## Unreleased
+
+- Apply Dart 3.13 formatting to existing library sources.
+
+- Allow build 5 and Hive CE generator 1.12.1 while retaining build 4 and
+  analyzer 10-through-14 compatibility. Keep the Hive generator minimum
+  unchanged so older toolchains can still resolve.
+
+- Add a runnable adapter and router-descriptor generation example.
+
+- Include the full Apache-2.0 and BSD-3-Clause license texts while preserving
+  the existing dual-license choice.
+
 ## 0.8.0
 
 - Run `preRead` with restored metadata before `postRead`. Generate direct

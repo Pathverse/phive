@@ -1,5 +1,7 @@
 # phive
 
+See the [runnable storage example](example/README.md) for setup, adapter generation, and a complete write/read round trip.
+
 Core runtime package for PHive.
 
 Use this package to define model annotations, hook pipelines, generated adapter runtime support, generated router descriptors, and router-based storage flows.
@@ -19,9 +21,13 @@ Use this package to define model annotations, hook pipelines, generated adapter 
 
 ```yaml
 dependencies:
-  hive_ce: ^2.19.3
+  hive_ce: ^2.24.0
   phive: ^0.8.0
 ```
+
+The public runtime constraint still accepts Hive CE `^2.19.3`. The examples
+select 2.24.0 or newer compatible releases; updating an existing application's
+lockfile requires `flutter pub upgrade hive_ce`.
 
 If you are in this monorepo:
 

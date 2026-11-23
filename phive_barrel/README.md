@@ -1,5 +1,7 @@
 # phive_barrel
 
+See the [runnable TTL example](example/README.md) for generated hooks, expiry, and router-driven deletion.
+
 Ready-to-use PHive hooks package.
 
 Use this package when you want common behaviors like TTL and encryption without writing your own hook classes.
@@ -102,6 +104,35 @@ class Session {
 ```
 
 If you use a custom `seedId`, include it in `SecureStorageSeedProvider(seedIds: [...])` before calling `PhiveMetaRegistry.init()`.
+
+## Secure-storage 10 and 11 compatibility
+
+The dependency range accepts both major versions. `SecureStorageSeedProvider`
+continues to use `phive_encryption_key` for the default seed and
+`phive_encryption_key__<seedId>` for named seeds, with base64url-encoded bytes.
+Existing PHive encrypted records and seed identifiers do not change.
+
+Before adopting version 11, deployments with legacy secure-storage data must
+first run an appropriate 10.x release and complete its migration. Version 11
+removes RSA PKCS1 and AES-CBC storage algorithms, `encryptedSharedPreferences`,
+and `sharedPreferencesName` (use `storageNamespace`). Retaining deprecated
+storage settings or skipping the migration can make existing seeds unreadable.
+These are the plugin's storage algorithms; PHive's `AESEncrypted` record format
+is unchanged. See the [upstream migration notes](https://pub.dev/packages/flutter_secure_storage/changelog).
+
+For flutter_secure_storage 11.2.0, Android requires minSdk 24 and Java 17
+compatibility. The plugin uses the selected Flutter SDK's compileSdk value;
+11.1 replaced the earlier fixed compileSdk 37 requirement. Its declared SDK
+requirements are Dart >=3.8 and Flutter >=3.19, while PHive itself requires
+Dart ^3.11. The selected Darwin implementation (0.4.3) declares iOS 13 and
+macOS 10.14 minimums; the app's Flutter toolchain can require newer versions.
+Check the resolved platform packages when upgrading.
+
+Initialize Flutter bindings before accessing secure storage. Follow upstream
+platform setup instructions, including Keychain entitlements and Android backup
+configuration. A successful Dart mock test does not establish native key-store
+migration compatibility. The repository includes an Android retained-data
+acceptance harness at `tool/secure_storage_upgrade/`.
 
 ## Nullable Fields
 

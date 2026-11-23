@@ -157,9 +157,7 @@ class PHiveStaticRouter extends PHiveBaseRouter {
       return values;
     }
     final resolved = await box.getAll(keys);
-    return {
-      for (var i = 0; i < keys.length; i++) keys[i]: ?resolved[i],
-    };
+    return {for (var i = 0; i < keys.length; i++) keys[i]: ?resolved[i]};
   }
 
   @override

@@ -25,6 +25,26 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
+  test(
+    'fixed default and named seed encodings survive provider reload',
+    () async {
+      final defaultSeed = List<int>.generate(32, (index) => index);
+      final namedSeed = List<int>.generate(32, (index) => 255 - index);
+      final stored = {
+        'phive_encryption_key': base64Url.encode(defaultSeed),
+        'phive_encryption_key__tenant-a': base64Url.encode(namedSeed),
+      };
+      FlutterSecureStorage.setMockInitialValues(stored);
+      for (var reload = 0; reload < 2; reload++) {
+        final provider = SecureStorageSeedProvider(seedIds: ['tenant-a']);
+        await provider.init();
+        expect(provider.getSeedSync(null), defaultSeed);
+        expect(provider.getSeedSync('tenant-a'), namedSeed);
+        expect(await const FlutterSecureStorage().readAll(), stored);
+      }
+    },
+  );
+
   test('preloaded named seeds are persisted and reloaded', () async {
     FlutterSecureStorage.setMockInitialValues({});
 

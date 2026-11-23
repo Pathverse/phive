@@ -1,3 +1,16 @@
+## Unreleased
+
+- Support flutter_secure_storage 11 alongside 10. Seed keys and base64url
+  encoding are unchanged. Version 11 requires Android API 24 or newer;
+  legacy secure-storage data must complete its 10.x migration before upgrading.
+
+- Apply Dart 3.13 formatting to existing library sources.
+
+- Add a runnable TTL example covering fresh reads and deletion on expiry.
+
+- Include the full Apache-2.0 and BSD-3-Clause license texts while preserving
+  the existing dual-license choice.
+
 ## 0.8.0
 
 - Validate AES seed lengths and return read-only seed snapshots.

@@ -1,0 +1,10 @@
+{
+  "phase": "fresh",
+  "version": "11.2.0",
+  "passed": true,
+  "checks": [
+    "default seed",
+    "named seed",
+    "two encrypted records"
+  ]
+}

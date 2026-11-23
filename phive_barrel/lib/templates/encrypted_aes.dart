@@ -31,11 +31,10 @@ class AESEncrypted extends PHiveHook {
 
   /// Returns one CBC cipher configured for the supplied key and IV.
   CBCBlockCipher _buildCipher(bool encrypt, List<int> key, Uint8List iv) {
-    return CBCBlockCipher(AESEngine())
-      ..init(
-        encrypt,
-        ParametersWithIV(KeyParameter(Uint8List.fromList(key)), iv),
-      );
+    return CBCBlockCipher(AESEngine())..init(
+      encrypt,
+      ParametersWithIV(KeyParameter(Uint8List.fromList(key)), iv),
+    );
   }
 
   /// Applies PKCS7 padding so the payload fits AES-CBC block boundaries.
@@ -46,20 +45,22 @@ class AESEncrypted extends PHiveHook {
       ..fillRange(plaintext.length, plaintext.length + padLength, padLength);
   }
 
-  /// Removes PKCS7 padding when present and falls back to the raw bytes otherwise.
+  /// Validates and removes PKCS7 padding from decrypted CBC blocks.
   Uint8List _unpadPlaintext(Uint8List paddedPlaintext) {
-    if (paddedPlaintext.isEmpty) {
-      return paddedPlaintext;
-    }
-
     final padLength = paddedPlaintext.last;
-    if (padLength > 0 && padLength <= _blockSize) {
-      return Uint8List.fromList(
-        paddedPlaintext.sublist(0, paddedPlaintext.length - padLength),
-      );
+    if (padLength < 1 || padLength > _blockSize) {
+      throw const FormatException('Invalid PKCS7 padding in AES-CBC payload.');
     }
 
-    return paddedPlaintext;
+    final end = paddedPlaintext.length - padLength;
+    for (var offset = end; offset < paddedPlaintext.length; offset++) {
+      if (paddedPlaintext[offset] != padLength) {
+        throw const FormatException(
+          'Invalid PKCS7 padding in AES-CBC payload.',
+        );
+      }
+    }
+    return Uint8List.sublistView(paddedPlaintext, 0, end);
   }
 
   @override
@@ -76,7 +77,11 @@ class AESEncrypted extends PHiveHook {
     final cipher = _buildCipher(true, key, iv);
 
     final ciphertext = Uint8List(paddedPlaintext.length);
-    for (var offset = 0; offset < paddedPlaintext.length; offset += _blockSize) {
+    for (
+      var offset = 0;
+      offset < paddedPlaintext.length;
+      offset += _blockSize
+    ) {
       cipher.processBlock(paddedPlaintext, offset, ciphertext, offset);
     }
 
@@ -90,10 +95,13 @@ class AESEncrypted extends PHiveHook {
       return;
     }
 
-    final iv = Uint8List.fromList(
-      base64Url.decode(ctx.metadata[_ivMetadataKey] as String),
-    );
-    final ciphertext = Uint8List.fromList(base64Url.decode(ctx.value as String));
+    final iv = base64Url.decode(ctx.metadata[_ivMetadataKey] as String);
+    final ciphertext = base64Url.decode(ctx.value as String);
+    if (iv.length != _blockSize ||
+        ciphertext.isEmpty ||
+        ciphertext.length % _blockSize != 0) {
+      throw const FormatException('Invalid AES-CBC ciphertext or IV length.');
+    }
     final key = PhiveMetaRegistry.requireSeedSync(seedId);
     final cipher = _buildCipher(false, key, iv);
 

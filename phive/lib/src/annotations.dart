@@ -92,11 +92,7 @@ class PHiveAutoType {
   final bool autoFields;
 
   /// Creates a PHive auto-type annotation whose typeId is registry-assigned.
-  const PHiveAutoType({
-    this.hooks,
-    this.classHooks,
-    this.autoFields = false,
-  });
+  const PHiveAutoType({this.hooks, this.classHooks, this.autoFields = false});
 }
 
 /// Wraps supplemental metadata values that travel alongside payload state.

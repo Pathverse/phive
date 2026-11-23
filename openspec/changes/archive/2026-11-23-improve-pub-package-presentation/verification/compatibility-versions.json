@@ -1,0 +1,59 @@
+{
+  "generator-old": {
+    "build": "4.0.4",
+    "analyzer": "10.0.1",
+    "build_runner": "2.15.0",
+    "source_gen": "4.2.4",
+    "source_gen_test": "1.3.8",
+    "hive_ce": "2.24.0",
+    "hive_ce_generator": "1.11.1"
+  },
+  "generator-old-consumer": {
+    "build": "4.0.4",
+    "analyzer": "10.0.1",
+    "build_runner": "2.15.0",
+    "source_gen": "4.2.4",
+    "hive_ce": "2.24.0",
+    "hive_ce_generator": "1.11.1",
+    "flutter_secure_storage": "10.3.4"
+  },
+  "generator-new": {
+    "build": "5.0.0",
+    "analyzer": "14.7.0",
+    "build_runner": "2.17.1",
+    "source_gen": "4.3.1",
+    "source_gen_test": "1.4.2",
+    "hive_ce": "2.24.0",
+    "hive_ce_generator": "1.12.1"
+  },
+  "generator-new-consumer": {
+    "build": "5.0.0",
+    "analyzer": "14.7.0",
+    "build_runner": "2.17.1",
+    "source_gen": "4.3.1",
+    "hive_ce": "2.24.0",
+    "hive_ce_generator": "1.12.1",
+    "flutter_secure_storage": "10.3.4"
+  },
+  "generator-lower": {
+    "build": "4.0.4",
+    "analyzer": "10.0.1",
+    "build_runner": "2.12.1",
+    "source_gen": "4.2.0",
+    "source_gen_test": "1.3.4",
+    "hive_ce": "2.19.3",
+    "hive_ce_generator": "1.11.1"
+  },
+  "barrel-10": {
+    "hive_ce": "2.24.0",
+    "flutter_secure_storage": "10.3.4"
+  },
+  "barrel-11": {
+    "hive_ce": "2.24.0",
+    "flutter_secure_storage": "11.2.0"
+  },
+  "barrel-lower": {
+    "hive_ce": "2.19.3",
+    "flutter_secure_storage": "10.0.0"
+  }
+}

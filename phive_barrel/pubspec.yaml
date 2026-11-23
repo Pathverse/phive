@@ -1,6 +1,6 @@
 name: phive_barrel
 description: "Ready-to-use PHive hooks including TTL and encryption helpers."
-version: 0.7.0
+version: 0.8.1
 homepage: https://github.com/Pathverse/phive
 
 environment:
@@ -10,9 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: '>=10.0.0 <12.0.0'
   pointycastle: ^4.0.0
-  phive: ^0.7.0
+  phive: ^0.8.0
 
 dev_dependencies:
   flutter_test:

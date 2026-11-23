@@ -1,0 +1,16 @@
+name: phive_generator_example
+description: Generate a PHive adapter and router descriptor, then persist a note.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  phive: ^0.8.0
+  hive_ce: ^2.24.0
+
+dev_dependencies:
+  phive_generator:
+    path: ../
+  build_runner: ^2.12.1
+  flutter_lints: ^6.0.0

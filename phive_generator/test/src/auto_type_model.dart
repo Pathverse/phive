@@ -19,17 +19,13 @@ class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    applyMetadata(ctx_id, metadata_header.metadataForField('id'));
-    applyMetadata(ctx_id, metadata_header.globalMetadata);
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // data (index 1)
     final raw_data = reader.read();
     final ctx_data = PHiveCtx()..value = raw_data;
     applyMetadata(ctx_data, metadata_header.metadataForField('data'));
     applyMetadata(ctx_data, metadata_header.globalMetadata);
+    runPreRead(const [AutoStubHook()], ctx_data);
     runPostRead(const [AutoStubHook()], ctx_data);
     final res_data = ctx_data.value as String;
     return AutoTypeSimple(res_id, res_data);
@@ -38,24 +34,18 @@ class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
   @override
   void write(BinaryWriter writer, AutoTypeSimple obj) {
     final global_metadata = const <String, dynamic>{};
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
     // data (index 1)
     final ctx_data = PHiveCtx()..value = obj.data;
     runPreWrite(const [AutoStubHook()], ctx_data);
     final metadata_header = createMetadataHeader(
       globalMetadata: global_metadata,
       perFieldMetadata: <String, Map<String, dynamic>>{
-        if (ctx_id.pendingMetadata.isNotEmpty)
-          'id': Map<String, dynamic>.from(ctx_id.pendingMetadata),
         if (ctx_data.pendingMetadata.isNotEmpty)
           'data': Map<String, dynamic>.from(ctx_data.pendingMetadata),
       },
     );
     writer.write(serializeMetadataHeader(metadata_header));
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
+    writer.write(obj.id);
     writer.write(ctx_data.value);
     runPostWrite(const [AutoStubHook()], ctx_data);
   }
@@ -83,30 +73,16 @@ class AutoTypeAutoFieldsAdapter extends PTypeAdapter<AutoTypeAutoFields> {
   @override
   AutoTypeAutoFields read(BinaryReader reader) {
     // name (index 0)
-    final raw_name = reader.read();
-    final ctx_name = PHiveCtx()..value = raw_name;
-    runPostRead(const [], ctx_name);
-    final res_name = ctx_name.value as String;
+    final res_name = reader.read() as String;
     // score (index 1)
-    final raw_score = reader.read();
-    final ctx_score = PHiveCtx()..value = raw_score;
-    runPostRead(const [], ctx_score);
-    final res_score = ctx_score.value as int;
+    final res_score = reader.read() as int;
     return AutoTypeAutoFields(res_name, res_score);
   }
 
   @override
   void write(BinaryWriter writer, AutoTypeAutoFields obj) {
-    // name (index 0)
-    final ctx_name = PHiveCtx()..value = obj.name;
-    runPreWrite(const [], ctx_name);
-    writer.write(ctx_name.value);
-    runPostWrite(const [], ctx_name);
-    // score (index 1)
-    final ctx_score = PHiveCtx()..value = obj.score;
-    runPreWrite(const [], ctx_score);
-    writer.write(ctx_score.value);
-    runPostWrite(const [], ctx_score);
+    writer.write(obj.name);
+    writer.write(obj.score);
   }
 }
 ''')
@@ -135,6 +111,10 @@ class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
     final ctx_token = PHiveCtx()..value = raw_token;
     applyMetadata(ctx_token, metadata_header.metadataForField('token'));
     applyMetadata(ctx_token, metadata_header.globalMetadata);
+    runPreRead(const [
+      ...[AutoStubHook()],
+      ...[AutoStubHook()],
+    ], ctx_token);
     runPostRead(const [
       ...[AutoStubHook()],
       ...[AutoStubHook()],
@@ -190,15 +170,11 @@ class AutoTypeWithClassHooksAdapter
     final metadata_header = extractMetadataHeader(reader.read());
 
     // token (index 0)
-    final raw_token = reader.read();
-    final ctx_token = PHiveCtx()..value = raw_token;
-    applyMetadata(ctx_token, metadata_header.metadataForField('token'));
-    applyMetadata(ctx_token, metadata_header.globalMetadata);
-    runPostRead(const [], ctx_token);
-    final res_token = ctx_token.value as String;
+    final res_token = reader.read() as String;
     final result = AutoTypeWithClassHooks(res_token);
     final ctx_obj = PHiveCtx()..value = result;
     applyMetadata(ctx_obj, metadata_header.globalMetadata);
+    runPreRead(const [AutoStubHook()], ctx_obj);
     runPostRead(const [AutoStubHook()], ctx_obj);
     return ctx_obj.value as AutoTypeWithClassHooks;
   }
@@ -209,19 +185,13 @@ class AutoTypeWithClassHooksAdapter
     runPreWrite(const [AutoStubHook()], ctx_obj);
     final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
     final write_obj = ctx_obj.value as AutoTypeWithClassHooks;
-    // token (index 0)
-    final ctx_token = PHiveCtx()..value = write_obj.token;
-    runPreWrite(const [], ctx_token);
+
     final metadata_header = createMetadataHeader(
       globalMetadata: global_metadata,
-      perFieldMetadata: <String, Map<String, dynamic>>{
-        if (ctx_token.pendingMetadata.isNotEmpty)
-          'token': Map<String, dynamic>.from(ctx_token.pendingMetadata),
-      },
+      perFieldMetadata: <String, Map<String, dynamic>>{},
     );
     writer.write(serializeMetadataHeader(metadata_header));
-    writer.write(ctx_token.value);
-    runPostWrite(const [], ctx_token);
+    writer.write(write_obj.token);
     runPostWrite(const [AutoStubHook()], ctx_obj);
   }
 }
@@ -245,30 +215,16 @@ class AutoTypeRouterAdapter extends PTypeAdapter<AutoTypeRouter> {
   @override
   AutoTypeRouter read(BinaryReader reader) {
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // parentId (index 1)
-    final raw_parentId = reader.read();
-    final ctx_parentId = PHiveCtx()..value = raw_parentId;
-    runPostRead(const [], ctx_parentId);
-    final res_parentId = ctx_parentId.value as String;
+    final res_parentId = reader.read() as String;
     return AutoTypeRouter(res_id, res_parentId);
   }
 
   @override
   void write(BinaryWriter writer, AutoTypeRouter obj) {
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
-    // parentId (index 1)
-    final ctx_parentId = PHiveCtx()..value = obj.parentId;
-    runPreWrite(const [], ctx_parentId);
-    writer.write(ctx_parentId.value);
-    runPostWrite(const [], ctx_parentId);
+    writer.write(obj.id);
+    writer.write(obj.parentId);
   }
 }
 

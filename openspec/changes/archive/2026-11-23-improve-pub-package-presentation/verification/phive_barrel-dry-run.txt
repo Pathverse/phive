@@ -1,0 +1,40 @@
+Resolving dependencies...
+Downloading packages...
+  material_color_utilities 0.13.0 (0.13.1 available)
+  test_api 0.7.12 (0.7.15 available)
+Got dependencies!
+2 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Publishing phive_barrel 0.8.0 to https://pub.dev:
+├── CHANGELOG.md (1 KB)
+├── LICENSE (12 KB)
+├── README.md (5 KB)
+├── example
+│   ├── README.md (1 KB)
+│   ├── analysis_options.yaml (<1 KB)
+│   ├── lib
+│   │   ├── main.dart (1 KB)
+│   │   ├── note.dart (<1 KB)
+│   │   └── note.g.dart (1 KB)
+│   └── pubspec.yaml (<1 KB)
+├── lib
+│   ├── phive_barrel.dart (<1 KB)
+│   ├── src
+│   │   ├── gcm_helper.dart (<1 KB)
+│   │   └── meta.dart (1 KB)
+│   └── templates
+│       ├── encrypted_aes.dart (3 KB)
+│       ├── encrypted_gcm.dart (1 KB)
+│       ├── encryption
+│       │   ├── encrypted_u.dart (1 KB)
+│       │   └── secure_storage_seed_provider.dart (2 KB)
+│       └── ttl.dart (1 KB)
+├── pubspec.yaml (<1 KB)
+└── test
+    └── secure_storage_seed_provider_test.dart (7 KB)
+
+Total compressed archive size: 15 KB.
+Validating package...
+The server may enforce additional checks.
+
+Package has 0 warnings.

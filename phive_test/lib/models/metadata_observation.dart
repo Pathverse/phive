@@ -19,9 +19,23 @@ class GlobalMarker extends PHiveHook {
   }
 
   @override
+  void preRead(PHiveCtx ctx) {
+    if (ctx.value is! MetadataObservation ||
+        ctx.metadata['marker'] != 'global') {
+      throw StateError(
+        'Class preRead requires the restored object and global metadata.',
+      );
+    }
+    ctx.metadata['beforePostRead'] = ctx.metadata['marker'];
+  }
+
+  @override
   void postRead(PHiveCtx ctx) {
+    if (!ctx.metadata.containsKey('beforePostRead')) {
+      throw StateError('Class postRead ran before preRead.');
+    }
     (ctx.value as MetadataObservation).observedGlobal =
-        ctx.metadata['marker'] as String?;
+        ctx.metadata['beforePostRead'] as String?;
   }
 }
 
@@ -47,7 +61,20 @@ class ReadMarker extends PHiveHook {
   const ReadMarker();
 
   @override
+  void preRead(PHiveCtx ctx) {
+    if (ctx.value is! String || !ctx.metadata.containsKey('marker')) {
+      throw StateError(
+        'Field preRead requires the raw string and scoped metadata.',
+      );
+    }
+    ctx.metadata['beforePostRead'] = ctx.metadata['marker'];
+  }
+
+  @override
   void postRead(PHiveCtx ctx) {
-    ctx.value = ctx.metadata['marker'];
+    if (!ctx.metadata.containsKey('beforePostRead')) {
+      throw StateError('Field postRead ran before preRead.');
+    }
+    ctx.value = ctx.metadata['beforePostRead'];
   }
 }

@@ -15,29 +15,15 @@ class PlainRecordAdapter extends PTypeAdapter<PlainRecord> {
   @override
   PlainRecord read(BinaryReader reader) {
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // count (index 1)
-    final raw_count = reader.read();
-    final ctx_count = PHiveCtx()..value = raw_count;
-    runPostRead(const [], ctx_count);
-    final res_count = ctx_count.value as int;
+    final res_count = reader.read() as int;
     return PlainRecord(id: res_id, count: res_count);
   }
 
   @override
   void write(BinaryWriter writer, PlainRecord obj) {
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
-    // count (index 1)
-    final ctx_count = PHiveCtx()..value = obj.count;
-    runPreWrite(const [], ctx_count);
-    writer.write(ctx_count.value);
-    runPostWrite(const [], ctx_count);
+    writer.write(obj.id);
+    writer.write(obj.count);
   }
 }

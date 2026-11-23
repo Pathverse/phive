@@ -13,6 +13,17 @@ Simple Flutter app demonstrating PHive storage through both router implementatio
 
 ## Run the App
 
+Use the tested Flutter 3.47.5 / Dart 3.13.4 toolchain. This demo selects Hive CE
+`^2.24.0` and hive_ce_flutter `^2.6.0`; its tracked lockfile records the tested
+versions; that lockfile requires Flutter >=3.47 and Dart >=3.13 because of
+transitive dependencies. The manifest's Flutter >=3.44 / Dart ^3.11 range
+allows Pub to resolve older compatible transitive versions separately.
+The Flutter companion enables accelerated checksums through
+`Hive.initFlutter` and flushes open boxes when the app is paused.
+
+Freezed 3 keeps this demo on build 4 and the compatible Hive generator 1.11.1.
+The PHive generator also accepts build 5, which is exercised by `phive_test`.
+
 ```bash
 flutter pub get
 flutter run -d chrome

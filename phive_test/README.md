@@ -13,6 +13,15 @@ This package is mainly for contributors who want to validate generated adapters,
 
 ## Install Dependencies
 
+Use the tested Flutter 3.47.5 / Dart 3.13.4 toolchain. This test consumer selects
+Hive CE `^2.24.0` and hive_ce_flutter `^2.6.0`. Refresh existing dependencies
+with `flutter pub upgrade`; the current generator stack uses build 5 and
+hive_ce_generator 1.12.1.
+
+The manifest permits Flutter >=3.44 and Dart ^3.11, but newer transitive
+dependencies can require newer SDKs. The selected latest stack is tested on
+the toolchain above; older SDKs need a separately resolved compatible graph.
+
 ```bash
 flutter pub get
 ```
@@ -26,7 +35,7 @@ flutter test
 ## Regenerate Fixtures
 
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 ## Coverage Notes

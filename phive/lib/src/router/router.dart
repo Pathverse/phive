@@ -90,8 +90,8 @@ abstract class PHiveRouter {
   /// then delete the ref store entry itself.
   Future<void> deleteContainer<T>(PHiveContainerHandle<T> handle);
 
-  /// Delete [item] from its primary box and cascade-delete all children
-  /// across every ref relationship where [T] is the parent type.
+  /// Delete [item] and every reachable descendant across registered child
+  /// relationships. Removes the traversed ref entries and handles cycles.
   Future<void> deleteWithChildren<T>(T item);
 
   /// Remove all stored content — every primary box and every ref store —
@@ -153,6 +153,19 @@ class PHiveContainerHandle<T> {
     required this.refBoxName,
     required this.parentKey,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      other is PHiveContainerHandle<T> &&
+      runtimeType == other.runtimeType &&
+      refBoxName == other.refBoxName &&
+      parentKey == other.parentKey;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, refBoxName, parentKey);
+
+  @override
+  String toString() => 'PHiveContainerHandle<$T>($refBoxName, $parentKey)';
 }
 
 /// Internal descriptor for a registered type.

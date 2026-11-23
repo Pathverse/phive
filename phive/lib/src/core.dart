@@ -104,9 +104,7 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
   Map<String, dynamic> serializeMetadataHeader(PHiveMetadataHeader header) {
     return <String, dynamic>{
       metadataHeaderVersionKey: header.version,
-      metadataHeaderGlobalKey: Map<String, dynamic>.from(
-        header.globalMetadata,
-      ),
+      metadataHeaderGlobalKey: Map<String, dynamic>.from(header.globalMetadata),
       metadataHeaderPerFieldKey: <String, Map<String, dynamic>>{
         for (final entry in header.perFieldMetadata.entries)
           entry.key: Map<String, dynamic>.from(entry.value),
@@ -124,7 +122,8 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
     }
 
     final rawVersion = rawHeader[metadataHeaderVersionKey];
-    if (rawVersion is! int || rawVersion != PHiveMetadataHeader.currentVersion) {
+    if (rawVersion is! int ||
+        rawVersion != PHiveMetadataHeader.currentVersion) {
       throw StateError(
         'Unsupported PHive metadata header version: $rawVersion.',
       );

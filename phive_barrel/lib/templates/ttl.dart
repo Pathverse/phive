@@ -38,7 +38,8 @@ class TTL extends PHiveHook {
   ///
   /// Routers decide how to react based on the exception behaviors.
   void postRead(PHiveCtx ctx) {
-    if (ctx.metadata.containsKey('ttl_ms') && ctx.metadata.containsKey('written_at')) {
+    if (ctx.metadata.containsKey('ttl_ms') &&
+        ctx.metadata.containsKey('written_at')) {
       final writtenAt = ctx.metadata['written_at'] as int;
       final ttlMs = ctx.metadata['ttl_ms'] as int;
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -49,4 +50,3 @@ class TTL extends PHiveHook {
     }
   }
 }
-

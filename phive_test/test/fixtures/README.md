@@ -12,3 +12,11 @@ and `nullable` with `marker: null`.
 
 Keep this fixture fixed when regenerating adapters. The compatibility test must
 read these bytes independently of the current adapter writer.
+
+## Constant-index fixture
+
+The `constant_index_legacy.base64` fixture was written by the previous
+generator's adapter with a declared constant index of 8 for `first`
+and literal index 1 for `second`. That writer inferred index 0 for
+`first` and wrote `first-value` before `second-value`. The upgraded
+model pins `first` to literal index 0 to retain the deployed sequence.

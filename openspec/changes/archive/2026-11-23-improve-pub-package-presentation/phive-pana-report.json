@@ -1,0 +1,49 @@
+{
+  "package": "phive",
+  "flutter": "3.47.5",
+  "dart": "3.13.4",
+  "pana": "0.23.19",
+  "scope": "Local candidate; not a hosted score",
+  "sections": [
+    {
+      "id": "convention",
+      "title": "Follow Dart file conventions",
+      "grantedPoints": 30,
+      "maxPoints": 30,
+      "status": "passed",
+      "summary": "### [*] 10/10 points: Provide a valid `pubspec.yaml`\n\n### [*] 5/5 points: Provide a valid `README.md`\n\n### [*] 5/5 points: Provide a valid `CHANGELOG.md`\n\n### [*] 10/10 points: Use an OSI-approved license\n\nDetected licenses: `Apache-2.0`, `BSD-3-Clause`.\n"
+    },
+    {
+      "id": "documentation",
+      "title": "Provide documentation",
+      "grantedPoints": 20,
+      "maxPoints": 20,
+      "status": "passed",
+      "summary": "### [*] 10/10 points: 20% or more of the public API has dartdoc comments\n\n124 out of 164 API elements (75.6 %) have documentation comments.\n\nSome symbols that are missing documentation: `phive`, `phive.PHiveContainerHandle.PHiveContainerHandle.new`, `phive.PHiveDynamicRouter.PHiveDynamicRouter.new`, `phive.PHiveDynamicRouter.checkRegistration`, `phive.PHiveDynamicRouter.clearPrimary`.\n\n### [*] 10/10 points: Package has an example\n"
+    },
+    {
+      "id": "platform",
+      "title": "Platform support",
+      "grantedPoints": 20,
+      "maxPoints": 20,
+      "status": "passed",
+      "summary": "### [*] 20/20 points: Supports 6 of 6 possible platforms (**iOS**, **Android**, **Web**, **Windows**, **macOS**, **Linux**)\n\n* \u2713 Android\n\n* \u2713 iOS\n\n* \u2713 Windows\n\n* \u2713 Linux\n\n* \u2713 macOS\n\n* \u2713 Web\n\n\n**WASM-ready:** This package is compatible with runtime `wasm`. See https://dart.dev/web/wasm for details.\n"
+    },
+    {
+      "id": "analysis",
+      "title": "Pass static analysis",
+      "grantedPoints": 40,
+      "maxPoints": 50,
+      "status": "partial",
+      "summary": "### [~] 40/50 points: code has no errors, warnings, lints, or formatting issues\n\nFound 4 issues. Showing the first 2:\n\n<details>\n<summary>\nlib/src/annotations.dart doesn't match the Dart formatter.\n</summary>\n\nTo format your files run: `dart format .`\n</details>\n\n<details>\n<summary>\nlib/src/core.dart doesn't match the Dart formatter.\n</summary>\n\nTo format your files run: `dart format .`\n</details>\n"
+    },
+    {
+      "id": "dependency",
+      "title": "Support up-to-date dependencies",
+      "grantedPoints": 40,
+      "maxPoints": 40,
+      "status": "passed",
+      "summary": "### [*] 10/10 points: All of the package dependencies are supported in the latest version\n\n|Package|Constraint|Compatible|Latest|Notes|\n|:-|:-|:-|:-|:-|\n|[`hive_ce`]|`^2.19.3`|2.24.0|2.24.0||\n\n<details><summary>Transitive dependencies</summary>\n\n|Package|Constraint|Compatible|Latest|Notes|\n|:-|:-|:-|:-|:-|\n|[`characters`]|-|1.4.1|1.4.1||\n|[`collection`]|-|1.19.1|1.19.1||\n|[`crypto`]|-|3.0.8|3.0.8||\n|[`isolate_channel`]|-|0.6.2|0.6.2||\n|[`json_annotation`]|-|4.12.0|4.12.0||\n|[`material_color_utilities`]|-|0.13.0|0.13.1||\n|[`meta`]|-|1.19.0|1.19.0||\n|[`vector_math`]|-|2.4.4|2.4.4||\n|[`web`]|-|1.1.2|1.1.2||\n</details>\n\nTo reproduce run `dart pub outdated --no-dev-dependencies --up-to-date --no-dependency-overrides`.\n\n[`hive_ce`]: https://pub.dev/packages/hive_ce\n[`characters`]: https://pub.dev/packages/characters\n[`collection`]: https://pub.dev/packages/collection\n[`crypto`]: https://pub.dev/packages/crypto\n[`isolate_channel`]: https://pub.dev/packages/isolate_channel\n[`json_annotation`]: https://pub.dev/packages/json_annotation\n[`material_color_utilities`]: https://pub.dev/packages/material_color_utilities\n[`meta`]: https://pub.dev/packages/meta\n[`vector_math`]: https://pub.dev/packages/vector_math\n[`web`]: https://pub.dev/packages/web\n\n### [*] 10/10 points: Package supports latest stable Dart and Flutter SDKs\n\n### [*] 20/20 points: Compatible with dependency constraint lower bounds\n\n`pub downgrade` does not expose any static analysis error.\n"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+name: phive_example
+description: A standalone PHive storage round-trip example.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  phive:
+    path: ../
+  hive_ce: ^2.24.0
+
+dev_dependencies:
+  build_runner: ^2.12.1
+  phive_generator: ^0.8.0
+  flutter_lints: ^6.0.0
+
+# Keep the hosted generator's runtime dependency on this enclosing package.
+dependency_overrides:
+  phive:
+    path: ../

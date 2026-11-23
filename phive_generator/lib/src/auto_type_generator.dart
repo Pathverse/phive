@@ -37,7 +37,7 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
   /// Intended exclusively for unit and snapshot tests.  Pass the registry that
   /// maps each fixture class name to a deterministic typeId.
   PhiveAutoTypeGenerator({TypeIdRegistry? testRegistry})
-      : _testRegistry = testRegistry;
+    : _testRegistry = testRegistry;
 
   /// Creates a generator that reads the registry from `phive_type_registry.json`
   /// at build time via the `build_runner` asset graph.

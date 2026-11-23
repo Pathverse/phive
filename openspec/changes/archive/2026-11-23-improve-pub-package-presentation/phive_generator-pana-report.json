@@ -1,0 +1,49 @@
+{
+  "package": "phive_generator",
+  "flutter": "3.47.5",
+  "dart": "3.13.4",
+  "pana": "0.23.19",
+  "scope": "Local candidate; not a hosted score",
+  "sections": [
+    {
+      "id": "convention",
+      "title": "Follow Dart file conventions",
+      "grantedPoints": 30,
+      "maxPoints": 30,
+      "status": "passed",
+      "summary": "### [*] 10/10 points: Provide a valid `pubspec.yaml`\n\n### [*] 5/5 points: Provide a valid `README.md`\n\n### [*] 5/5 points: Provide a valid `CHANGELOG.md`\n\n### [*] 10/10 points: Use an OSI-approved license\n\nDetected licenses: `Apache-2.0`, `BSD-3-Clause`.\n"
+    },
+    {
+      "id": "documentation",
+      "title": "Provide documentation",
+      "grantedPoints": 20,
+      "maxPoints": 20,
+      "status": "passed",
+      "summary": "### [*] 10/10 points: 20% or more of the public API has dartdoc comments\n\n21 out of 25 API elements (84.0 %) have documentation comments.\n\nSome symbols that are missing documentation: `builder`, `phive_generator.PhiveGenerator.PhiveGenerator.new`, `phive_generator.TypeIdRegistry.maxUserTypeId`, `phive_generator.TypeIdRegistry.minUserTypeId`.\n\n### [*] 10/10 points: Package has an example\n"
+    },
+    {
+      "id": "platform",
+      "title": "Platform support",
+      "grantedPoints": 20,
+      "maxPoints": 20,
+      "status": "passed",
+      "summary": "### [*] 20/20 points: Supports 5 of 6 possible platforms (**iOS**, **Android**, Web, **Windows**, **macOS**, **Linux**)\n\n* \u2713 Android\n\n* \u2713 iOS\n\n* \u2713 Windows\n\n* \u2713 Linux\n\n* \u2713 macOS\n\n\nThese platforms are not supported:\n\n<details>\n<summary>\nPackage not compatible with platform Web\n</summary>\n\nBecause:\n* `package:phive_generator/phive_generator.dart` that imports:\n* `package:phive_generator/src/auto_type_generator.dart` that imports:\n* `package:phive_generator/src/router_collection.dart` that imports:\n* `package:phive_generator/src/annotation_helpers.dart` that imports:\n* `package:analyzer/dart/element/element.dart` that imports:\n* `package:analyzer/src/dart/resolver/scope.dart` that imports:\n* `package:analyzer/src/generated/engine.dart` that imports:\n* `package:analyzer/src/analysis_options/analysis_options.dart` that imports:\n* `package:analyzer/src/lint/config.dart` that imports:\n* `package:analyzer/src/analysis_options/analysis_options_file.dart` that imports:\n* `package:analyzer/source/error_processor.dart` that imports:\n* `package:analyzer/error/error.dart` that imports:\n* `package:analyzer/src/dart/error/lint_codes.dart` that imports:\n* `package:analyzer/src/diagnostic/diagnostic.dart` that imports:\n* `package:analyzer/dart/element/type.dart` that imports:\n* `package:analyzer/src/dart/element/type.dart` that imports:\n* `package:analyzer/src/utilities/extensions/element.dart` that imports:\n* `package:analyzer/src/dart/element/element.dart` that imports:\n* `package:analyzer/src/summary2/linked_element_factory.dart` that imports:\n* `package:analyzer/src/summary2/export.dart` that imports:\n* `package:analyzer/src/summary2/library_builder.dart` that imports:\n* `package:analyzer/src/summary2/types_builder.dart` that imports:\n* `package:analyzer/src/summary2/link.dart` that imports:\n* `package:analyzer/src/summary2/variance_builder.dart` that imports:\n* `package:analyzer/src/summary2/record_type_builder.dart` that imports:\n* `package:analyzer/src/dart/element/type_visitor.dart` that imports:\n* `package:analyzer/src/summary2/named_type_builder.dart` that imports:\n* `package:analyzer/src/dart/element/type_system.dart` that imports:\n* `package:analyzer/src/generated/inference_log.dart` that imports:\n* `package:analyzer/src/generated/resolver.dart` that imports:\n* `package:analyzer/src/util/ast_data_extractor.dart` that imports:\n* `package:analyzer/dart/ast/visitor.dart` that imports:\n* `package:analyzer/src/dart/ast/ast.dart` that imports:\n* `package:analyzer/src/lint/constants.dart` that imports:\n* `package:analyzer/src/dart/constant/utilities.dart` that imports:\n* `package:analyzer/src/dart/constant/evaluation.dart` that imports:\n* `package:analyzer/src/dart/element/member.dart` that imports:\n* `package:analyzer/dart/analysis/session.dart` that imports:\n* `package:analyzer/file_system/file_system.dart` that imports:\n* `package:watcher/watcher.dart` that imports:\n* `package:watcher/src/file_watcher/polling.dart` that imports:\n* `package:watcher/src/polling.dart` that imports:\n* `dart:io`\n</details>\n"
+    },
+    {
+      "id": "analysis",
+      "title": "Pass static analysis",
+      "grantedPoints": 40,
+      "maxPoints": 50,
+      "status": "partial",
+      "summary": "### [~] 40/50 points: code has no errors, warnings, lints, or formatting issues\n\n<details>\n<summary>\nlib/builder.dart doesn't match the Dart formatter.\n</summary>\n\nTo format your files run: `dart format .`\n</details>\n\n<details>\n<summary>\nlib/src/auto_type_generator.dart doesn't match the Dart formatter.\n</summary>\n\nTo format your files run: `dart format .`\n</details>\n"
+    },
+    {
+      "id": "dependency",
+      "title": "Support up-to-date dependencies",
+      "grantedPoints": 30,
+      "maxPoints": 40,
+      "status": "failed",
+      "summary": "### [x] 0/10 points: All of the package dependencies are supported in the latest version\n\n|Package|Constraint|Compatible|Latest|Notes|\n|:-|:-|:-|:-|:-|\n|[`analyzer`]|`>=10.0.1 <15.0.0`|14.4.0|14.7.0||\n|[`build`]|`^4.0.4`|4.0.11|**5.0.0**||\n|[`build_config`]|`^1.3.0`|1.4.0|1.4.0||\n|[`hive_ce_generator`]|`^1.11.1`|1.12.0|1.12.1||\n|[`phive`]|`^0.8.0`|0.8.0|0.8.0||\n|[`source_gen`]|`^4.2.0`|4.3.1|4.3.1||\n\n<details><summary>Transitive dependencies</summary>\n\n|Package|Constraint|Compatible|Latest|Notes|\n|:-|:-|:-|:-|:-|\n|[`_fe_analyzer_shared`]|-|108.0.0|111.0.0||\n|[`args`]|-|2.7.0|2.7.0||\n|[`async`]|-|2.13.1|2.13.1||\n|[`characters`]|-|1.4.1|1.4.1||\n|[`checked_yaml`]|-|2.0.4|2.0.4||\n|[`collection`]|-|1.19.1|1.19.1||\n|[`convert`]|-|3.1.2|3.1.2||\n|[`crypto`]|-|3.0.8|3.0.8||\n|[`dart_style`]|-|3.1.14|3.1.14||\n|[`file`]|-|7.0.1|7.0.1||\n|[`glob`]|-|2.2.0|2.2.0||\n|[`hive_ce`]|-|2.24.0|2.24.0||\n|[`isolate_channel`]|-|0.6.2|0.6.2||\n|[`json_annotation`]|-|4.12.0|4.12.0||\n|[`logging`]|-|1.3.0|1.3.0||\n|[`material_color_utilities`]|-|0.13.0|0.13.1||\n|[`meta`]|-|1.19.0|1.19.0||\n|[`package_config`]|-|3.0.0|3.0.0||\n|[`path`]|-|1.9.1|1.9.1||\n|[`pub_semver`]|-|2.2.1|2.2.1||\n|[`pubspec_parse`]|-|1.7.0|1.7.0||\n|[`source_span`]|-|1.10.2|1.10.2||\n|[`string_scanner`]|-|1.4.1|1.4.1||\n|[`term_glyph`]|-|1.2.2|1.2.2||\n|[`typed_data`]|-|1.4.0|1.4.0||\n|[`vector_math`]|-|2.4.4|2.4.4||\n|[`watcher`]|-|1.2.1|1.2.1||\n|[`web`]|-|1.1.2|1.1.2||\n|[`yaml`]|-|3.1.4|3.1.4||\n|[`yaml_writer`]|-|2.1.0|2.1.0||\n</details>\n\nTo reproduce run `dart pub outdated --no-dev-dependencies --up-to-date --no-dependency-overrides`.\n\n[`analyzer`]: https://pub.dev/packages/analyzer\n[`build`]: https://pub.dev/packages/build\n[`build_config`]: https://pub.dev/packages/build_config\n[`hive_ce_generator`]: https://pub.dev/packages/hive_ce_generator\n[`phive`]: https://pub.dev/packages/phive\n[`source_gen`]: https://pub.dev/packages/source_gen\n[`_fe_analyzer_shared`]: https://pub.dev/packages/_fe_analyzer_shared\n[`args`]: https://pub.dev/packages/args\n[`async`]: https://pub.dev/packages/async\n[`characters`]: https://pub.dev/packages/characters\n[`checked_yaml`]: https://pub.dev/packages/checked_yaml\n[`collection`]: https://pub.dev/packages/collection\n[`convert`]: https://pub.dev/packages/convert\n[`crypto`]: https://pub.dev/packages/crypto\n[`dart_style`]: https://pub.dev/packages/dart_style\n[`file`]: https://pub.dev/packages/file\n[`glob`]: https://pub.dev/packages/glob\n[`hive_ce`]: https://pub.dev/packages/hive_ce\n[`isolate_channel`]: https://pub.dev/packages/isolate_channel\n[`json_annotation`]: https://pub.dev/packages/json_annotation\n[`logging`]: https://pub.dev/packages/logging\n[`material_color_utilities`]: https://pub.dev/packages/material_color_utilities\n[`meta`]: https://pub.dev/packages/meta\n[`package_config`]: https://pub.dev/packages/package_config\n[`path`]: https://pub.dev/packages/path\n[`pub_semver`]: https://pub.dev/packages/pub_semver\n[`pubspec_parse`]: https://pub.dev/packages/pubspec_parse\n[`source_span`]: https://pub.dev/packages/source_span\n[`string_scanner`]: https://pub.dev/packages/string_scanner\n[`term_glyph`]: https://pub.dev/packages/term_glyph\n[`typed_data`]: https://pub.dev/packages/typed_data\n[`vector_math`]: https://pub.dev/packages/vector_math\n[`watcher`]: https://pub.dev/packages/watcher\n[`web`]: https://pub.dev/packages/web\n[`yaml`]: https://pub.dev/packages/yaml\n[`yaml_writer`]: https://pub.dev/packages/yaml_writer\n\n<details>\n<summary>\nThe constraint `^4.0.4` on build does not support the stable version `5.0.0`.\n</summary>\n\nTry running `dart pub upgrade --major-versions build` to update the constraint.\n</details>\n\n### [*] 10/10 points: Package supports latest stable Dart and Flutter SDKs\n\n### [*] 20/20 points: Compatible with dependency constraint lower bounds\n\n`pub downgrade` does not expose any static analysis error.\n"
+    }
+  ]
+}

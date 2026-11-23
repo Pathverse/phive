@@ -1,0 +1,10 @@
+{
+  "phase": "write",
+  "version": "10.3.4",
+  "passed": true,
+  "checks": [
+    "default seed",
+    "named seed",
+    "two encrypted records"
+  ]
+}

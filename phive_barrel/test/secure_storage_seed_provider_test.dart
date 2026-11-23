@@ -1,9 +1,22 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phive/phive.dart';
 import 'package:phive_barrel/phive_barrel.dart';
+
+class _MemorySeedProvider implements PhiveSeedProvider {
+  _MemorySeedProvider(int length) : bytes = Uint8List(length);
+
+  final Uint8List bytes;
+
+  @override
+  List<int> getSeedSync(String? seedId) => bytes;
+
+  @override
+  Future<void> init() async {}
+}
 
 /// Exercises seed preloading and custom-seed hook usage for barrel encryption hooks.
 void main() {
@@ -11,6 +24,26 @@ void main() {
     PhiveMetaRegistry.seedProvider = null;
     FlutterSecureStorage.setMockInitialValues({});
   });
+
+  test(
+    'fixed default and named seed encodings survive provider reload',
+    () async {
+      final defaultSeed = List<int>.generate(32, (index) => index);
+      final namedSeed = List<int>.generate(32, (index) => 255 - index);
+      final stored = {
+        'phive_encryption_key': base64Url.encode(defaultSeed),
+        'phive_encryption_key__tenant-a': base64Url.encode(namedSeed),
+      };
+      FlutterSecureStorage.setMockInitialValues(stored);
+      for (var reload = 0; reload < 2; reload++) {
+        final provider = SecureStorageSeedProvider(seedIds: ['tenant-a']);
+        await provider.init();
+        expect(provider.getSeedSync(null), defaultSeed);
+        expect(provider.getSeedSync('tenant-a'), namedSeed);
+        expect(await const FlutterSecureStorage().readAll(), stored);
+      }
+    },
+  );
 
   test('preloaded named seeds are persisted and reloaded', () async {
     FlutterSecureStorage.setMockInitialValues({});
@@ -33,6 +66,62 @@ void main() {
     expect(secondSeed, hasLength(32));
     expect(base64Url.encode(secondSeed), base64Url.encode(firstSeed));
   });
+
+  for (final existing in [false, true]) {
+    test(
+      '${existing ? 'reloaded' : 'generated'} seeds are read-only',
+      () async {
+        const storageKey = 'phive_test_key';
+        FlutterSecureStorage.setMockInitialValues(
+          existing ? {storageKey: base64Url.encode(Uint8List(32))} : {},
+        );
+        final provider = SecureStorageSeedProvider(
+          defaultStorageKey: storageKey,
+        );
+        await provider.init();
+        final seed = provider.getSeedSync(null);
+        final original = seed.first;
+
+        expect(() => seed[0] = original ^ 1, throwsUnsupportedError);
+        expect(provider.getSeedSync(null).first, original);
+      },
+    );
+  }
+
+  for (final length in [16, 24, 32]) {
+    test('registry accepts ${length}-byte AES seeds', () {
+      PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(length));
+      expect(PhiveMetaRegistry.requireSeedSync(null), hasLength(length));
+    });
+  }
+
+  test('registry rejects a seed with an invalid AES length', () {
+    PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(17));
+    expect(
+      () => PhiveMetaRegistry.requireSeedSync(null),
+      throwsA(
+        isA<StateError>().having((e) => e.message, 'message', contains('17')),
+      ),
+    );
+  });
+
+  test('registry returns read-only seeds', () {
+    PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(16));
+    final seed = PhiveMetaRegistry.requireSeedSync(null);
+    expect(() => seed[0] = 8, throwsUnsupportedError);
+  });
+
+  test(
+    'previous registry snapshots survive mutations by a custom provider',
+    () {
+      final provider = _MemorySeedProvider(16);
+      PhiveMetaRegistry.registerSeedProvider(provider);
+      final seed = PhiveMetaRegistry.requireSeedSync(null);
+      provider.bytes[0] = 8;
+      expect(seed[0], 0);
+      expect(PhiveMetaRegistry.requireSeedSync(null)[0], 8);
+    },
+  );
 
   test('custom seed ids work with encryption hooks after preload', () async {
     FlutterSecureStorage.setMockInitialValues({});
@@ -77,5 +166,84 @@ void main() {
         ),
       ),
     );
+  });
+
+  group('encrypted records', () {
+    setUp(() {
+      PhiveMetaRegistry.registerSeedProvider(_MemorySeedProvider(16));
+    });
+
+    // Captured from the previous writers using a 16-byte zero test key.
+    for (final (hook, key, parameter, ciphertext, plaintext) in [
+      (
+        const AESEncrypted(),
+        'iv',
+        'NB2YuhARercV-vQmW2sLZA==',
+        's2SYaqFWGbNoTCYYUrCSCiCm7jR1mYH1kMJhrOHcl9g=',
+        'existing CBC record',
+      ),
+      (
+        const GCMEncrypted(),
+        'nonce',
+        'Ya6haAtYkfYC9V9z',
+        'Z91Rry_Btxzq_0h3pjm7yKyXHOiQ0xOWyJMXc3W2wkT_Euw=',
+        'existing GCM record',
+      ),
+      (
+        const UniversalEncrypted(),
+        'nonce_u',
+        'ZRY2a--OqBA0WtPo',
+        'YeRw4ZVelsOMoMawaqmDKN_CJ9BnEs9r-q5Z87w=',
+        {'answer': 42},
+      ),
+    ]) {
+      test('${hook.runtimeType} reads a record from the previous writer', () {
+        final ctx = PHiveCtx()..value = ciphertext;
+        ctx.metadata[key] = parameter;
+        hook.postRead(ctx);
+        expect(ctx.value, plaintext);
+      });
+    }
+
+    const cbc = AESEncrypted();
+    for (final plaintext in ['', 'abcdefghijklmnop']) {
+      test('CBC round-trips ${plaintext.length} bytes of plaintext', () {
+        final ctx = PHiveCtx()..value = plaintext;
+        cbc.preWrite(ctx);
+        ctx.metadata.addAll(ctx.pendingMetadata);
+        cbc.postRead(ctx);
+        expect(ctx.value, plaintext);
+      });
+    }
+
+    for (final size in [15, 17]) {
+      test('CBC rejects a ${size}-byte IV', () {
+        final ctx = PHiveCtx()..value = base64Url.encode(Uint8List(16));
+        ctx.metadata['iv'] = base64Url.encode(Uint8List(size));
+        expect(() => cbc.postRead(ctx), throwsFormatException);
+      });
+    }
+
+    for (final size in [0, 17]) {
+      test('CBC rejects ${size} bytes of ciphertext', () {
+        final ctx = PHiveCtx()..value = base64Url.encode(Uint8List(size));
+        ctx.metadata['iv'] = base64Url.encode(Uint8List(16));
+        expect(() => cbc.postRead(ctx), throwsFormatException);
+      });
+    }
+
+    // Independently encrypted blocks using the zero test key and zero IV.
+    const invalidPadding = {
+      'zero padding length': 'MTGBMwUoBn62VnOvczKItA==',
+      'oversized padding length': 'tb7vckaMP07sKgw5wsc9dg==',
+      'inconsistent padding': '0xG2pMVVDKr8-pCvxa7XYw==',
+    };
+    for (final entry in invalidPadding.entries) {
+      test('CBC rejects ${entry.key}', () {
+        final ctx = PHiveCtx()..value = entry.value;
+        ctx.metadata['iv'] = base64Url.encode(Uint8List(16));
+        expect(() => cbc.postRead(ctx), throwsFormatException);
+      });
+    }
   });
 }

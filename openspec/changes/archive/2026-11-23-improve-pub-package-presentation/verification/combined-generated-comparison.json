@@ -1,0 +1,19 @@
+{
+  "example": {
+    "lib/models/user_profile.g.dart": true,
+    "lib/models/demo_lesson_card.g.dart": true,
+    "lib/models/demo_lesson.g.dart": true,
+    "lib/models/settings.g.dart": true
+  },
+  "phive_test": {
+    "lib/models/auto_note.g.dart": true,
+    "lib/models/naming_models.g.dart": true,
+    "lib/models/explicit_metadata.g.dart": true,
+    "lib/models/naming_parent.g.dart": true,
+    "lib/models/auto_metadata.g.dart": true,
+    "lib/models/pinned_field_order.g.dart": true,
+    "lib/models/test_model2.g.dart": true,
+    "lib/models/test_model.g.dart": true,
+    "lib/models/plain_record.g.dart": true
+  }
+}

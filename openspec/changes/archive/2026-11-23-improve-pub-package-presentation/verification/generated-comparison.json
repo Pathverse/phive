@@ -1,0 +1,38 @@
+{
+  "lib/models/auto_note.g.dart": {
+    "same": true,
+    "sha256": "9608c51a0d1965830f59ef457487de8225b2e5e50995e690558cdd1fad62763a"
+  },
+  "lib/models/naming_models.g.dart": {
+    "same": true,
+    "sha256": "dee3dc2db5b5e7997bd37fb231a82d815369fa8f53d0614949cec67a1973f414"
+  },
+  "lib/models/explicit_metadata.g.dart": {
+    "same": true,
+    "sha256": "3ed9d82aa7c2c21e6a2b44de2785f3482440861b1da65c51d162e5e630fb3ad6"
+  },
+  "lib/models/naming_parent.g.dart": {
+    "same": true,
+    "sha256": "bcd4afc1548715fd588a7dc1dd2fe2860fdc587510bce5640e14ac102bf084c4"
+  },
+  "lib/models/auto_metadata.g.dart": {
+    "same": true,
+    "sha256": "5b3381b18006305768454d770ee3c351a7088bb86953613a2097d0912774a27f"
+  },
+  "lib/models/pinned_field_order.g.dart": {
+    "same": true,
+    "sha256": "28540914c4d27a72addbc6fdd5740b2ff7df14212d23bb63209e817925b83901"
+  },
+  "lib/models/test_model2.g.dart": {
+    "same": true,
+    "sha256": "589e4bf9922e76a6f7a8e28029caa52b15475c6f2186259f4a152a8aa32a44b5"
+  },
+  "lib/models/test_model.g.dart": {
+    "same": true,
+    "sha256": "53b57d6ccbc4c5e6785c9ec78828b863dc88bdd68b16dac7ca0b76fd93d529ad"
+  },
+  "lib/models/plain_record.g.dart": {
+    "same": true,
+    "sha256": "4694d341596bcec5c0873f822a11f135d049d4da35ec06fd189fae59cdae8920"
+  }
+}

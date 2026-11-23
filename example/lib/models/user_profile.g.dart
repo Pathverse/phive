@@ -17,12 +17,7 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final raw_id = reader.read();
-    final ctx_id = PHiveCtx()..value = raw_id;
-    applyMetadata(ctx_id, metadata_header.metadataForField('id'));
-    applyMetadata(ctx_id, metadata_header.globalMetadata);
-    runPostRead(const [], ctx_id);
-    final res_id = ctx_id.value as String;
+    final res_id = reader.read() as String;
     // encryptedToken (index 1)
     final raw_encryptedToken = reader.read();
     final ctx_encryptedToken = PHiveCtx()..value = raw_encryptedToken;
@@ -31,6 +26,7 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
       metadata_header.metadataForField('encryptedToken'),
     );
     applyMetadata(ctx_encryptedToken, metadata_header.globalMetadata);
+    runPreRead(const [GCMEncrypted()], ctx_encryptedToken);
     runPostRead(const [GCMEncrypted()], ctx_encryptedToken);
     final res_encryptedToken = ctx_encryptedToken.value as String;
     // tempSessionId (index 2)
@@ -41,6 +37,7 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
       metadata_header.metadataForField('tempSessionId'),
     );
     applyMetadata(ctx_tempSessionId, metadata_header.globalMetadata);
+    runPreRead(const [TTL(10)], ctx_tempSessionId);
     runPostRead(const [TTL(10)], ctx_tempSessionId);
     final res_tempSessionId = ctx_tempSessionId.value as String;
     return UserProfile(
@@ -53,9 +50,6 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
   @override
   void write(BinaryWriter writer, UserProfile obj) {
     final global_metadata = const <String, dynamic>{};
-    // id (index 0)
-    final ctx_id = PHiveCtx()..value = obj.id;
-    runPreWrite(const [], ctx_id);
     // encryptedToken (index 1)
     final ctx_encryptedToken = PHiveCtx()..value = obj.encryptedToken;
     runPreWrite(const [GCMEncrypted()], ctx_encryptedToken);
@@ -65,8 +59,6 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
     final metadata_header = createMetadataHeader(
       globalMetadata: global_metadata,
       perFieldMetadata: <String, Map<String, dynamic>>{
-        if (ctx_id.pendingMetadata.isNotEmpty)
-          'id': Map<String, dynamic>.from(ctx_id.pendingMetadata),
         if (ctx_encryptedToken.pendingMetadata.isNotEmpty)
           'encryptedToken': Map<String, dynamic>.from(
             ctx_encryptedToken.pendingMetadata,
@@ -78,8 +70,7 @@ class UserProfileAdapter extends PTypeAdapter<UserProfile> {
       },
     );
     writer.write(serializeMetadataHeader(metadata_header));
-    writer.write(ctx_id.value);
-    runPostWrite(const [], ctx_id);
+    writer.write(obj.id);
     writer.write(ctx_encryptedToken.value);
     runPostWrite(const [GCMEncrypted()], ctx_encryptedToken);
     writer.write(ctx_tempSessionId.value);

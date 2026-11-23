@@ -21,6 +21,7 @@ class DemoTopLevelAesUserAdapter extends PTypeAdapter<DemoTopLevelAesUser> {
     final ctx_id = PHiveCtx()..value = raw_id;
     applyMetadata(ctx_id, metadata_header.metadataForField('id'));
     applyMetadata(ctx_id, metadata_header.globalMetadata);
+    runPreRead(const [AESEncrypted()], ctx_id);
     runPostRead(const [AESEncrypted()], ctx_id);
     final res_id = ctx_id.value as String;
     // secret (index 1)
@@ -28,6 +29,7 @@ class DemoTopLevelAesUserAdapter extends PTypeAdapter<DemoTopLevelAesUser> {
     final ctx_secret = PHiveCtx()..value = raw_secret;
     applyMetadata(ctx_secret, metadata_header.metadataForField('secret'));
     applyMetadata(ctx_secret, metadata_header.globalMetadata);
+    runPreRead(const [AESEncrypted()], ctx_secret);
     runPostRead(const [AESEncrypted()], ctx_secret);
     final res_secret = ctx_secret.value as String;
     return DemoTopLevelAesUser(id: res_id, secret: res_secret);

@@ -1,14 +1,12 @@
 // ignore_for_file: implementation_imports
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:hive_ce/hive.dart';
 import 'package:hive_ce/src/binary/binary_reader_impl.dart';
 import 'package:hive_ce/src/binary/binary_writer_impl.dart';
 
-import '../exception.dart';
-import '../policy.dart';
+import 'base_router.dart';
 import 'router.dart';
 
 /// A [PHiveRouter] implementation backed by Hive CE's [BoxCollection] API.
@@ -45,80 +43,41 @@ import 'router.dart';
 /// using Hive's binary reader/writer path before handing it to BoxCollection.
 /// This preserves generated adapter behavior, including PHive hook execution,
 /// across native and web storage backends.
-class PHiveStaticRouter implements PHiveRouter {
-  /// Name of the [BoxCollection] (= IndexedDB database name on web).
+class PHiveStaticRouter extends PHiveBaseRouter {
+  static const _usesIndexedDb = bool.fromEnvironment('dart.library.js_interop');
+
+  /// Name of the [BoxCollection].
   final String collectionName;
 
   /// Optional filesystem path for the collection on native platforms.
-  /// Defaults to null, in which case the path set by [Hive.init] /
-  /// [Hive.initFlutter] is used.
   final String? path;
 
-  final Map<Type, PHiveTypeRegistration> _types = {};
-  final List<PHiveRefRegistration> _refs = [];
   final Map<String, CollectionBox<String>> _boxCache = {};
-
   BoxCollection? _collection;
-  bool _isOpen = false;
 
   PHiveStaticRouter({this.collectionName = 'phive_static', this.path});
 
-  // ── Registration guard ────────────────────────────────────────────────────
-
-  void _assertMutable(String op) {
-    if (_isOpen) {
+  @override
+  void checkRegistration(String operation) {
+    if (_collection != null) {
       throw StateError(
-        'Cannot $op after PHiveStaticRouter has been opened. '
+        'Cannot $operation after PHiveStaticRouter has been opened. '
         'All types and refs must be registered before calling ensureOpen().',
       );
     }
   }
 
-  // ── Registration ──────────────────────────────────────────────────────────
+  @override
+  Future<BoxBase<dynamic>> openRegisteredBox<T>(String name) =>
+      Hive.openBox<T>(name);
 
   @override
-  /// Registers one type in the static router before the collection is opened.
-  void register<T>({
-    required String Function(T item) primaryKey,
-    String? boxName,
-  }) {
-    _assertMutable('register types');
-    final resolvedBoxName = boxName ?? T.toString().toLowerCase();
-    _types[T] = PHiveTypeRegistration(
-      primaryKey: (dynamic item) => primaryKey(item as T),
-      boxName: resolvedBoxName,
-      openBox: () => Hive.openBox<T>(resolvedBoxName),
-    );
-  }
-
-  @override
-  void createRef<T, P>({
-    required String Function(T item) resolve,
-    String? refBoxName,
-  }) {
-    _assertMutable('register refs');
-    final name = refBoxName ?? '__ref_${P}_$T';
-    _refs.add(
-      PHiveRefRegistration(
-        childType: T,
-        parentType: P,
-        resolve: (dynamic item) => resolve(item as T),
-        refBoxName: name,
-      ),
-    );
-  }
-
-  // ── Internal helpers ──────────────────────────────────────────────────────
-
-  PHiveTypeRegistration _requireRegistration<T>() {
-    final reg = _types[T];
-    if (reg == null) {
-      throw StateError(
-        'Type $T is not registered with this PHiveStaticRouter. '
-        'Call register<$T>() before calling ensureOpen().',
-      );
-    }
-    return reg;
+  Future<void> ensureOpen() async {
+    if (_collection != null) return;
+    _collection = await BoxCollection.open(collectionName, {
+      for (final reg in typeRegistrations) reg.boxName,
+      ...refBoxNames,
+    }, path: path);
   }
 
   /// Returns one open storage box that holds primitive string payloads.
@@ -145,8 +104,7 @@ class PHiveStaticRouter implements PHiveRouter {
   /// Deserializes one base64 payload through Hive's adapter pipeline.
   T? _decodeValue<T>(String? payload) {
     if (payload == null) return null;
-    final bytes = Uint8List.fromList(base64Decode(payload));
-    final reader = BinaryReaderImpl(bytes, Hive);
+    final reader = BinaryReaderImpl(base64Decode(payload), Hive);
     return reader.read() as T?;
   }
 
@@ -157,211 +115,99 @@ class PHiveStaticRouter implements PHiveRouter {
     return decoded.cast<String>();
   }
 
-  /// Applies one hook-driven read exception to the current static box state.
-  Future<T?> _handleReadException<T>(
-    CollectionBox<String> box,
+  @override
+  Future<void> writePrimary<T>(
+    PHiveTypeRegistration reg,
     String key,
-    PHiveActionException error,
+    T item,
   ) async {
-    if (error.behaviors.contains(PHiveActionBehavior.clearBox)) {
-      await box.clear();
+    await (await _getBox(reg.boxName)).put(key, _encodeValue(item));
+  }
+
+  @override
+  Future<T?> readPrimary<T>(PHiveTypeRegistration reg, String key) async =>
+      _decodeValue<T>(await (await _getBox(reg.boxName)).get(key));
+
+  @override
+  Future<List<T>> readAllPrimary<T>(PHiveTypeRegistration reg) async {
+    final payloads = await _readAllPayloads(reg.boxName);
+    final items = <T>[];
+    for (final entry in payloads.entries) {
+      final (item, cleared) = await readWithPolicy(
+        reg,
+        entry.key,
+        () => _decodeValue<T>(entry.value),
+      );
+      // The snapshot still contains records removed by the hook.
+      if (cleared) break;
+      if (item != null) items.add(item);
     }
-    if (error.behaviors.contains(PHiveActionBehavior.deleteEntry)) {
+    return items;
+  }
+
+  Future<Map<String, String>> _readAllPayloads(String name) async {
+    final box = await _getBox(name);
+    final values = await box.getAllValues();
+    if (_usesIndexedDb) return values;
+
+    // Native Hive can return hashed backing keys from getAllValues().
+    // Resolve the public keys before using them in writes or read policies.
+    final keys = await box.getAllKeys();
+    if (keys.length == values.length && keys.every(values.containsKey)) {
+      return values;
+    }
+    final resolved = await box.getAll(keys);
+    return {for (var i = 0; i < keys.length; i++) keys[i]: ?resolved[i]};
+  }
+
+  @override
+  Future<void> deletePrimary(
+    PHiveTypeRegistration reg,
+    Iterable<String> keys,
+  ) async {
+    final box = await _getBox(reg.boxName);
+    for (final key in keys) {
       await box.delete(key);
     }
-    if (error.behaviors.contains(PHiveActionBehavior.returnNull)) {
-      return null;
-    }
-    throw error;
-  }
-
-  /// Reads one primary value and applies composable exception behaviors.
-  Future<T?> _readPrimaryValue<T>(PHiveTypeRegistration reg, String key) async {
-    final box = await _getBox(reg.boxName);
-    try {
-      final raw = await box.get(key);
-      return _decodeValue<T>(raw);
-    } on PHiveActionException catch (error) {
-      return _handleReadException(box, key, error);
-    }
-  }
-
-  // ── PHiveRouter implementation ────────────────────────────────────────────
-
-  /// Opens the [BoxCollection] with all registered box names.
-  ///
-  /// After this call the schema is frozen — [register] and [createRef] will
-  /// throw [StateError]. Subsequent calls to [ensureOpen] are no-ops.
-  @override
-  Future<void> ensureOpen() async {
-    if (_isOpen) return;
-
-    // Collect every box name that needs to exist in the collection.
-    final boxNames = <String>{};
-    for (final reg in _types.values) {
-      boxNames.add(reg.boxName);
-    }
-    for (final ref in _refs) {
-      boxNames.add(ref.refBoxName);
-    }
-
-    _collection = await BoxCollection.open(
-      collectionName,
-      boxNames,
-      path: path,
-    );
-    _isOpen = true;
   }
 
   @override
-  Future<void> store<T>(T item) async {
-    final reg = _requireRegistration<T>();
-    final box = await _getBox(reg.boxName);
-    final key = reg.primaryKey(item);
-    await box.put(key, _encodeValue(item));
-
-    // Reconcile existing ref payloads without deserializing the previous item.
-    for (final ref in _refs.where((r) => r.childType == T)) {
-      final parentKey = ref.resolve(item);
-      final refBox = await _getBox(ref.refBoxName);
-      for (final oldParent in List<String>.of(await refBox.getAllKeys())) {
-        if (oldParent == parentKey) continue;
-        final oldKeys = _parseRefList(await refBox.get(oldParent));
-        if (!oldKeys.contains(key)) continue;
-        oldKeys.removeWhere((candidate) => candidate == key);
-        if (oldKeys.isEmpty) {
-          await refBox.delete(oldParent);
-        } else {
-          await refBox.put(oldParent, _encodeValue(oldKeys));
-        }
-      }
-      final keys = _parseRefList(await refBox.get(parentKey));
-      if (keys.where((candidate) => candidate == key).length != 1) {
-        keys.removeWhere((candidate) => candidate == key);
-        keys.add(key);
-        await refBox.put(parentKey, _encodeValue(keys));
-      }
-    }
-  }
-
-  @override
-  Future<T?> get<T>(String key) async {
-    final reg = _requireRegistration<T>();
-    return _readPrimaryValue<T>(reg, key);
-  }
-
-  @override
-  /// Reads every item from one type's primary box, skipping rejected entries.
-  Future<List<T>> getAll<T>() async {
-    final reg = _requireRegistration<T>();
-    final box = await _getBox(reg.boxName);
-    final results = <T>[];
-    for (final key in await box.getAllKeys()) {
-      final item = await _readPrimaryValue<T>(reg, key);
-      if (item != null) results.add(item);
-    }
-    return results;
-  }
-
-  @override
-  Future<void> delete<T>(String key) async {
-    final reg = _requireRegistration<T>();
-    final box = await _getBox(reg.boxName);
-    await box.delete(key);
-  }
-
-  @override
-  /// Empties every primary and ref box in the collection, schema intact.
-  Future<void> clear() async {
-    for (final reg in _types.values) {
-      await (await _getBox(reg.boxName)).clear();
-    }
-    for (final ref in _refs) {
-      await (await _getBox(ref.refBoxName)).clear();
-    }
-  }
-
-  @override
-  /// Empties one type's primary box without touching ref stores.
-  Future<void> clearType<T>() async {
-    final reg = _requireRegistration<T>();
+  Future<void> clearPrimary(PHiveTypeRegistration reg) async {
     await (await _getBox(reg.boxName)).clear();
   }
 
   @override
-  PHiveContainerHandle<T> containerOf<T, P>(P parent) {
-    final parentReg = _requireRegistration<P>();
-    final parentKey = parentReg.primaryKey(parent);
+  Future<Map<String, List<String>>> readRefMemberships(String name) async =>
+      (await _readAllPayloads(
+        name,
+      )).map((key, payload) => MapEntry(key, _parseRefList(payload)));
 
-    final ref = _refs.firstWhere(
-      (r) => r.childType == T && r.parentType == P,
-      orElse: () => throw StateError(
-        'No ref registered for child type $T with parent type $P. '
-        'Call createRef<$T, $P>() before calling ensureOpen().',
-      ),
-    );
-
-    return PHiveContainerHandle<T>(
-      refBoxName: ref.refBoxName,
-      parentKey: parentKey,
-    );
+  @override
+  Future<List<String>> readRefList(String name, String parentKey) async {
+    final box = await _getBox(name);
+    // IndexedDB keyed reads can return a previous router's local snapshot.
+    final payload = _usesIndexedDb
+        ? (await box.getAllValues())[parentKey]
+        : await box.get(parentKey);
+    return _parseRefList(payload);
   }
 
   @override
-  Future<List<T>> getContainer<T>(PHiveContainerHandle<T> handle) async {
-    final refBox = await _getBox(handle.refBoxName);
-    final keys = _parseRefList(await refBox.get(handle.parentKey));
-    if (keys.isEmpty) return [];
-
-    final reg = _requireRegistration<T>();
-
-    final results = <T>[];
-    for (final key in keys) {
-      final item = await _readPrimaryValue<T>(reg, key);
-      if (item != null) results.add(item);
-    }
-    return results;
+  Future<void> writeRefList(
+    String name,
+    String parentKey,
+    List<String> keys,
+  ) async {
+    await (await _getBox(name)).put(parentKey, _encodeValue(keys));
   }
 
   @override
-  Future<void> deleteContainer<T>(PHiveContainerHandle<T> handle) async {
-    final refBox = await _getBox(handle.refBoxName);
-    final keys = _parseRefList(await refBox.get(handle.parentKey));
-
-    if (keys.isNotEmpty) {
-      final reg = _requireRegistration<T>();
-      final box = await _getBox(reg.boxName);
-      for (final key in keys) {
-        await box.delete(key);
-      }
-    }
-
-    await refBox.delete(handle.parentKey);
+  Future<void> deleteRefEntry(String name, String parentKey) async {
+    await (await _getBox(name)).delete(parentKey);
   }
 
   @override
-  Future<void> deleteWithChildren<T>(T item) async {
-    final reg = _requireRegistration<T>();
-    final primaryKey = reg.primaryKey(item);
-
-    final childRefs = _refs.where((r) => r.parentType == T).toList();
-    for (final ref in childRefs) {
-      final refBox = await _getBox(ref.refBoxName);
-      final childKeys = _parseRefList(await refBox.get(primaryKey));
-
-      if (childKeys.isNotEmpty) {
-        final childReg = _types[ref.childType];
-        if (childReg != null) {
-          final childBox = await _getBox(childReg.boxName);
-          for (final childKey in childKeys) {
-            await childBox.delete(childKey);
-          }
-        }
-      }
-      await refBox.delete(primaryKey);
-    }
-
-    final box = await _getBox(reg.boxName);
-    await box.delete(primaryKey);
+  Future<void> clearRefBox(String name) async {
+    await (await _getBox(name)).clear();
   }
 }

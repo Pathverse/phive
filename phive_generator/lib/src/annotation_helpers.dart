@@ -1,3 +1,5 @@
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 
 /// Shared utilities for reading Dart annotation metadata inside generators.
@@ -42,20 +44,33 @@ String extractModelHookListSource(
   InterfaceElement element, {
   required String argumentName,
 }) {
-  for (final annotation in element.metadata.annotations) {
-    final source = annotation.toSource();
-    if (!source.startsWith('@PHiveType(') &&
-        !source.startsWith('@PHiveAutoType(')) {
-      continue;
-    }
-    final hooksMatch = RegExp(
-      '$argumentName:\\s*(\\[.*?\\])',
-    ).firstMatch(source);
-    if (hooksMatch != null) {
-      return hooksMatch.group(1)!;
+  final annotations = element.metadata.annotations;
+  final annotation =
+      findAnnotationNamed(annotations, 'PHiveType') ??
+      findAnnotationNamed(annotations, 'PHiveAutoType');
+  if (annotation == null) return '[]';
+  return extractBalancedListArgument(annotation.toSource(), argumentName) ??
+      '[]';
+}
+
+/// Returns the bracketed list for a top-level named annotation argument.
+String? extractBalancedListArgument(String source, String argumentName) {
+  final unit = parseString(
+    content: '$source\nclass _AnnotationTarget {}',
+    throwIfDiagnostics: false,
+  ).unit;
+  final args = unit.declarations.single.metadata.single.arguments;
+  if (args == null) return null;
+
+  for (final argument in args.arguments) {
+    final label = argument.beginToken;
+    if (label.lexeme != argumentName || label.next?.lexeme != ':') continue;
+    for (final child in argument.childEntities.whereType<ListLiteral>()) {
+      if (child.elements.isEmpty) return '[]';
+      return source.substring(child.leftBracket.offset, child.rightBracket.end);
     }
   }
-  return '[]';
+  return null;
 }
 
 /// Returns a merged hooks source expression combining [modelHooksSource] and

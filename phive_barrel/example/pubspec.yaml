@@ -1,0 +1,17 @@
+name: phive_barrel_example
+description: Demonstrate TTL expiry and deletion through a PHive router.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  phive_barrel:
+    path: ../
+  phive: ^0.8.0
+  hive_ce: ^2.24.0
+
+dev_dependencies:
+  phive_generator: ^0.8.0
+  build_runner: ^2.12.1
+  flutter_lints: ^6.0.0

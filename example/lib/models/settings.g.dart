@@ -17,17 +17,13 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // username (index 0)
-    final raw_username = reader.read();
-    final ctx_username = PHiveCtx()..value = raw_username;
-    applyMetadata(ctx_username, metadata_header.metadataForField('username'));
-    applyMetadata(ctx_username, metadata_header.globalMetadata);
-    runPostRead(const [], ctx_username);
-    final res_username = ctx_username.value as String;
+    final res_username = reader.read() as String;
     // secretKey (index 1)
     final raw_secretKey = reader.read();
     final ctx_secretKey = PHiveCtx()..value = raw_secretKey;
     applyMetadata(ctx_secretKey, metadata_header.metadataForField('secretKey'));
     applyMetadata(ctx_secretKey, metadata_header.globalMetadata);
+    runPreRead(const [GCMEncrypted()], ctx_secretKey);
     runPostRead(const [GCMEncrypted()], ctx_secretKey);
     final res_secretKey = ctx_secretKey.value as String;
     // cachedToken (index 2)
@@ -38,6 +34,7 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
       metadata_header.metadataForField('cachedToken'),
     );
     applyMetadata(ctx_cachedToken, metadata_header.globalMetadata);
+    runPreRead(const [TTL(10)], ctx_cachedToken);
     runPostRead(const [TTL(10)], ctx_cachedToken);
     final res_cachedToken = ctx_cachedToken.value as String;
     // config (index 3)
@@ -45,6 +42,7 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
     final ctx_config = PHiveCtx()..value = raw_config;
     applyMetadata(ctx_config, metadata_header.metadataForField('config'));
     applyMetadata(ctx_config, metadata_header.globalMetadata);
+    runPreRead(const [UniversalEncrypted()], ctx_config);
     runPostRead(const [UniversalEncrypted()], ctx_config);
     final res_config = ctx_config.value as Map<String, dynamic>;
     return Settings(
@@ -58,9 +56,6 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
   @override
   void write(BinaryWriter writer, Settings obj) {
     final global_metadata = const <String, dynamic>{};
-    // username (index 0)
-    final ctx_username = PHiveCtx()..value = obj.username;
-    runPreWrite(const [], ctx_username);
     // secretKey (index 1)
     final ctx_secretKey = PHiveCtx()..value = obj.secretKey;
     runPreWrite(const [GCMEncrypted()], ctx_secretKey);
@@ -73,8 +68,6 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
     final metadata_header = createMetadataHeader(
       globalMetadata: global_metadata,
       perFieldMetadata: <String, Map<String, dynamic>>{
-        if (ctx_username.pendingMetadata.isNotEmpty)
-          'username': Map<String, dynamic>.from(ctx_username.pendingMetadata),
         if (ctx_secretKey.pendingMetadata.isNotEmpty)
           'secretKey': Map<String, dynamic>.from(ctx_secretKey.pendingMetadata),
         if (ctx_cachedToken.pendingMetadata.isNotEmpty)
@@ -86,8 +79,7 @@ class SettingsAdapter extends PTypeAdapter<Settings> {
       },
     );
     writer.write(serializeMetadataHeader(metadata_header));
-    writer.write(ctx_username.value);
-    runPostWrite(const [], ctx_username);
+    writer.write(obj.username);
     writer.write(ctx_secretKey.value);
     runPostWrite(const [GCMEncrypted()], ctx_secretKey);
     writer.write(ctx_cachedToken.value);

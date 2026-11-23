@@ -1,5 +1,7 @@
 # phive_generator
 
+See the [runnable generation example](example/README.md) for a complete model, generated adapter and descriptor, and storage round trip.
+
 Code generator for PHive model adapters and router descriptors.
 
 Use this package with `build_runner` to generate `*.g.dart` code from `@PHiveType`, `@PHiveAutoType`, `@PHiveField`, `@PHivePrimaryKey`, and `@PHiveRef` annotations.
@@ -10,8 +12,8 @@ Generated adapters are the serialization layer used by both PHive routers. They 
 
 ```yaml
 dev_dependencies:
-	build_runner: ^2.4.14
-	phive_generator: ^0.0.1
+  build_runner: ^2.4.14
+  phive_generator: ^0.8.0
 ```
 
 If you are in this monorepo:
@@ -28,21 +30,42 @@ Your model package should also depend on:
 
 ```yaml
 dependencies:
-	phive: ^0.0.1
-	hive_ce: ^2.19.3
+  phive: ^0.8.0
+  hive_ce: ^2.24.0
 ```
 
 ## Generate Files
 
+The generator accepts build 4 and 5. The current stack uses
+`hive_ce_generator` 1.12.1, build 5, analyzer 14, and build_runner 2.17.1.
+Use build_runner 2.17.1 or a compatible later release with build 5. Older
+consumers can still resolve build 4 and analyzer 10; the public Hive generator
+minimum remains 1.11.1. Run `flutter pub upgrade` to refresh an existing
+compatible toolchain lockfile.
+
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 For watch mode:
 
 ```bash
-dart run build_runner watch --delete-conflicting-outputs
+dart run build_runner watch
 ```
+
+### Upgrading models with constant field indices
+
+PHive writes field values in adapter order. The generator now evaluates
+constant expressions in `@PHiveField`. Older versions could infer a
+different index when the annotation used a named constant or an expression.
+
+Before regenerating an adapter for a deployed model, keep a copy of the
+old adapter and compare the order of its field writes with the new output.
+If the order changes, give the affected fields explicit literal indices
+that reproduce the old sequence. Verify that the regenerated adapter
+reads a record written by the old adapter and restores each named field.
+To adopt the new order deliberately, read existing records with the old
+adapter and migrate them to the new layout before deploying the new reader.
 
 ## Example Model
 

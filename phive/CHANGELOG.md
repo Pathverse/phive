@@ -1,3 +1,27 @@
+## 0.8.1
+
+- Apply Dart 3.13 formatting to existing library sources.
+
+- Verify Hive CE 2.24.0 compatibility, including existing records, without
+  raising the public `hive_ce` minimum. Examples now select `^2.24.0`.
+
+- Add a self-contained, runnable storage example with generated adapters.
+
+- Include the full Apache-2.0 and BSD-3-Clause license texts while preserving
+  the existing dual-license choice.
+
+## 0.8.0
+
+- `deleteWithChildren` removes descendants at every level of registered
+  relationships and cleans up their traversed ref entries. Previously it
+  deleted only direct children. To delete only direct children, use
+  `deleteContainer` for the applicable containers, then `delete` the parent.
+
+- Fix typed child-box opening during cascade deletion and give container
+  handles value equality.
+- Reconcile relationships from current storage across sequential writes by
+  multiple routers. Batch static-router reads while honoring hook policies.
+
 ## 0.7.0
 
 - Reconcile child references on successful stores in both routers, so moving a

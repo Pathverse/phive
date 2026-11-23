@@ -1,0 +1,14 @@
+{
+  "write": {
+    "apkSHA256": "3ceab63b9fdb87b7167e5aba8ffcdb26fc1adf42d9ae43fe0139e8d9aa804c7b",
+    "certificateSHA256": "b58fe38e292a41f0160d5581e6c2036f7370d26fcf021efe29062adcfdf88522"
+  },
+  "verify": {
+    "apkSHA256": "b1da53b53193d4159a380dbe15ea97729cb83b591ecc4d7e987643a0e002e12e",
+    "certificateSHA256": "b58fe38e292a41f0160d5581e6c2036f7370d26fcf021efe29062adcfdf88522"
+  },
+  "fresh": {
+    "apkSHA256": "7dcd1e238a29d54247fe26e290663bbcdcaa8715a7e0e0ba1f5a934dba24cbc0",
+    "certificateSHA256": "b58fe38e292a41f0160d5581e6c2036f7370d26fcf021efe29062adcfdf88522"
+  }
+}

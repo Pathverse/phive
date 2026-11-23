@@ -10,9 +10,26 @@ import 'package:hive_ce/src/binary/binary_writer_impl.dart';
 import 'package:phive_test/models/auto_metadata.dart';
 import 'package:phive_test/models/explicit_metadata.dart';
 import 'package:phive_test/models/metadata_observation.dart';
+import 'package:phive_test/models/pinned_field_order.dart';
 import 'package:phive_test/models/plain_record.dart';
 
 void main() {
+  test(
+    'literal indices preserve values from the old constant-index adapter',
+    () {
+      final bytes = base64Decode(
+        File(
+          'test/fixtures/constant_index_legacy.base64',
+        ).readAsStringSync().trim(),
+      );
+      final restored = PinnedFieldOrderAdapter().read(
+        BinaryReaderImpl(bytes, Hive),
+      );
+      expect(restored.first, 'first-value');
+      expect(restored.second, 'second-value');
+    },
+  );
+
   test('both regenerated adapters read fixed pre-fix version-2 bytes', () {
     final bytes = base64Decode(
       File(

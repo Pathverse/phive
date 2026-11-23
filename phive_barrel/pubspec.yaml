@@ -1,6 +1,6 @@
 name: phive_barrel
 description: "Ready-to-use PHive hooks including TTL and encryption helpers."
-version: 0.8.0
+version: 0.8.1
 homepage: https://github.com/Pathverse/phive
 
 environment:

@@ -1,4 +1,4 @@
-## Unreleased
+## 0.8.1
 
 - Support flutter_secure_storage 11 alongside 10. Seed keys and base64url
   encoding are unchanged. Version 11 requires Android API 24 or newer;

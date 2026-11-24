@@ -11,3 +11,5 @@ export 'src/policy.dart';
 export 'src/router/router.dart';
 export 'src/router/dynamic_router.dart';
 export 'src/router/static_router.dart';
+
+export 'src/tombstone.dart';

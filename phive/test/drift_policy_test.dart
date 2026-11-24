@@ -79,7 +79,9 @@ class ParentAdapter extends TypeAdapter<Parent> {
 }
 
 void _registerAll() {
-  if (!Hive.isAdapterRegistered(90)) Hive.registerAdapter<Entry>(EntryAdapter());
+  if (!Hive.isAdapterRegistered(90)) {
+    Hive.registerAdapter<Entry>(EntryAdapter());
+  }
   if (!Hive.isAdapterRegistered(91)) {
     Hive.registerAdapter<Legacy>(LegacyAdapter());
   }
@@ -89,10 +91,13 @@ void _registerAll() {
 }
 
 /// Simulates a later build that no longer registers [LegacyAdapter].
-void _retireLegacy() {
+class _RetiredLegacy {}
+
+void _retireLegacy({bool tombstone = true}) {
   Hive.resetAdapters();
   Hive.registerAdapter<Entry>(EntryAdapter());
   Hive.registerAdapter<Parent>(ParentAdapter());
+  if (tombstone) registerPHiveTombstone<_RetiredLegacy>(91);
 }
 
 void main() {
@@ -121,7 +126,10 @@ void main() {
                 ? PHiveDynamicRouter()
                 : PHiveDynamicRouter(driftPolicy: routerDefault))
           : (routerDefault == null
-                ? PHiveStaticRouter(collectionName: 'drift', path: directory.path)
+                ? PHiveStaticRouter(
+                    collectionName: 'drift',
+                    path: directory.path,
+                  )
                 : PHiveStaticRouter(
                     collectionName: 'drift',
                     path: directory.path,
@@ -209,7 +217,11 @@ void main() {
         await router.store(Entry('e1', nested: Legacy('old')));
         _retireLegacy();
 
-        await expectLater(router.get<Entry>('e1'), throwsA(isA<HiveError>()));
+        await expectLater(
+          router.get<Entry>('e1'),
+          throwsA(isA<PHiveSchemaDriftException>()),
+        );
+        _retireLegacy(tombstone: false);
         _registerAll();
         expect((await router.get<Entry>('e1'))!.nested!.value, 'old');
       });
@@ -224,6 +236,18 @@ void main() {
         _registerAll();
         expect(await router.get<Entry>('e1'), isNull);
       });
+
+      for (final policy in PHiveDriftPolicy.values) {
+        test('unknown untombstoned ID is preserved under $policy', () async {
+          final router = build(entryPolicy: policy);
+          await router.ensureOpen();
+          await router.store(Entry('e1', nested: Legacy('old')));
+          _retireLegacy(tombstone: false);
+          await expectLater(router.get<Entry>('e1'), throwsA(isA<HiveError>()));
+          _registerAll();
+          expect((await router.get<Entry>('e1'))!.nested!.value, 'old');
+        });
+      }
 
       test('enumeration skips and removes drifted entries', () async {
         final router = build(entryPolicy: PHiveDriftPolicy.deleteAndMiss);

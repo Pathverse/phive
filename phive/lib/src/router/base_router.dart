@@ -116,13 +116,6 @@ abstract class PHiveBaseRouter implements PHiveRouter {
       if (reg.driftPolicy != PHiveDriftPolicy.deleteAndMiss) rethrow;
       await deletePrimary(reg, [key]);
       return (null, false);
-    } on HiveError catch (error) {
-      if (reg.driftPolicy != PHiveDriftPolicy.deleteAndMiss ||
-          !isUnknownTypeIdError(error)) {
-        rethrow;
-      }
-      await deletePrimary(reg, [key]);
-      return (null, false);
     } on PHiveActionException catch (error) {
       final cleared = error.behaviors.contains(PHiveActionBehavior.clearBox);
       if (cleared) {
@@ -246,11 +239,3 @@ abstract class PHiveBaseRouter implements PHiveRouter {
     if (reg != null) await deletePrimary(reg, [key]);
   }
 }
-
-/// Whether [error] is Hive CE's unknown type-identifier read error.
-///
-/// Hive CE exposes no typed error for this case, so the message prefix is
-/// matched. A contract test pins it across the supported Hive CE range; if the
-/// wording changes, detection fails safe and the error propagates.
-bool isUnknownTypeIdError(HiveError error) =>
-    error.message.trimLeft().startsWith('Cannot read, unknown typeId:');

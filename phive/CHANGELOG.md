@@ -15,6 +15,8 @@ Model layouts remain opt-in. This update revises unreleased 0.9.0 drift handling
 - Add explicit `PHiveTombstoneAdapter` and `registerPHiveTombstone`. Typed
   tombstones replace Hive error-message matching. Untombstoned unknown type
   IDs propagate under every policy and their stored entries are preserved.
+  Apps must explicitly call the generated `registerPHiveTombstones()` after
+  normal adapter registration to handle retired data as drift.
 - Add `schemaFingerprint` on `PTypeAdapter`, the `PHiveFingerprinted`
   interface, and `phiveSchemaFingerprint` to combine adapters into one
   order-independent value.

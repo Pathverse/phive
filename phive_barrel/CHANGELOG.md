@@ -1,7 +1,7 @@
 ## 0.9.0
 
-- Release alongside `phive` 0.9.0. Hooks are unchanged; `AESEncrypted` and
-  `TTL` compose with the new `TolerantLayout` class hook.
+- Require `phive ^0.9.0` and release alongside the 0.9.0 runtime and generator.
+- `AESEncrypted` and `TTL` compose with the new `TolerantLayout` class hook.
 
 ## 0.8.1
 

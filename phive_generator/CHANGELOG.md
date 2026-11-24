@@ -1,16 +1,17 @@
 ## 0.9.0
 
 - Generate enum adapters with persisted case tags, case retirement, fingerprints
-  and schema drift for unknown tags. Explicit-ID enums require tags on every case.
+  and schema drift for unknown or non-integer tags. Explicit-ID enums require
+  unique tags on every case. Enums cannot declare hooks.
 - Resolve assignment shapes with the generator's field collector, including
   inherited fields and constant indexes. Assignment requires package resolution.
 - Add `--retire-id N` and inclusive `--retire-id N-M`, plus `--tombstones`
   to generate explicit, idempotent registration for retired type IDs.
 
-New features are opt-in, and a flat `phive_type_registry.json` is read and
-re-emitted byte-identically. Regenerating changes positional adapters' read
-path (the collection fix below) and adds a fingerprint getter; stored bytes
-are unchanged.
+Model layouts and type-ID bands are opt-in. Assignment now resolves package
+libraries and requires `pub get`. A flat registry stays flat for model-only
+packages without versioned features. Regeneration adds fingerprints and
+restores typed positional collections while preserving their stored format.
 
 - Generate tolerant-layout adapters for models with `TolerantLayout` in
   `classHooks`:

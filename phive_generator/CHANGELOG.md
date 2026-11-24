@@ -1,3 +1,14 @@
+## 0.9.1
+
+- Generate adapters for stateless models with zero-parameter unnamed constructors,
+  including empty models nested in other records.
+- Preserve empty-mapping errors for unmapped instance state in the class,
+  superclass or mixins, and for empty mappings with constructor parameters.
+- Emit empty positional payloads and version-3 tolerant records with empty tag
+  maps, retaining normal registry shapes and schema fingerprints.
+- Avoid unused field-access and lookup locals in generated empty adapters.
+- Compatible with phive and phive_barrel 0.9.0.
+
 ## 0.9.0
 
 - Generate enum adapters with persisted case tags, case retirement, fingerprints

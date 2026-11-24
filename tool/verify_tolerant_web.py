@@ -102,6 +102,11 @@ def main():
                     retyped = run_phase(page, port, "B", backend, "read-retyped")
                     assert retyped["driftDetected"] is True, retyped
                     assert retyped["missOnOptIn"] is True, retyped
+                    enum_result = run_phase(page, port, "B", backend, "read-enum")
+                    assert enum_result["palette"] == {
+                        "primary": "red", "extras": ["green", "blue"],
+                    }, enum_result
+                    assert enum_result["enumDrift"] is True, enum_result
                     positional = run_phase(page, port, "B", backend, "read-positional")["positional"]
                     assert positional == {
                         "items": ["a", "b"], "scores": {"x": 1}, "tags": ["red"],

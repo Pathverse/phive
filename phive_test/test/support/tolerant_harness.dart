@@ -24,16 +24,25 @@ Future<void> restartBuild(Directory directory) async {
 }
 
 /// Stores [sampleLesson] in the `lessons` store through the first build.
-Future<void> writeFirstBuild(String backend, Directory directory) async {
-  Hive.registerAdapter<TolerantCard>(TolerantCardAdapter());
+class RetiredCardWriter extends TolerantCardAdapter {
+  @override
+  int get typeId => 120;
+}
+
+Future<void> writeFirstBuild(
+  String backend,
+  Directory directory, {
+  bool retiredCard = false,
+}) async {
+  Hive.registerAdapter<TolerantCard>(
+    retiredCard ? RetiredCardWriter() : TolerantCardAdapter(),
+  );
   Hive.registerAdapter<TolerantLesson>(TolerantLessonAdapter());
   final writer = buildRouter(
     backend,
     directory,
-    (r) => r.register<TolerantLesson>(
-      primaryKey: (l) => l.id,
-      boxName: 'lessons',
-    ),
+    (r) =>
+        r.register<TolerantLesson>(primaryKey: (l) => l.id, boxName: 'lessons'),
   );
   await writer.ensureOpen();
   await writer.store(sampleLesson);

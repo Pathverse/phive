@@ -7,6 +7,7 @@ import 'package:phive_test/models/tolerant_evolution.dart';
 import 'package:phive_test/models/tolerant_lesson.dart';
 
 import 'support/tolerant_harness.dart';
+import 'package:phive_test/phive_tombstones.g.dart';
 
 void main() {
   late Directory directory;
@@ -68,12 +69,38 @@ void main() {
         tags: ['proof_drift_policy'],
       );
 
+      test(
+        'untombstoned missing adapter is preserved and recoverable',
+        () async {
+          await writeFirstBuild(backend, directory, retiredCard: true);
+          Hive.registerAdapter<TolerantLesson>(TolerantLessonAdapter());
+          final reader = buildRouter(
+            backend,
+            directory,
+            (r) => r.register<TolerantLesson>(
+              primaryKey: (l) => l.id,
+              boxName: 'lessons',
+              driftPolicy: PHiveDriftPolicy.deleteAndMiss,
+            ),
+          );
+          await reader.ensureOpen();
+          await expectLater(
+            reader.get<TolerantLesson>('l1'),
+            throwsA(isA<HiveError>()),
+          );
+          Hive.registerAdapter<TolerantCard>(RetiredCardWriter());
+          expect((await reader.get<TolerantLesson>('l1'))!.id, 'l1');
+        },
+        tags: ['proof_drift_policy'],
+      );
+
       for (final policy in [null, PHiveDriftPolicy.deleteAndMiss]) {
         final label = policy == null ? 'default' : 'opt-in';
         test(
           '$label policy and a retired nested type ID in storage',
           () async {
-            await writeFirstBuild(backend, directory);
+            await writeFirstBuild(backend, directory, retiredCard: true);
+            registerPHiveTombstones();
             // The next build no longer registers TolerantCard's adapter.
             Hive.registerAdapter<TolerantLesson>(TolerantLessonAdapter());
             PHiveRouter reader() => buildRouter(
@@ -91,11 +118,11 @@ void main() {
             if (policy == null) {
               await expectLater(
                 first.get<TolerantLesson>('l1'),
-                throwsA(isA<HiveError>()),
+                throwsA(isA<PHiveSchemaDriftException>()),
               );
               // Re-registering the adapter recovers the untouched record.
               await restartBuild(directory);
-              Hive.registerAdapter<TolerantCard>(TolerantCardAdapter());
+              Hive.registerAdapter<TolerantCard>(RetiredCardWriter());
               Hive.registerAdapter<TolerantLesson>(TolerantLessonAdapter());
               final recovered = reader();
               await recovered.ensureOpen();

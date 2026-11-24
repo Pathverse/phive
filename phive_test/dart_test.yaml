@@ -5,3 +5,5 @@ tags:
   proof_drift_policy:
   proof_tolerant_opt_in:
   proof_positional_collections:
+  proof_enum_adapters:
+  proof_retired_tombstones:

@@ -5,6 +5,8 @@ from behave import given, when, then
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROOF_PACKAGES = {
+    "proof_enum_adapters": "phive_test",
+    "proof_retired_tombstones": "phive_test",
     "proof_router_crud": "phive",
     "proof_router_container": "phive",
     "proof_router_reset": "phive",

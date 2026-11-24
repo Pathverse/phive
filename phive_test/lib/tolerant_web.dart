@@ -6,6 +6,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:phive/phive.dart';
 
 import 'models/positional_collections.dart';
+import 'models/enum_models.dart';
 import 'models/tolerant_evolution.dart';
 import 'models/tolerant_lesson.dart';
 import 'proofs/tolerant_proof.dart';
@@ -46,11 +47,19 @@ PHiveRouter _collectionsRouter(String backend) {
   final PHiveRouter router = backend == 'dynamic'
       ? PHiveDynamicRouter()
       : PHiveStaticRouter(collectionName: 'positional');
+  return router..register<PositionalCollections>(
+    primaryKey: (_) => 'k',
+    boxName: 'collections',
+  );
+}
+
+PHiveRouter _enumRouter(String backend) {
+  final PHiveRouter router = backend == 'dynamic'
+      ? PHiveDynamicRouter()
+      : PHiveStaticRouter(collectionName: 'enum_proof');
   return router
-    ..register<PositionalCollections>(
-      primaryKey: (_) => 'k',
-      boxName: 'collections',
-    );
+    ..register<Palette>(primaryKey: (_) => 'palette', boxName: 'palettes')
+    ..register<ProofColor>(primaryKey: (_) => 'blue', boxName: 'colors');
 }
 
 Future<void> main() async {
@@ -94,6 +103,14 @@ Future<void> main() async {
         final collections = _collectionsRouter(backend);
         await collections.ensureOpen();
         await collections.store(_collections);
+        Hive.registerAdapter<ProofColor>(ProofColorAdapter());
+        Hive.registerAdapter<Palette>(PaletteAdapter());
+        final enums = _enumRouter(backend);
+        await enums.ensureOpen();
+        await enums.store(
+          const Palette(ProofColor.red, [ProofColor.green, ProofColor.blue]),
+        );
+        await enums.store(ProofColor.blue);
       case 'read-evolved':
         Hive.registerAdapter<EvolvedLesson>(EvolvedAs(lessonTypeId));
         final router = buildTolerantRouter(
@@ -137,6 +154,35 @@ Future<void> main() async {
         final lenient = open(PHiveDriftPolicy.deleteAndMiss);
         await lenient.ensureOpen();
         result['missOnOptIn'] = await lenient.get<RetypedLesson>('l2') == null;
+      case 'read-enum':
+        Hive.registerAdapter<ProofColor>(ProofColorAdapter());
+        Hive.registerAdapter<Palette>(PaletteAdapter());
+        final enums = _enumRouter(backend);
+        await enums.ensureOpen();
+        final palette = (await enums.get<Palette>('palette'))!;
+        result['palette'] = {
+          'primary': palette.primary.name,
+          'extras': palette.extras.map((c) => c.name).toList(),
+        };
+        await Hive.close();
+        // Simulate a later build with a smaller enum.
+        // ignore: invalid_use_of_visible_for_testing_member
+        Hive.resetAdapters();
+        Hive.registerAdapter<ProofColorTrimmed>(TrimmedColorAs());
+        final PHiveRouter trimmed = backend == 'dynamic'
+            ? PHiveDynamicRouter()
+            : PHiveStaticRouter(collectionName: 'enum_proof');
+        trimmed.register<ProofColorTrimmed>(
+          primaryKey: (_) => 'blue',
+          boxName: 'colors',
+        );
+        await trimmed.ensureOpen();
+        try {
+          await trimmed.get<ProofColorTrimmed>('blue');
+          result['enumDrift'] = false;
+        } on PHiveSchemaDriftException {
+          result['enumDrift'] = true;
+        }
       case 'read-positional':
         Hive.registerAdapter<PositionalItem>(PositionalItemAdapter());
         Hive.registerAdapter<PositionalCollections>(

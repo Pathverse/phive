@@ -131,6 +131,40 @@
         "labels": 3,
         "scores": 4
       }
+    },
+    "Palette": {
+      "typeId": 121,
+      "layout": "tolerant",
+      "fields": {
+        "primary": 0,
+        "extras": 1
+      }
+    },
+    "ProofColor": {
+      "typeId": 122,
+      "layout": "enum",
+      "fields": {
+        "red": 0,
+        "green": 1,
+        "blue": 2
+      }
+    },
+    "ProofColorReordered": {
+      "typeId": 123,
+      "layout": "enum",
+      "fields": {
+        "red": 0,
+        "green": 1,
+        "blue": 2
+      }
+    },
+    "ProofColorTrimmed": {
+      "typeId": 124,
+      "layout": "enum",
+      "fields": {
+        "red": 0,
+        "green": 1
+      }
     }
   },
   "retiredTypeIds": {
@@ -139,6 +173,9 @@
     },
     "34": {
       "key": "BenchPositional@34"
+    },
+    "120": {
+      "key": "legacy@120"
     }
   }
 }

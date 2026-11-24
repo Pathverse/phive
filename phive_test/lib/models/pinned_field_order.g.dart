@@ -19,9 +19,29 @@ class PinnedFieldOrderAdapter extends PTypeAdapter<PinnedFieldOrder> {
   @override
   PinnedFieldOrder read(BinaryReader reader) {
     // first (index 0)
-    final res_first = reader.read() as String;
+    final raw_first = reader.read();
+    final String res_first;
+    try {
+      res_first = castStored<String>(raw_first);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'PinnedFieldOrder',
+        fieldName: 'first',
+        reason: 'stored ${raw_first.runtimeType} does not match String',
+      );
+    }
     // second (index 1)
-    final res_second = reader.read() as String;
+    final raw_second = reader.read();
+    final String res_second;
+    try {
+      res_second = castStored<String>(raw_second);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'PinnedFieldOrder',
+        fieldName: 'second',
+        reason: 'stored ${raw_second.runtimeType} does not match String',
+      );
+    }
     return PinnedFieldOrder(res_first, res_second);
   }
 

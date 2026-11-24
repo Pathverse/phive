@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/element/element.dart';
 
 import 'annotation_helpers.dart';
+import 'collection_conversion.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
 import 'schema_fingerprint.dart';
@@ -46,7 +47,8 @@ String emitAdapter({
       writeBlocks.add('    writer.write($writeTarget.${field.name});');
       readBlocks.add('''
     // ${field.name} (index ${field.index})
-    final res_${field.name} = reader.read() as ${field.type};''');
+    final raw_${field.name} = reader.read();
+${emitConvertedRead(field: field, className: className, valueExpr: 'raw_${field.name}')}''');
       continue;
     }
 
@@ -68,7 +70,7 @@ String emitAdapter({
     applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);
     runPreRead(const $hooks, ctx_${field.name});
     runPostRead(const $hooks, ctx_${field.name});
-    final res_${field.name} = ctx_${field.name}.value as ${field.type};''');
+${emitConvertedRead(field: field, className: className, valueExpr: 'ctx_${field.name}.value')}''');
   }
 
   final hasMetadataHeader = hasClassHooks || hookedFields.isNotEmpty;

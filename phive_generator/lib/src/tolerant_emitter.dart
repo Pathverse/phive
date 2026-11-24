@@ -4,6 +4,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'adapter_emitter.dart';
+import 'collection_conversion.dart';
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
@@ -108,7 +109,7 @@ String emitTolerantAdapter({
     if (values.containsKey($tag)) {
 $rawSource
       try {
-        res_${field.name} = ${_convert(type, 'raw_${field.name}', 0)};
+        res_${field.name} = ${emitConversion(type, 'raw_${field.name}')};
       } on TypeError {
         throw PHiveSchemaDriftException(
           typeName: '$className',
@@ -247,48 +248,6 @@ String _absentBranch(
         fieldName: '${field.name}',
         reason: 'required field is missing',
       );''';
-}
-
-/// Returns an expression converting [value] to [type].
-///
-/// Hive restores collections as `List<dynamic>`, `Set<dynamic>` and
-/// `Map<dynamic, dynamic>`, so collection types are rebuilt element by element.
-/// Every check goes through `castStored`, whose `is` test survives optimized
-/// web builds; a mismatch surfaces as a `TypeError` that the caller maps to
-/// schema drift.
-String _convert(DartType type, String value, int depth) {
-  if (type is DynamicType) return value;
-  final nullable = type.nullabilitySuffix == NullabilitySuffix.question;
-  final display = type.getDisplayString();
-
-  String? collection;
-  if (type is InterfaceType && type.typeArguments.isNotEmpty) {
-    final args = type.typeArguments;
-    final e = 'e$depth';
-    if (type.isDartCoreList || type.isDartCoreIterable) {
-      collection =
-          'castStored<List<dynamic>>($value)'
-          '.map<${args[0].getDisplayString()}>'
-          '(($e) => ${_convert(args[0], e, depth + 1)}).toList()';
-    } else if (type.isDartCoreSet) {
-      collection =
-          'castStored<Iterable<dynamic>>($value)'
-          '.map<${args[0].getDisplayString()}>'
-          '(($e) => ${_convert(args[0], e, depth + 1)}).toSet()';
-    } else if (type.isDartCoreMap) {
-      final k = 'k$depth';
-      final v = 'v$depth';
-      collection =
-          'castStored<Map<dynamic, dynamic>>($value)'
-          '.map<${args[0].getDisplayString()}, '
-          '${args[1].getDisplayString()}>(($k, $v) => MapEntry('
-          '${_convert(args[0], k, depth + 1)}, '
-          '${_convert(args[1], v, depth + 1)}))';
-    }
-  }
-
-  if (collection == null) return 'castStored<$display>($value)';
-  return nullable ? '$value == null ? null : $collection' : collection;
 }
 
 /// Whether the evaluated `classHooks` of [annotation] include `TolerantLayout`.

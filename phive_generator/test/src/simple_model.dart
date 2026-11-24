@@ -7,7 +7,7 @@ class StubHook extends PHiveHook {
   const StubHook();
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class SimpleModelAdapter extends PTypeAdapter<SimpleModel> {
@@ -23,7 +23,17 @@ class SimpleModelAdapter extends PTypeAdapter<SimpleModel> {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'SimpleModel',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // data (index 1)
     final raw_data = reader.read();
     final ctx_data = PHiveCtx()..value = raw_data;
@@ -31,7 +41,16 @@ class SimpleModelAdapter extends PTypeAdapter<SimpleModel> {
     applyMetadata(ctx_data, metadata_header.globalMetadata);
     runPreRead(const [StubHook()], ctx_data);
     runPostRead(const [StubHook()], ctx_data);
-    final res_data = ctx_data.value as String;
+    final String res_data;
+    try {
+      res_data = castStored<String>(ctx_data.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'SimpleModel',
+        fieldName: 'data',
+        reason: 'stored ${ctx_data.value.runtimeType} does not match String',
+      );
+    }
     return SimpleModel(res_id, res_data);
   }
 
@@ -67,7 +86,7 @@ class SimpleModel {
   SimpleModel(this.id, this.data);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class AutoFieldModelAdapter extends PTypeAdapter<AutoFieldModel> {
@@ -81,9 +100,29 @@ class AutoFieldModelAdapter extends PTypeAdapter<AutoFieldModel> {
   @override
   AutoFieldModel read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoFieldModel',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // token (index 1)
-    final res_token = reader.read() as String;
+    final raw_token = reader.read();
+    final String res_token;
+    try {
+      res_token = castStored<String>(raw_token);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoFieldModel',
+        fieldName: 'token',
+        reason: 'stored ${raw_token.runtimeType} does not match String',
+      );
+    }
     return AutoFieldModel(res_id, res_token);
   }
 
@@ -103,7 +142,7 @@ class AutoFieldModel {
   AutoFieldModel(this.id, this.token);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class HybridAutoFieldModelAdapter extends PTypeAdapter<HybridAutoFieldModel> {
@@ -125,9 +164,28 @@ class HybridAutoFieldModelAdapter extends PTypeAdapter<HybridAutoFieldModel> {
     applyMetadata(ctx_token, metadata_header.globalMetadata);
     runPreRead(const [StubHook()], ctx_token);
     runPostRead(const [StubHook()], ctx_token);
-    final res_token = ctx_token.value as String;
+    final String res_token;
+    try {
+      res_token = castStored<String>(ctx_token.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'HybridAutoFieldModel',
+        fieldName: 'token',
+        reason: 'stored ${ctx_token.value.runtimeType} does not match String',
+      );
+    }
     // id (index 1)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'HybridAutoFieldModel',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     return HybridAutoFieldModel(res_id, res_token);
   }
 
@@ -162,7 +220,7 @@ class HybridAutoFieldModel {
   HybridAutoFieldModel(this.id, this.token);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class ClassHookModelAdapter extends PTypeAdapter<ClassHookModel> {
@@ -178,9 +236,29 @@ class ClassHookModelAdapter extends PTypeAdapter<ClassHookModel> {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'ClassHookModel',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // token (index 1)
-    final res_token = reader.read() as String;
+    final raw_token = reader.read();
+    final String res_token;
+    try {
+      res_token = castStored<String>(raw_token);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'ClassHookModel',
+        fieldName: 'token',
+        reason: 'stored ${raw_token.runtimeType} does not match String',
+      );
+    }
     final result = ClassHookModel(res_id, res_token);
     final ctx_obj = PHiveCtx()..value = result;
     applyMetadata(ctx_obj, metadata_header.globalMetadata);
@@ -219,7 +297,7 @@ class ClassHookModel {
   ClassHookModel(this.id, this.token);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class RouterModelAdapter extends PTypeAdapter<RouterModel> {
@@ -233,9 +311,29 @@ class RouterModelAdapter extends PTypeAdapter<RouterModel> {
   @override
   RouterModel read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'RouterModel',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // lessonId (index 1)
-    final res_lessonId = reader.read() as String;
+    final raw_lessonId = reader.read();
+    final String res_lessonId;
+    try {
+      res_lessonId = castStored<String>(raw_lessonId);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'RouterModel',
+        fieldName: 'lessonId',
+        reason: 'stored ${raw_lessonId.runtimeType} does not match String',
+      );
+    }
     return RouterModel(res_id, res_lessonId);
   }
 
@@ -278,7 +376,7 @@ class RouterModel {
   RouterModel(this.id, this.lessonId);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class SingletonRouterModelAdapter extends PTypeAdapter<SingletonRouterModel> {
@@ -292,7 +390,17 @@ class SingletonRouterModelAdapter extends PTypeAdapter<SingletonRouterModel> {
   @override
   SingletonRouterModel read(BinaryReader reader) {
     // username (index 0)
-    final res_username = reader.read() as String;
+    final raw_username = reader.read();
+    final String res_username;
+    try {
+      res_username = castStored<String>(raw_username);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'SingletonRouterModel',
+        fieldName: 'username',
+        reason: 'stored ${raw_username.runtimeType} does not match String',
+      );
+    }
     return SingletonRouterModel(res_username);
   }
 

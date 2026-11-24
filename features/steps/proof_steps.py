@@ -16,6 +16,7 @@ PROOF_PACKAGES = {
     "proof_tolerant_evolution": "phive_test",
     "proof_drift_policy": "phive_test",
     "proof_tolerant_opt_in": "phive_test",
+    "proof_positional_collections": "phive_test",
 }
 
 

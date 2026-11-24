@@ -1,0 +1,115 @@
+// ignore_for_file: non_constant_identifier_names
+
+class PositionalCollectionModelAdapter
+    extends PTypeAdapter<PositionalCollectionModel> {
+  @override
+  final int typeId = 71;
+
+  @override
+  String? get schemaFingerprint =>
+      '799f196eae12d14b820b4adc529f37e0f9f0a2bc616d7c312780fa5a81a43b42';
+
+  @override
+  PositionalCollectionModel read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+
+    // items (index 0)
+    final raw_items = reader.read();
+    final List<CollectionItem> res_items;
+    try {
+      res_items = castStored<List<dynamic>>(
+        raw_items,
+      ).map<CollectionItem>((e0) => castStored<CollectionItem>(e0)).toList();
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'PositionalCollectionModel',
+        fieldName: 'items',
+        reason:
+            'stored ${raw_items.runtimeType} does not match List<CollectionItem>',
+      );
+    }
+    // scores (index 1)
+    final raw_scores = reader.read();
+    final Map<String, int>? res_scores;
+    try {
+      res_scores = raw_scores == null
+          ? null
+          : castStored<Map<dynamic, dynamic>>(raw_scores).map<String, int>(
+              (k0, v0) => MapEntry(castStored<String>(k0), castStored<int>(v0)),
+            );
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'PositionalCollectionModel',
+        fieldName: 'scores',
+        reason:
+            'stored ${raw_scores.runtimeType} does not match Map<String, int>?',
+      );
+    }
+    // groups (index 2)
+    final raw_groups = reader.read();
+    final List<Set<String>> res_groups;
+    try {
+      res_groups = castStored<List<dynamic>>(raw_groups)
+          .map<Set<String>>(
+            (e0) => castStored<Iterable<dynamic>>(
+              e0,
+            ).map<String>((e1) => castStored<String>(e1)).toSet(),
+          )
+          .toList();
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'PositionalCollectionModel',
+        fieldName: 'groups',
+        reason:
+            'stored ${raw_groups.runtimeType} does not match List<Set<String>>',
+      );
+    }
+    // hooked (index 3)
+    final raw_hooked = reader.read();
+    final ctx_hooked = PHiveCtx()..value = raw_hooked;
+    applyMetadata(ctx_hooked, metadata_header.metadataForField('hooked'));
+    applyMetadata(ctx_hooked, metadata_header.globalMetadata);
+    runPreRead(const [CollectionStubHook()], ctx_hooked);
+    runPostRead(const [CollectionStubHook()], ctx_hooked);
+    final List<CollectionItem> res_hooked;
+    try {
+      res_hooked = castStored<List<dynamic>>(
+        ctx_hooked.value,
+      ).map<CollectionItem>((e0) => castStored<CollectionItem>(e0)).toList();
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'PositionalCollectionModel',
+        fieldName: 'hooked',
+        reason:
+            'stored ${ctx_hooked.value.runtimeType} does not match List<CollectionItem>',
+      );
+    }
+    return PositionalCollectionModel(
+      res_items,
+      res_scores,
+      res_groups,
+      res_hooked,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, PositionalCollectionModel obj) {
+    final global_metadata = const <String, dynamic>{};
+    // hooked (index 3)
+    final ctx_hooked = PHiveCtx()..value = obj.hooked;
+    runPreWrite(const [CollectionStubHook()], ctx_hooked);
+    final metadata_header = createMetadataHeader(
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{
+        if (ctx_hooked.pendingMetadata.isNotEmpty)
+          'hooked': Map<String, dynamic>.from(ctx_hooked.pendingMetadata),
+      },
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(obj.items);
+    writer.write(obj.scores);
+    writer.write(obj.groups);
+    writer.write(ctx_hooked.value);
+    runPostWrite(const [CollectionStubHook()], ctx_hooked);
+  }
+}

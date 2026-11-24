@@ -5,7 +5,9 @@ against the same browser storage, reads them through evolved models:
 - a compatible evolution restores the original values;
 - a retyped field reports schema drift by default and becomes a miss under
   the opt-in drift policy, proving the type checks survive release
-  optimization.
+  optimization;
+- a positional record with typed collection fields restores with its
+  declared element types.
 
 Run: uv run --with playwright python tool/verify_tolerant_web.py
 Uses an isolated headless Chrome context; never opens the user's profile.
@@ -100,6 +102,11 @@ def main():
                     retyped = run_phase(page, port, "B", backend, "read-retyped")
                     assert retyped["driftDetected"] is True, retyped
                     assert retyped["missOnOptIn"] is True, retyped
+                    positional = run_phase(page, port, "B", backend, "read-positional")["positional"]
+                    assert positional == {
+                        "items": ["a", "b"], "scores": {"x": 1}, "tags": ["red"],
+                        "grid": [["g1"]], "hooked": ["h"],
+                    }, positional
                 context.close()
                 print("PASS: tolerant records across two minified builds", flush=True)
             finally:

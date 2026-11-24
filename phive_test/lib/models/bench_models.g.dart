@@ -19,13 +19,55 @@ class BenchPositionalAdapter extends PTypeAdapter<BenchPositional> {
   @override
   BenchPositional read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'BenchPositional',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // title (index 1)
-    final res_title = reader.read() as String?;
+    final raw_title = reader.read();
+    final String? res_title;
+    try {
+      res_title = castStored<String?>(raw_title);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'BenchPositional',
+        fieldName: 'title',
+        reason: 'stored ${raw_title.runtimeType} does not match String?',
+      );
+    }
     // count (index 2)
-    final res_count = reader.read() as int;
+    final raw_count = reader.read();
+    final int res_count;
+    try {
+      res_count = castStored<int>(raw_count);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'BenchPositional',
+        fieldName: 'count',
+        reason: 'stored ${raw_count.runtimeType} does not match int',
+      );
+    }
     // labels (index 3)
-    final res_labels = reader.read() as List<String>;
+    final raw_labels = reader.read();
+    final List<String> res_labels;
+    try {
+      res_labels = castStored<List<dynamic>>(
+        raw_labels,
+      ).map<String>((e0) => castStored<String>(e0)).toList();
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'BenchPositional',
+        fieldName: 'labels',
+        reason: 'stored ${raw_labels.runtimeType} does not match List<String>',
+      );
+    }
     return BenchPositional(res_id, res_title, res_count, res_labels);
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:phive/phive.dart';
 
+import 'models/positional_collections.dart';
 import 'models/tolerant_evolution.dart';
 import 'models/tolerant_lesson.dart';
 import 'proofs/tolerant_proof.dart';
@@ -27,6 +28,31 @@ class _VariantB {
 /// - Build B, phase `read-retyped`: reads `l2` through RetypedLesson, which
 ///   must report drift by default and become a miss under the opt-in policy.
 ///   This proves the type checks run in optimized release JavaScript.
+/// - Build A also stores a positional record with typed collection fields,
+///   and build B phase `read-positional` restores it.
+/// Positional collection sample written by build A.
+const _collections = PositionalCollections(
+  items: [PositionalItem('a'), PositionalItem('b')],
+  scores: {'x': 1},
+  tags: {'red'},
+  grid: [
+    [PositionalItem('g1')],
+  ],
+  hooked: [PositionalItem('h')],
+);
+
+/// Router over a separate store so the tolerant store's schema is unchanged.
+PHiveRouter _collectionsRouter(String backend) {
+  final PHiveRouter router = backend == 'dynamic'
+      ? PHiveDynamicRouter()
+      : PHiveStaticRouter(collectionName: 'positional');
+  return router
+    ..register<PositionalCollections>(
+      primaryKey: (_) => 'k',
+      boxName: 'collections',
+    );
+}
+
 Future<void> main() async {
   const build = String.fromEnvironment('PROOF_BUILD', defaultValue: 'A');
   final variant = build == 'A' ? _VariantA().value : _VariantB().value;
@@ -61,6 +87,13 @@ Future<void> main() async {
         await router.store(
           const TolerantLesson(id: 'l2', count: 7, labels: ['z']),
         );
+        Hive.registerAdapter<PositionalItem>(PositionalItemAdapter());
+        Hive.registerAdapter<PositionalCollections>(
+          PositionalCollectionsAdapter(),
+        );
+        final collections = _collectionsRouter(backend);
+        await collections.ensureOpen();
+        await collections.store(_collections);
       case 'read-evolved':
         Hive.registerAdapter<EvolvedLesson>(EvolvedAs(lessonTypeId));
         final router = buildTolerantRouter(
@@ -104,6 +137,23 @@ Future<void> main() async {
         final lenient = open(PHiveDriftPolicy.deleteAndMiss);
         await lenient.ensureOpen();
         result['missOnOptIn'] = await lenient.get<RetypedLesson>('l2') == null;
+      case 'read-positional':
+        Hive.registerAdapter<PositionalItem>(PositionalItemAdapter());
+        Hive.registerAdapter<PositionalCollections>(
+          PositionalCollectionsAdapter(),
+        );
+        final router = _collectionsRouter(backend);
+        await router.ensureOpen();
+        final value = (await router.get<PositionalCollections>('k'))!;
+        result['positional'] = {
+          'items': [for (final item in value.items) item.id],
+          'scores': value.scores,
+          'tags': value.tags.toList(),
+          'grid': [
+            for (final row in value.grid) [for (final item in row) item.id],
+          ],
+          'hooked': [for (final item in value.hooked) item.id],
+        };
       default:
         throw StateError('Unknown phase $phase');
     }

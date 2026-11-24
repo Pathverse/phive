@@ -415,7 +415,16 @@ class LegacyNoteAdapter extends PTypeAdapter<LegacyNote> {
     applyMetadata(ctx_id, metadata_header.globalMetadata);
     runPreRead(const [PassThroughHook()], ctx_id);
     runPostRead(const [PassThroughHook()], ctx_id);
-    final res_id = ctx_id.value as String;
+    final String res_id;
+    try {
+      res_id = castStored<String>(ctx_id.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'LegacyNote',
+        fieldName: 'id',
+        reason: 'stored ${ctx_id.value.runtimeType} does not match String',
+      );
+    }
     // legacy (index 1)
     final raw_legacy = reader.read();
     final ctx_legacy = PHiveCtx()..value = raw_legacy;
@@ -423,7 +432,16 @@ class LegacyNoteAdapter extends PTypeAdapter<LegacyNote> {
     applyMetadata(ctx_legacy, metadata_header.globalMetadata);
     runPreRead(const [PassThroughHook()], ctx_legacy);
     runPostRead(const [PassThroughHook()], ctx_legacy);
-    final res_legacy = ctx_legacy.value as String;
+    final String res_legacy;
+    try {
+      res_legacy = castStored<String>(ctx_legacy.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'LegacyNote',
+        fieldName: 'legacy',
+        reason: 'stored ${ctx_legacy.value.runtimeType} does not match String',
+      );
+    }
     // body (index 2)
     final raw_body = reader.read();
     final ctx_body = PHiveCtx()..value = raw_body;
@@ -431,7 +449,16 @@ class LegacyNoteAdapter extends PTypeAdapter<LegacyNote> {
     applyMetadata(ctx_body, metadata_header.globalMetadata);
     runPreRead(const [PassThroughHook()], ctx_body);
     runPostRead(const [PassThroughHook()], ctx_body);
-    final res_body = ctx_body.value as String;
+    final String res_body;
+    try {
+      res_body = castStored<String>(ctx_body.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'LegacyNote',
+        fieldName: 'body',
+        reason: 'stored ${ctx_body.value.runtimeType} does not match String',
+      );
+    }
     return LegacyNote(res_id, res_legacy, res_body);
   }
 

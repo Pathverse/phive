@@ -19,9 +19,29 @@ class NamingCardAdapter extends PTypeAdapter<NamingCard> {
   @override
   NamingCard read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'NamingCard',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // parentId (index 1)
-    final res_parentId = reader.read() as String;
+    final raw_parentId = reader.read();
+    final String res_parentId;
+    try {
+      res_parentId = castStored<String>(raw_parentId);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'NamingCard',
+        fieldName: 'parentId',
+        reason: 'stored ${raw_parentId.runtimeType} does not match String',
+      );
+    }
     return NamingCard(res_id, res_parentId);
   }
 
@@ -63,9 +83,29 @@ class CustomNamingCardAdapter extends PTypeAdapter<CustomNamingCard> {
   @override
   CustomNamingCard read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'CustomNamingCard',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // parentId (index 1)
-    final res_parentId = reader.read() as String;
+    final raw_parentId = reader.read();
+    final String res_parentId;
+    try {
+      res_parentId = castStored<String>(raw_parentId);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'CustomNamingCard',
+        fieldName: 'parentId',
+        reason: 'stored ${raw_parentId.runtimeType} does not match String',
+      );
+    }
     return CustomNamingCard(res_id, res_parentId);
   }
 
@@ -111,9 +151,29 @@ class AutoNamingCardAdapter extends PTypeAdapter<AutoNamingCard> {
   @override
   AutoNamingCard read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoNamingCard',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // parentId (index 1)
-    final res_parentId = reader.read() as String;
+    final raw_parentId = reader.read();
+    final String res_parentId;
+    try {
+      res_parentId = castStored<String>(raw_parentId);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoNamingCard',
+        fieldName: 'parentId',
+        reason: 'stored ${raw_parentId.runtimeType} does not match String',
+      );
+    }
     return AutoNamingCard(res_id, res_parentId);
   }
 
@@ -155,9 +215,29 @@ class AutoCustomNamingCardAdapter extends PTypeAdapter<AutoCustomNamingCard> {
   @override
   AutoCustomNamingCard read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoCustomNamingCard',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // parentId (index 1)
-    final res_parentId = reader.read() as String;
+    final raw_parentId = reader.read();
+    final String res_parentId;
+    try {
+      res_parentId = castStored<String>(raw_parentId);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoCustomNamingCard',
+        fieldName: 'parentId',
+        reason: 'stored ${raw_parentId.runtimeType} does not match String',
+      );
+    }
     return AutoCustomNamingCard(res_id, res_parentId);
   }
 

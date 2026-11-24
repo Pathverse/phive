@@ -78,6 +78,59 @@ part 'fragment.dart';
     },
   );
 
+  test(
+    'resolved identities survive relocation, prefixes and aliases',
+    () async {
+      final other = Directory.systemTemp.createTempSync('phive-identity-');
+      addTearDown(() => other.deleteSync(recursive: true));
+      File(
+        '${other.path}/pubspec.yaml',
+      ).writeAsStringSync(File('${root.path}/pubspec.yaml').readAsStringSync());
+      expect(
+        (await Process.run('flutter', [
+          'pub',
+          'get',
+          '--offline',
+        ], workingDirectory: other.path)).exitCode,
+        0,
+      );
+      for (final dir in [root, other]) {
+        Directory('${dir.path}/lib').createSync(recursive: true);
+        for (final name in ['a', 'b']) {
+          File('${dir.path}/lib/$name.dart').writeAsStringSync('class Item {}');
+        }
+        final prefix = dir == root ? 'first' : 'renamed';
+        File('${dir.path}/lib/typed.dart').writeAsStringSync("""
+import 'package:phive/phive.dart';
+import 'a.dart' as $prefix;
+import 'b.dart' as b;
+typedef Items = List<$prefix.Item?>;
+class Base<T> { @PHiveField(0) final T inherited; const Base(this.inherited); }
+@PHiveAutoType(autoFields:true, classHooks:[TolerantLayout()])
+class Typed extends Base<int?> {
+  final Map<String, ${dir == root ? 'Items' : 'List<$prefix.Item?>'}> nested;
+  final b.Item other;
+  const Typed(super.inherited,this.nested,this.other);
+}
+""");
+        final scanned = await scanResolved(
+          Directory('${dir.path}/lib'),
+          root: dir,
+        );
+        expect(
+          scanned
+              .singleWhere((e) => e.className == 'Typed')
+              .resolveFieldTypes!(),
+          {
+            'inherited': 'int?',
+            'nested':
+                'Map<String, List<package:resolved_fixture/a.dart#Item?>>',
+            'other': 'package:resolved_fixture/b.dart#Item',
+          },
+        );
+      }
+    },
+  );
   test('missing package config gives an actionable error', () async {
     final empty = Directory.systemTemp.createTempSync('phive-no-config-');
     try {

@@ -11,7 +11,8 @@
 ///   --registry {path}    Registry file path. Default: phive_type_registry.json
 ///   --start {int}        Minimum typeId for unbanded classes. Default: 0
 ///   --band {name}        Only assign and retire within this band.
-///   --reidentify {key}   Retire a positional type's typeId and allocate a new
+///   --guard-field-types  Record and enforce tolerant models' field types.
+///   --reidentify {key}   Retire an incompatible type's typeId and allocate a new
 ///                        one for its changed field shape (repeatable).
 ///   --retire-id {N|N-M}  Retire abandoned IDs. Inclusive ranges, repeatable.
 ///   --tombstones {path}   Generate explicit tombstone registration.
@@ -71,6 +72,7 @@ Future<void> main(List<String> args) async {
       retireIds: options.retireIds,
       onlyBand: options.band,
       reidentify: options.reidentify,
+      guardFieldTypes: options.guardFieldTypes,
     );
   } on StateError catch (error) {
     stderr.writeln('Error: ${error.message}');
@@ -124,6 +126,9 @@ Future<void> main(List<String> args) async {
     return;
   }
 
+  final tombstoneContent = options.tombstones == null
+      ? null
+      : emitTombstoneFile(updated);
   if (unchanged && registryFile.existsSync()) {
     stdout.writeln('\nRegistry unchanged.');
   } else {
@@ -132,7 +137,7 @@ Future<void> main(List<String> args) async {
   }
   if (options.tombstones case final path?) {
     final file = File(path);
-    final content = emitTombstoneFile(updated);
+    final content = tombstoneContent!;
     if (file.existsSync() && file.readAsStringSync() == content) {
       stdout.writeln('Tombstones unchanged.');
     } else {
@@ -153,6 +158,7 @@ class _Options {
   final String? band;
   final Set<String> reidentify;
   final bool dryRun;
+  final bool guardFieldTypes;
   final Set<int> retireIds;
   final String? tombstones;
 
@@ -164,6 +170,7 @@ class _Options {
     required this.band,
     required this.reidentify,
     required this.dryRun,
+    required this.guardFieldTypes,
     required this.retireIds,
     required this.tombstones,
   });
@@ -177,6 +184,7 @@ _Options? _parseArgs(List<String> args) {
   String? band;
   final reidentify = <String>{};
   var dryRun = false;
+  var guardFieldTypes = false;
   final retireIds = <int>{};
   String? tombstones;
 
@@ -191,6 +199,8 @@ _Options? _parseArgs(List<String> args) {
       case '-h':
         _printHelp();
         return null;
+      case '--guard-field-types':
+        guardFieldTypes = true;
       case '--dry-run':
         dryRun = true;
       case '--dir':
@@ -233,6 +243,7 @@ _Options? _parseArgs(List<String> args) {
     band: band,
     reidentify: reidentify,
     dryRun: dryRun,
+    guardFieldTypes: guardFieldTypes,
     retireIds: retireIds,
     tombstones: tombstones,
   );
@@ -261,8 +272,10 @@ Options:
   --start <int>        Minimum typeId for unbanded classes.
                        Default: 0
   --band <name>        Only assign and retire within this band.
-  --reidentify <key>   Retire the typeId of a positional type whose fields
-                       changed and allocate a new one in its band.
+  --guard-field-types  Enroll scanned tolerant models from accepted source.
+                       Recorded field types are checked on every later run.
+  --reidentify <key>   Replace the ID after an incompatible shape, kind or
+                       guarded field type change, within the same band.
                        Repeatable. Example: --reidentify api/v1/Card
   --retire-id <N|N-M>  Retire abandoned IDs. Inclusive ranges, repeatable.
   --tombstones <path>   Generate explicit tombstone registration.

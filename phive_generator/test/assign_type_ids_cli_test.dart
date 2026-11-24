@@ -90,6 +90,74 @@ dependency_overrides:
 
   tearDown(() => root.deleteSync(recursive: true));
 
+  test(
+    'band enrollment, D5 rejection and recovery preserve other outputs',
+    () async {
+      const key = 'api/v0/Choice';
+      final registryFile = File('${root.path}/phive_type_registry.json');
+      final tombstones = File('${root.path}/tombstones.dart');
+      final output = ['--tombstones', tombstones.path];
+      Future<void> success(List<String> args) async {
+        final result = await _run(root, [...args, ...output]);
+        expect(result.exitCode, 0, reason: result.stderr.toString());
+      }
+
+      await success([]);
+      final legacy = registryFile.readAsStringSync();
+      await success(['--band', 'api/v0', '--guard-field-types', '--dry-run']);
+      expect(registryFile.readAsStringSync(), legacy);
+      await success(['--band', 'api/v0', '--guard-field-types']);
+      final baseline = registryFile.readAsStringSync();
+      final before = tombstones.readAsStringSync();
+      final data = _registry(root);
+      expect(data['types'][key]['fieldTypes'], {'0': 'String', '1': 'String?'});
+      expect(data['types']['api/v1/Choice'].containsKey('fieldTypes'), isFalse);
+      _write(
+        root,
+        'lib/v0/choice.dart',
+        _choice.replaceFirst('String? label', 'int? label'),
+      );
+      for (final flags in [
+        <String>[],
+        ['--reidentify', 'api/v1/Choice'],
+      ]) {
+        final result = await _run(root, [...flags, ...output]);
+        expect(result.exitCode, isNot(0));
+        for (final detail in [
+          '$key.label',
+          'String?',
+          'int?',
+          '--reidentify $key',
+        ]) {
+          expect(result.stderr, contains(detail));
+        }
+        expect(registryFile.readAsStringSync(), baseline);
+        expect(tombstones.readAsStringSync(), before);
+      }
+      await success(['--reidentify', key, '--dry-run']);
+      expect(registryFile.readAsStringSync(), baseline);
+      expect(tombstones.readAsStringSync(), before);
+      final full = jsonDecode(baseline);
+      full['bands']['api/v0']['end'] = 10000;
+      registryFile.writeAsStringSync(jsonEncode(full));
+      final exhausted = await _run(root, ['--reidentify', key, ...output]);
+      expect(exhausted.exitCode, isNot(0));
+      expect(registryFile.readAsStringSync(), jsonEncode(full));
+      expect(tombstones.readAsStringSync(), before);
+      registryFile.writeAsStringSync(baseline);
+      await success(['--reidentify', key]);
+      final accepted = registryFile.readAsStringSync();
+      final updated = _registry(root);
+      expect(updated['types'][key]['typeId'], 10001);
+      expect(updated['types'][key]['fieldTypes']['1'], 'int?');
+      expect(updated['retiredTypeIds'].containsKey('10000'), isTrue);
+      expect(tombstones.readAsStringSync(), contains('10000'));
+      await success(['--reidentify', key]);
+      await success([]);
+      expect(registryFile.readAsStringSync(), accepted);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
   test('same-named classes in two bands get distinct banded IDs', () async {
     final result = await _run(root, []);
     expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');

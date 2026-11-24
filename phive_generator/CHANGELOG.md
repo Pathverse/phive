@@ -1,3 +1,7 @@
+## Unreleased
+
+- Enroll tolerant models with `assign_type_ids --guard-field-types` to catch field type changes before generation. A guarded registry uses format 3. `--reidentify` accepts an intentional retype and retires the old ID.
+
 ## 0.9.1
 
 - Generate adapters for stateless models with zero-parameter unnamed constructors,

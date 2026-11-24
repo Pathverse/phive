@@ -106,6 +106,43 @@ void main() {
         throwsFormatException,
       );
     });
+    test(
+      'known returning tags enforce their baseline and unknown retired tags enroll on return',
+      () {
+        var registry = _banded()
+            .assign('Card', band: 'a')
+            .withShape(
+              'a/Card',
+              RegistryShape(
+                layout: RegistryLayout.tolerant,
+                fields: {'text': 0},
+                retiredFields: {'legacy': 1},
+              ),
+            );
+        TypeIdRegistry assign(Map<String, String> types) =>
+            registry.recordShape(
+              'a/Card',
+              types.keys.toList(),
+              tolerant: true,
+              resolvedTypes: types,
+            );
+        registry = assign({'text': 'String'});
+        registry = assign({'extra': 'int', 'legacy': 'bool'});
+        expect(registry.shapeOf('a/Card')!.fields, {'extra': 2, 'legacy': 1});
+        registry = TypeIdRegistry.fromJson(registry.toJson());
+        expect(
+          () => assign({'text': 'int'}),
+          throwsA(isA<RegistryShapeChangeError>()),
+        );
+        registry = assign({'text': 'String', 'legacy': 'bool', 'extra': 'int'});
+        expect(registry.lookupTypeId('a/Card'), 10000);
+        expect(registry.shapeOf('a/Card')!.fields, {
+          'text': 0,
+          'extra': 2,
+          'legacy': 1,
+        });
+      },
+    );
     test('rejects an unsupported format number', () {
       expect(
         () => TypeIdRegistry.fromJson('{"format": 4}'),

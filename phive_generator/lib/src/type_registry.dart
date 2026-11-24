@@ -86,6 +86,21 @@ class RegistryShape {
            ? null
            : List.unmodifiable(positionalFields);
 
+  /// Returns a diagnostic for the first incompatible active or returning tag.
+  String? fieldTypeMismatch(String key, Map<String, String> resolved) {
+    final baseline = fieldTypes;
+    if (baseline == null) return null;
+    for (final entry in resolved.entries) {
+      final tag = fields[entry.key] ?? retiredFields[entry.key];
+      final old = baseline[tag];
+      if (old != null && old != entry.value) {
+        return '"$key.${entry.key}" changed type from $old to ${entry.value}. '
+            'To retire this identity, run assign_type_ids with --reidentify $key.';
+      }
+    }
+    return null;
+  }
+
   /// Field names ordered by tag or position.
   List<String> get orderedFields =>
       (fields.entries.toList()..sort((a, b) => a.value.compareTo(b.value)))
@@ -740,6 +755,58 @@ class TypeIdRegistry {
     bool reidentify = false,
     bool hadOtherHooks = false,
     bool previouslyRegistered = false,
+    Map<String, String>? resolvedTypes,
+  }) {
+    final existing = _shapes[key];
+    if (tolerant && existing?.fieldTypes != null && resolvedTypes == null) {
+      throw StateError(
+        'Missing resolved field types for guarded model "$key".',
+      );
+    }
+    final mismatch = resolvedTypes == null
+        ? null
+        : existing?.fieldTypeMismatch(key, resolvedTypes);
+    if (mismatch != null && !reidentify) {
+      throw RegistryShapeChangeError(key, mismatch);
+    }
+
+    final next = _recordTags(
+      key,
+      orderedFields,
+      tolerant: tolerant,
+      enumeration: enumeration,
+      explicitTags: explicitTags,
+      reidentify: reidentify,
+      hadOtherHooks: hadOtherHooks,
+      previouslyRegistered: previouslyRegistered,
+    );
+    if (!tolerant || resolvedTypes == null) return next;
+    final shape = next.shapeOf(key)!;
+    final guarded = RegistryShape(
+      layout: shape.layout,
+      fields: shape.fields,
+      retiredFields: shape.retiredFields,
+      positionalFields: mismatch == null ? shape.positionalFields : null,
+      fieldTypes: {
+        ...?existing?.fieldTypes,
+        for (final entry in shape.fields.entries)
+          entry.value: resolvedTypes[entry.key]!,
+      },
+    );
+    return mismatch == null
+        ? next.withShape(key, guarded)
+        : next.reidentify(key, guarded);
+  }
+
+  TypeIdRegistry _recordTags(
+    String key,
+    List<String> orderedFields, {
+    required bool tolerant,
+    required bool enumeration,
+    required Map<String, int> explicitTags,
+    required bool reidentify,
+    required bool hadOtherHooks,
+    required bool previouslyRegistered,
   }) {
     lookupTypeId(key);
     final existing = _shapes[key];

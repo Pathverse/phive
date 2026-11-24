@@ -13,6 +13,10 @@ class AutoNoteAdapter extends PTypeAdapter<AutoNote> {
   final int typeId = 10;
 
   @override
+  String? get schemaFingerprint =>
+      '89835b9509df11fbd4838dce5f94a00f42ac2577047176dd95e541683a92e4a7';
+
+  @override
   AutoNote read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 

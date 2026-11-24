@@ -13,6 +13,10 @@ class DemoTopLevelAesUserAdapter extends PTypeAdapter<DemoTopLevelAesUser> {
   final int typeId = 2;
 
   @override
+  String? get schemaFingerprint =>
+      'ed5f2079ae39a21077f6c5a6948b1617536fadb28a2b31d0f392593c0e4db717';
+
+  @override
   DemoTopLevelAesUser read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 

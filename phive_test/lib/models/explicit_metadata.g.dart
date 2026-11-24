@@ -13,6 +13,10 @@ class ExplicitMetadataAdapter extends PTypeAdapter<ExplicitMetadata> {
   final int typeId = 11;
 
   @override
+  String? get schemaFingerprint =>
+      '0ae40d351e772c9101358bb5456ec44d92a966388a92f8213ac2784f0112c772';
+
+  @override
   ExplicitMetadata read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 

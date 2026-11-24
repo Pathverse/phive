@@ -13,6 +13,10 @@ class NamingCardAdapter extends PTypeAdapter<NamingCard> {
   final int typeId = 21;
 
   @override
+  String? get schemaFingerprint =>
+      '3274c3f23f3fcb9bb612acd41aaeebac13211ab44aad36486df8f4cd637f7fb9';
+
+  @override
   NamingCard read(BinaryReader reader) {
     // id (index 0)
     final res_id = reader.read() as String;
@@ -51,6 +55,10 @@ class NamingCardRouterDescriptor implements PHiveRouterDescriptor {
 class CustomNamingCardAdapter extends PTypeAdapter<CustomNamingCard> {
   @override
   final int typeId = 23;
+
+  @override
+  String? get schemaFingerprint =>
+      '0ac1da60be4403df7e1bf5006f41a948c953601b2b082376b4f422187226258c';
 
   @override
   CustomNamingCard read(BinaryReader reader) {
@@ -97,6 +105,10 @@ class AutoNamingCardAdapter extends PTypeAdapter<AutoNamingCard> {
   final int typeId = 22;
 
   @override
+  String? get schemaFingerprint =>
+      'fd739eaffa311054268742009cd863d84be67df749d20b7800029b13ead5fd7b';
+
+  @override
   AutoNamingCard read(BinaryReader reader) {
     // id (index 0)
     final res_id = reader.read() as String;
@@ -135,6 +147,10 @@ class AutoNamingCardRouterDescriptor implements PHiveRouterDescriptor {
 class AutoCustomNamingCardAdapter extends PTypeAdapter<AutoCustomNamingCard> {
   @override
   final int typeId = 24;
+
+  @override
+  String? get schemaFingerprint =>
+      'fa32e26e166acc13def2df9e2497593b7dec4665fa141cbbba7ac10159cef18a';
 
   @override
   AutoCustomNamingCard read(BinaryReader reader) {

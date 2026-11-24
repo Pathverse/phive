@@ -13,6 +13,9 @@ PROOF_PACKAGES = {
     "proof_hook_action_exception": "phive",
     "proof_hook_metadata": "phive_test",
     "proof_generated_store_names": "phive_test",
+    "proof_tolerant_evolution": "phive_test",
+    "proof_drift_policy": "phive_test",
+    "proof_tolerant_opt_in": "phive_test",
 }
 
 

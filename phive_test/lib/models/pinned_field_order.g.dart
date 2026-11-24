@@ -13,6 +13,10 @@ class PinnedFieldOrderAdapter extends PTypeAdapter<PinnedFieldOrder> {
   final int typeId = 116;
 
   @override
+  String? get schemaFingerprint =>
+      '4e25c7f211b726a48635bd9c8b1535cb70cd39bea5c29f518665fd0813eddda9';
+
+  @override
   PinnedFieldOrder read(BinaryReader reader) {
     // first (index 0)
     final res_first = reader.read() as String;

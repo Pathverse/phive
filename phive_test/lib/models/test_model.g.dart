@@ -13,6 +13,10 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
   final int typeId = 1;
 
   @override
+  String? get schemaFingerprint =>
+      '2446692bf1ee50a2bcf1464653137ba586e959f751d25cf74f5d0324f0db048d';
+
+  @override
   DemoUser read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 

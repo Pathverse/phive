@@ -13,6 +13,10 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
   final int typeId = 12;
 
   @override
+  String? get schemaFingerprint =>
+      '08c89a464cab2c72b4f77d20ef8c373cfe272554ab866ec37d30858bc56ea553';
+
+  @override
   AutoMetadata read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 

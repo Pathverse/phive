@@ -13,6 +13,10 @@ class PlainRecordAdapter extends PTypeAdapter<PlainRecord> {
   final int typeId = 13;
 
   @override
+  String? get schemaFingerprint =>
+      '0914d8b510859b4fcb8d02ee02d6e55476a126a8a99bd8321bc8e367c606a165';
+
+  @override
   PlainRecord read(BinaryReader reader) {
     // id (index 0)
     final res_id = reader.read() as String;

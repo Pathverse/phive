@@ -96,6 +96,15 @@ dart run phive_generator:assign_type_ids --guard-field-types
 
 Commit the registry. Its format is now 3 and requires a generator with guard support. Enrollment can only record the types in this checkout. Keep the flag in your generation script to enroll new tolerant models too. If your build stages one band at a time, add `--band api/v1` (using your own band name) when enrolling that band.
 
+To have incremental builds and watch mode pick up registry edits, add the registry to your package's `build.yaml` (append it to the list if one already exists).
+
+```yaml
+additional_public_assets:
+  - phive_type_registry.json
+```
+
+If you keep the default build configuration, run `dart run build_runner clean` before rebuilding after a registry-only change. Otherwise build_runner can replay a cached adapter or error.
+
 Try changing `Lesson.title` from `String?` to `int?`. Run assignment again. It will name the field and both types, even if you omit the enrollment flag. Adding a field, removing it or reordering fields keeps the model ID.
 
 If the change was deliberate and you can retire the previous records, accept the replacement ID and regenerate:

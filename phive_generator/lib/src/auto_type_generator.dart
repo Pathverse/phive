@@ -13,6 +13,7 @@ import 'adapter_emitter.dart';
 import 'enum_emitter.dart';
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
+import 'field_type_identity.dart';
 import 'router_collection.dart';
 import 'tolerant_emitter.dart';
 import 'type_registry.dart';
@@ -126,6 +127,21 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
           element: element,
         );
       }
+      if (shape.fieldTypes != null) {
+        final resolved = resolvedFieldTypes(cls, mappedFields);
+        final mismatch = shape.fieldTypeMismatch(key, resolved);
+        if (mismatch != null) {
+          throw InvalidGenerationSourceError(mismatch, element: element);
+        }
+        if (resolved.length != shape.fields.length ||
+            !shape.fields.keys.every(resolved.containsKey)) {
+          throw InvalidGenerationSourceError(
+            'The guarded fields of "$key" differ from its recorded shape. '
+            'Run assign_type_ids before building.',
+            element: element,
+          );
+        }
+      }
       return emitTolerantAdapter(
         element: element,
         className: className,
@@ -201,18 +217,17 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
   ///
   /// When [_testRegistry] is set it is returned directly (test path).
   ///
-  /// Otherwise the registry is read from `phive_type_registry.json` via
-  /// [dart:io] rather than through the build-step asset graph.  Root-level
-  /// JSON files are not reliably included in the tracked asset graph across
-  /// all `build_runner` configurations, whereas [dart:io] reads directly from
-  /// the working directory — which `build_runner` always sets to the consuming
-  /// package root.  The trade-off is that changing the registry file does not
-  /// automatically invalidate the build cache; running `build_runner build`
-  /// explicitly after `assign_type_ids` is the expected workflow.
+  /// Read the registry as a build input when the consumer includes it in the
+  /// asset graph. Otherwise read the package-root file directly.
   Future<TypeIdRegistry> _resolveRegistry(BuildStep buildStep) async {
     if (_testRegistry != null) return _testRegistry;
 
-    final registryFile = File('phive_type_registry.json');
+    const path = 'phive_type_registry.json';
+    final asset = AssetId(buildStep.inputId.package, path);
+    if (await buildStep.canRead(asset)) {
+      return TypeIdRegistry.fromJson(await buildStep.readAsString(asset));
+    }
+    final registryFile = File(path);
     if (!registryFile.existsSync()) {
       throw StateError(
         'phive_type_registry.json not found in the package root.  '

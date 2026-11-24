@@ -24,7 +24,7 @@ Use this package to define model annotations, hook pipelines, generated adapter 
 ```yaml
 dependencies:
   hive_ce: ^2.24.0
-  phive: ^0.8.0
+  phive: ^0.9.0
 ```
 
 The public runtime constraint still accepts Hive CE `^2.19.3`. The examples

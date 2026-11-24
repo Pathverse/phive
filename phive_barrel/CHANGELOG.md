@@ -1,3 +1,8 @@
+## 0.9.0
+
+- Release alongside `phive` 0.9.0. Hooks are unchanged; `AESEncrypted` and
+  `TTL` compose with the new `TolerantLayout` class hook.
+
 ## 0.8.1
 
 - Support flutter_secure_storage 11 alongside 10. Seed keys and base64url

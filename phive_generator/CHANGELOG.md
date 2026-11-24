@@ -1,3 +1,39 @@
+## 0.9.0
+
+New features are opt-in, and a flat `phive_type_registry.json` is read and
+re-emitted byte-identically. Regenerating changes positional adapters' read
+path (the collection fix below) and adds a fingerprint getter; stored bytes
+are unchanged.
+
+- Generate tolerant-layout adapters for models with `TolerantLayout` in
+  `classHooks`:
+  - fields are read by tag, with element-wise conversion of lists, sets and
+    maps;
+  - absent nullable fields restore as `null`, and absent fields with a default
+    use the constructor default;
+  - incompatible records raise schema drift;
+  - existing hooked types that adopt the layout keep reading their version-2
+    records through a recorded positional sequence.
+- Add the versioned registry format (`"format": 2`):
+  - bounded, path-scoped bands, with band-qualified keys so equal simple names
+    in different bands get distinct type IDs;
+  - retired type IDs and field tags that are never reassigned;
+  - recorded field shapes. The generator rejects builds whose resolved fields
+    disagree with the recorded shape.
+- `assign_type_ids` adds `--root`, `--band` and `--reidentify`, retires
+  removed classes, and prints each class's band. It refuses positional
+  field-shape changes unless the type is re-identified.
+- Every generated adapter now exposes a `schemaFingerprint` (SHA-256 over its
+  type ID, layout and fields). This adds one getter to generated code; stored
+  bytes are unchanged.
+- **Fix:** positional adapters now restore fields typed as lists or sets of
+  models, typed maps and nested collections. Hive CE restores those values
+  untyped, and the previous whole-value cast threw on read. Stored bytes are
+  unchanged, so records written by 0.8.x adapters restore after regenerating.
+  A stored value that does not match its declared type now raises
+  `PHiveSchemaDriftException` instead of a raw `TypeError`.
+- Requires `phive` 0.9.0. Adds `crypto` as a build-time dependency.
+
 ## 0.8.1
 
 - Apply Dart 3.13 formatting to existing library sources.

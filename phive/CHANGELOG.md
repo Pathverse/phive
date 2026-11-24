@@ -1,3 +1,40 @@
+## 0.9.0
+
+All new behavior is opt-in; existing records, adapters and routers are unchanged.
+
+- Add the `TolerantLayout` class hook. Opted-in models store a version-3
+  header plus a map of field tag to value, so records survive added, removed
+  and reordered fields. Incompatible records raise `PHiveSchemaDriftException`
+  instead of decoding wrong values.
+- `extractMetadataHeader` accepts header versions 2 and 3 and reports which it
+  read (`positionalVersion`, `taggedVersion`, `isTagged`).
+- Add `PHiveDriftPolicy` on both routers, as a router default and per
+  `register` call. `propagate` (default) never deletes. `deleteAndMiss` removes
+  drifted entries, including records with an unregistered type ID, and treats
+  them as misses in `get`, `getAll` and container traversal.
+- Add `schemaFingerprint` on `PTypeAdapter`, the `PHiveFingerprinted`
+  interface, and `phiveSchemaFingerprint` to combine adapters into one
+  order-independent value.
+- Add `PTypeAdapter.castStored`, used by tolerant adapters for type checks
+  that survive optimized web builds.
+- **Downgrade caveat:** 0.8.x cannot read records written in the tagged layout.
+  Do not downgrade a store after writing tolerant records, or clear it first.
+
+Tolerant layout cost, measured with `flutter test --no-pub
+benchmark/tolerant_benchmark.dart` in `phive_test` (Dart VM, 20,000
+iterations, two runs):
+
+| Model | Encode (µs/op) | Decode (µs/op) | Bytes |
+|---|---|---|---|
+| positional twin (5 fields incl. list and map, no hooks) | 0.92–0.97 | 0.68 | 118 |
+| tagged twin (same fields) | 1.75–1.76 | 1.61 | 222 |
+| positional record with 20 one-field items (one hooked field) | 4.15–4.19 | 2.46–2.52 | 409 |
+| tagged lesson with 20 two-field tagged cards | 19.3 | 14.5–14.6 | 2258 |
+
+Most of the extra size is the version-3 metadata header. Every tagged record
+carries one, including each nested tagged card. The two nested rows have
+different shapes and show orders of magnitude, not a like-for-like comparison.
+
 ## 0.8.1
 
 - Apply Dart 3.13 formatting to existing library sources.

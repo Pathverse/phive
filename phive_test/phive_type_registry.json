@@ -117,26 +117,28 @@
         "id": 0,
         "title": 1,
         "count": 2,
-        "labels": 3
-      },
-      "retiredFields": {
+        "labels": 3,
         "scores": 4
       }
     },
     "BenchPositional": {
-      "typeId": 34,
+      "typeId": 35,
       "layout": "positional",
       "fields": {
         "id": 0,
         "title": 1,
         "count": 2,
-        "labels": 3
+        "labels": 3,
+        "scores": 4
       }
     }
   },
   "retiredTypeIds": {
     "32": {
       "key": "BenchPositional@32"
+    },
+    "34": {
+      "key": "BenchPositional@34"
     }
   }
 }

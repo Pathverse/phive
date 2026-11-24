@@ -6,6 +6,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:hive_ce/src/binary/binary_reader_impl.dart';
 import 'package:hive_ce/src/binary/binary_writer_impl.dart';
 import 'package:phive_test/models/bench_models.dart';
+import 'package:phive_test/models/positional_collections.dart';
 import 'package:phive_test/models/tolerant_lesson.dart';
 
 const _iterations = 20000;
@@ -48,18 +49,29 @@ void main() {
   test('tagged versus positional encode/decode', () {
     Hive
       ..registerAdapter<TolerantCard>(TolerantCardAdapter())
-      ..registerAdapter<TolerantLesson>(TolerantLessonAdapter());
+      ..registerAdapter<TolerantLesson>(TolerantLessonAdapter())
+      ..registerAdapter<PositionalItem>(PositionalItemAdapter());
 
     const labels = ['alpha', 'beta', 'gamma', 'delta'];
     const scores = {'a': 1, 'b': 2, 'c': 3};
     final rows = {
       'positional twin': _measure(
         BenchPositionalAdapter(),
-        const BenchPositional('id-1', 'Title', 42, labels),
+        const BenchPositional('id-1', 'Title', 42, labels, scores),
       ),
       'tagged twin': _measure(
         BenchTolerantAdapter(),
-        const BenchTolerant('id-1', 'Title', 42, labels),
+        const BenchTolerant('id-1', 'Title', 42, labels, scores),
+      ),
+      'positional nested (20 items)': _measure(
+        PositionalCollectionsAdapter(),
+        PositionalCollections(
+          items: [for (var i = 0; i < 20; i++) PositionalItem('item-$i')],
+          scores: scores,
+          tags: labels.toSet(),
+          grid: const [],
+          hooked: const [],
+        ),
       ),
       'tagged nested (20 cards)': _measure(
         TolerantLessonAdapter(),

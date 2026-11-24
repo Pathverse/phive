@@ -10,11 +10,11 @@ part of 'bench_models.dart';
 
 class BenchPositionalAdapter extends PTypeAdapter<BenchPositional> {
   @override
-  final int typeId = 34;
+  final int typeId = 35;
 
   @override
   String? get schemaFingerprint =>
-      '2bf8cd3e3dfba7861b10b93b177c09188586a8f360b7f2057fa6b00be019e1b0';
+      'd81c5fcb64edd9fb3e7b6472f7b3aaf50d8fe840604d3c11025a646847fbec3d';
 
   @override
   BenchPositional read(BinaryReader reader) {
@@ -68,7 +68,30 @@ class BenchPositionalAdapter extends PTypeAdapter<BenchPositional> {
         reason: 'stored ${raw_labels.runtimeType} does not match List<String>',
       );
     }
-    return BenchPositional(res_id, res_title, res_count, res_labels);
+    // scores (index 4)
+    final raw_scores = reader.read();
+    final Map<String, int>? res_scores;
+    try {
+      res_scores = raw_scores == null
+          ? null
+          : castStored<Map<dynamic, dynamic>>(raw_scores).map<String, int>(
+              (k0, v0) => MapEntry(castStored<String>(k0), castStored<int>(v0)),
+            );
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'BenchPositional',
+        fieldName: 'scores',
+        reason:
+            'stored ${raw_scores.runtimeType} does not match Map<String, int>?',
+      );
+    }
+    return BenchPositional(
+      res_id,
+      res_title,
+      res_count,
+      res_labels,
+      res_scores,
+    );
   }
 
   @override
@@ -77,6 +100,7 @@ class BenchPositionalAdapter extends PTypeAdapter<BenchPositional> {
     writer.write(obj.title);
     writer.write(obj.count);
     writer.write(obj.labels);
+    writer.write(obj.scores);
   }
 }
 
@@ -88,7 +112,7 @@ class BenchTolerantAdapter extends PTypeAdapter<BenchTolerant> {
 
   @override
   String? get schemaFingerprint =>
-      'c2110490f0d443f3b9d64ee16dc60586c439189a8440e9483f7700c158155809';
+      'd1ad566a7fc6ddb0b8d68a88239276680a8ed885996049b446bbbca335347794';
 
   @override
   BenchTolerant read(BinaryReader reader) {
@@ -191,7 +215,35 @@ class BenchTolerantAdapter extends PTypeAdapter<BenchTolerant> {
         reason: 'required field is missing',
       );
     }
-    final result = BenchTolerant(res_id, res_title, res_count, res_labels);
+    // scores (tag 4)
+    final Map<String, int>? res_scores;
+    if (values.containsKey(4)) {
+      final raw_scores = values[4];
+      try {
+        res_scores = raw_scores == null
+            ? null
+            : castStored<Map<dynamic, dynamic>>(raw_scores).map<String, int>(
+                (k0, v0) =>
+                    MapEntry(castStored<String>(k0), castStored<int>(v0)),
+              );
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'BenchTolerant',
+          fieldName: 'scores',
+          reason:
+              'stored ${raw_scores.runtimeType} does not match Map<String, int>?',
+        );
+      }
+    } else {
+      res_scores = null;
+    }
+    final result = BenchTolerant(
+      res_id,
+      res_title,
+      res_count,
+      res_labels,
+      res_scores,
+    );
     final ctx_obj = PHiveCtx()..value = result;
     applyMetadata(ctx_obj, metadata_header.globalMetadata);
     runPreRead(const [TolerantLayout()], ctx_obj);
@@ -217,6 +269,7 @@ class BenchTolerantAdapter extends PTypeAdapter<BenchTolerant> {
       1: write_obj.title,
       2: write_obj.count,
       3: write_obj.labels,
+      4: write_obj.scores,
     });
 
     runPostWrite(const [TolerantLayout()], ctx_obj);

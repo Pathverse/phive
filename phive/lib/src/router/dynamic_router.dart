@@ -15,6 +15,9 @@ import 'router.dart';
 ///
 /// For web-optimised, compile-time-known type sets, prefer [PHiveStaticRouter].
 class PHiveDynamicRouter extends PHiveBaseRouter {
+  /// Creates a dynamic router whose registrations default to [driftPolicy].
+  PHiveDynamicRouter({super.driftPolicy});
+
   final Map<String, BoxBase<dynamic>> _primaryBoxes = {};
   final Map<String, Box<dynamic>> _refBoxes = {};
 

@@ -9,3 +9,21 @@ enum PHiveActionBehavior {
   /// Consumes the exception and returns null to the caller.
   returnNull,
 }
+
+/// How a router registration responds when a stored record no longer matches
+/// the model reading it.
+///
+/// Drift covers a `PHiveSchemaDriftException` raised by a generated adapter
+/// and Hive's unknown type-identifier error for the record or a value nested
+/// in it. Other errors always reach the caller.
+enum PHiveDriftPolicy {
+  /// The error reaches the caller and no data is removed. This is the default:
+  /// an unregistered adapter produces the same unknown-identifier error as a
+  /// retired type, so deleting by default would turn a setup bug into data
+  /// loss.
+  propagate,
+
+  /// The drifted entry is removed from the primary store and the read is a
+  /// miss. Intended for caches that can be refilled from a source of truth.
+  deleteAndMiss,
+}

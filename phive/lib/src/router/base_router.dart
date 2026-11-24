@@ -8,6 +8,12 @@ import 'router.dart';
 
 /// Shared routing operations over the two Hive storage backends.
 abstract class PHiveBaseRouter implements PHiveRouter {
+  /// Creates a router whose registrations default to [driftPolicy].
+  PHiveBaseRouter({this.driftPolicy = PHiveDriftPolicy.propagate});
+
+  /// Drift policy applied to registrations that do not supply their own.
+  final PHiveDriftPolicy driftPolicy;
+
   final _types = <Type, PHiveTypeRegistration>{};
   final _refs = <PHiveRefRegistration>[];
 
@@ -31,6 +37,7 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   void register<T>({
     required String Function(T item) primaryKey,
     String? boxName,
+    PHiveDriftPolicy? driftPolicy,
   }) {
     checkRegistration('register types');
     final name = boxName ?? T.toString().toLowerCase();
@@ -38,6 +45,7 @@ abstract class PHiveBaseRouter implements PHiveRouter {
       primaryKey: (dynamic item) => primaryKey(item as T),
       boxName: name,
       openBox: () => openRegisteredBox<T>(name),
+      driftPolicy: driftPolicy ?? this.driftPolicy,
     );
   }
 
@@ -104,6 +112,17 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   ) async {
     try {
       return (await read(), false);
+    } on PHiveSchemaDriftException {
+      if (reg.driftPolicy != PHiveDriftPolicy.deleteAndMiss) rethrow;
+      await deletePrimary(reg, [key]);
+      return (null, false);
+    } on HiveError catch (error) {
+      if (reg.driftPolicy != PHiveDriftPolicy.deleteAndMiss ||
+          !isUnknownTypeIdError(error)) {
+        rethrow;
+      }
+      await deletePrimary(reg, [key]);
+      return (null, false);
     } on PHiveActionException catch (error) {
       final cleared = error.behaviors.contains(PHiveActionBehavior.clearBox);
       if (cleared) {
@@ -227,3 +246,11 @@ abstract class PHiveBaseRouter implements PHiveRouter {
     if (reg != null) await deletePrimary(reg, [key]);
   }
 }
+
+/// Whether [error] is Hive CE's unknown type-identifier read error.
+///
+/// Hive CE exposes no typed error for this case, so the message prefix is
+/// matched. A contract test pins it across the supported Hive CE range; if the
+/// wording changes, detection fails safe and the error propagates.
+bool isUnknownTypeIdError(HiveError error) =>
+    error.message.trimLeft().startsWith('Cannot read, unknown typeId:');

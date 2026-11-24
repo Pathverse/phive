@@ -55,7 +55,12 @@ class PHiveStaticRouter extends PHiveBaseRouter {
   final Map<String, CollectionBox<String>> _boxCache = {};
   BoxCollection? _collection;
 
-  PHiveStaticRouter({this.collectionName = 'phive_static', this.path});
+  /// Creates a static router whose registrations default to [driftPolicy].
+  PHiveStaticRouter({
+    this.collectionName = 'phive_static',
+    this.path,
+    super.driftPolicy,
+  });
 
   @override
   void checkRegistration(String operation) {

@@ -1,5 +1,7 @@
 import 'package:hive_ce/hive.dart';
 
+import 'fingerprint.dart';
+
 /// Carries the current value plus persisted and pending metadata during hooks.
 class PHiveCtx {
   /// Current in-flight value seen by hooks and adapters.
@@ -17,11 +19,27 @@ class PHiveCtx {
 
 /// Immutable metadata header written once per hooked PHive record.
 class PHiveMetadataHeader {
-  /// Current binary layout version for metadata-aware PHive records.
-  static const int currentVersion = 2;
+  /// Header version for positional records: field values follow the header in
+  /// field-index order.
+  static const int positionalVersion = 2;
+
+  /// Header version for tagged records written by tolerant-layout adapters:
+  /// one `Map<int, dynamic>` of field tag to value follows the header.
+  static const int taggedVersion = 3;
+
+  /// Default binary layout version for metadata-aware PHive records.
+  ///
+  /// Adapters without the tolerant layout hook keep writing this version.
+  static const int currentVersion = positionalVersion;
+
+  /// Header versions accepted on read.
+  static const Set<int> supportedVersions = {positionalVersion, taggedVersion};
 
   /// Version tag for the stored metadata header layout.
   final int version;
+
+  /// Reports whether this header precedes a tagged (version 3) record body.
+  bool get isTagged => version == taggedVersion;
 
   /// Shared metadata visible to all fields and the whole-object hook context.
   final Map<String, dynamic> globalMetadata;
@@ -30,11 +48,14 @@ class PHiveMetadataHeader {
   final Map<String, Map<String, dynamic>> perFieldMetadata;
 
   /// Creates one normalized metadata header for a single PHive record.
+  ///
+  /// Throws [ArgumentError] when [version] is not one of [supportedVersions].
   PHiveMetadataHeader({
-    this.version = currentVersion,
+    int version = currentVersion,
     Map<String, dynamic>? globalMetadata,
     Map<String, Map<String, dynamic>>? perFieldMetadata,
-  }) : globalMetadata = Map<String, dynamic>.unmodifiable(
+  }) : version = _checkedVersion(version),
+       globalMetadata = Map<String, dynamic>.unmodifiable(
          globalMetadata ?? const <String, dynamic>{},
        ),
        perFieldMetadata = Map<String, Map<String, dynamic>>.unmodifiable(
@@ -48,6 +69,17 @@ class PHiveMetadataHeader {
                ),
          },
        );
+
+  static int _checkedVersion(int version) {
+    if (!supportedVersions.contains(version)) {
+      throw ArgumentError.value(
+        version,
+        'version',
+        'Unsupported PHive metadata header version',
+      );
+    }
+    return version;
+  }
 
   /// Returns one field metadata mapping or an empty mapping when absent.
   Map<String, dynamic> metadataForField(String fieldName) {
@@ -78,8 +110,39 @@ abstract class PHiveHook {
   void postWrite(PHiveCtx ctx) {}
 }
 
+/// Selects the tolerant, tagged-field record layout for a model.
+///
+/// Add it to a model's `classHooks`:
+///
+/// ```dart
+/// @PHiveAutoType(autoFields: true, classHooks: [TolerantLayout()])
+/// class Lesson { ... }
+/// ```
+///
+/// The generator recognizes this hook and emits an adapter that writes a
+/// version-3 metadata header followed by one map of field tag to value. Stored
+/// tags the model no longer declares are ignored, and absent nullable fields
+/// restore as `null` (or their constructor default). Incompatible records
+/// raise [PHiveSchemaDriftException] instead of decoding wrong values.
+///
+/// At runtime the hook performs no value transformation; all lifecycle
+/// methods are no-ops.
+class TolerantLayout extends PHiveHook {
+  /// Creates the tolerant layout marker hook.
+  const TolerantLayout();
+}
+
 /// Shared base adapter that provides PHive metadata and hook orchestration helpers.
-abstract class PTypeAdapter<T> extends TypeAdapter<T> {
+abstract class PTypeAdapter<T> extends TypeAdapter<T>
+    implements PHiveFingerprinted {
+  /// Deterministic description of the stored schema.
+  ///
+  /// Generated adapters override this with a build-time literal derived from
+  /// the type ID, layout and ordered field tags, names and types. Hand-written
+  /// adapters return `null` unless they override it.
+  @override
+  String? get schemaFingerprint => null;
+
   /// Storage key for the version number inside the metadata header map.
   static const String metadataHeaderVersionKey = 'v';
 
@@ -89,12 +152,28 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
   /// Storage key for field metadata inside the metadata header map.
   static const String metadataHeaderPerFieldKey = 'perField';
 
+  /// Returns [value] as [V], or throws [TypeError] when it is not a [V].
+  ///
+  /// Tolerant-layout adapters use this instead of `as` casts: an `is` check
+  /// with a reified type argument is always performed, including in optimized
+  /// web release builds, so a stored value of the wrong type is detected and
+  /// reported as schema drift rather than trusted.
+  V castStored<V>(Object? value) {
+    if (value is V) return value;
+    throw TypeError();
+  }
+
   /// Creates one normalized metadata header from global and per-field inputs.
+  ///
+  /// [version] defaults to the positional layout; tolerant-layout adapters pass
+  /// [PHiveMetadataHeader.taggedVersion].
   PHiveMetadataHeader createMetadataHeader({
+    int version = PHiveMetadataHeader.currentVersion,
     Map<String, dynamic>? globalMetadata,
     Map<String, Map<String, dynamic>>? perFieldMetadata,
   }) {
     return PHiveMetadataHeader(
+      version: version,
       globalMetadata: globalMetadata,
       perFieldMetadata: perFieldMetadata,
     );
@@ -114,8 +193,9 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
 
   /// Restores one metadata header from the leading stored record value.
   ///
-  /// Throws [StateError] when [rawHeader] does not match the current header
-  /// schema, because the redesigned format intentionally drops legacy support.
+  /// Accepts the positional (2) and tagged (3) layouts and reports which was
+  /// read through [PHiveMetadataHeader.version]. Throws [StateError] for any
+  /// other version: older formats intentionally have no fallback.
   PHiveMetadataHeader extractMetadataHeader(dynamic rawHeader) {
     if (rawHeader is! Map) {
       throw StateError('Expected PHive metadata header map, got $rawHeader.');
@@ -123,7 +203,7 @@ abstract class PTypeAdapter<T> extends TypeAdapter<T> {
 
     final rawVersion = rawHeader[metadataHeaderVersionKey];
     if (rawVersion is! int ||
-        rawVersion != PHiveMetadataHeader.currentVersion) {
+        !PHiveMetadataHeader.supportedVersions.contains(rawVersion)) {
       throw StateError(
         'Unsupported PHive metadata header version: $rawVersion.',
       );

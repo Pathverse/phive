@@ -1,5 +1,7 @@
 import 'package:hive_ce/hive.dart';
 
+import '../policy.dart';
+
 /// PHiveRouter — abstract interface and shared types for the phive routing layer.
 ///
 /// The router is responsible for:
@@ -20,9 +22,13 @@ abstract class PHiveRouter {
   /// [boxName]    — override the default box name (defaults to T.toString().toLowerCase()).
   /// Supply an explicit name for manual registration in production: runtime type
   /// strings may be minified. Generated descriptors supply literal names.
+  /// [driftPolicy] — how keyed and bulk reads of [T] respond to schema drift;
+  /// defaults to the router's policy, which defaults to
+  /// [PHiveDriftPolicy.propagate].
   void register<T>({
     required String Function(T item) primaryKey,
     String? boxName,
+    PHiveDriftPolicy? driftPolicy,
   });
 
   /// Declare a parent→child containership relationship.
@@ -181,10 +187,14 @@ class PHiveTypeRegistration {
   /// Opens the primary storage box using the original registered generic type.
   final Future<BoxBase<dynamic>> Function() openBox;
 
+  /// How reads of this type respond to schema drift.
+  final PHiveDriftPolicy driftPolicy;
+
   const PHiveTypeRegistration({
     required this.primaryKey,
     required this.boxName,
     required this.openBox,
+    this.driftPolicy = PHiveDriftPolicy.propagate,
   });
 }
 

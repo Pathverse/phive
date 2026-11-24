@@ -1,6 +1,6 @@
 ## 0.9.0
 
-All new behavior is opt-in; existing records, adapters and routers are unchanged.
+Model layouts remain opt-in. This update revises unreleased 0.9.0 drift handling.
 
 - Add the `TolerantLayout` class hook. Opted-in models store a version-3
   header plus a map of field tag to value, so records survive added, removed
@@ -10,8 +10,11 @@ All new behavior is opt-in; existing records, adapters and routers are unchanged
   read (`positionalVersion`, `taggedVersion`, `isTagged`).
 - Add `PHiveDriftPolicy` on both routers, as a router default and per
   `register` call. `propagate` (default) never deletes. `deleteAndMiss` removes
-  drifted entries, including records with an unregistered type ID, and treats
+  drifted entries, including records with a tombstoned type ID, and treats
   them as misses in `get`, `getAll` and container traversal.
+- Add explicit `PHiveTombstoneAdapter` and `registerPHiveTombstone`. Typed
+  tombstones replace Hive error-message matching. Untombstoned unknown type
+  IDs propagate under every policy and their stored entries are preserved.
 - Add `schemaFingerprint` on `PTypeAdapter`, the `PHiveFingerprinted`
   interface, and `phiveSchemaFingerprint` to combine adapters into one
   order-independent value.

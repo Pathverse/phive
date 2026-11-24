@@ -14,13 +14,10 @@ enum PHiveActionBehavior {
 /// the model reading it.
 ///
 /// Drift covers a `PHiveSchemaDriftException` raised by a generated adapter
-/// and Hive's unknown type-identifier error for the record or a value nested
-/// in it. Other errors always reach the caller.
+/// or an explicitly registered tombstone, including nested values.
+/// Untombstoned unknown identifiers and other errors always reach the caller.
 enum PHiveDriftPolicy {
-  /// The error reaches the caller and no data is removed. This is the default:
-  /// an unregistered adapter produces the same unknown-identifier error as a
-  /// retired type, so deleting by default would turn a setup bug into data
-  /// loss.
+  /// The error reaches the caller and no data is removed. This is the default.
   propagate,
 
   /// The drifted entry is removed from the primary store and the read is a

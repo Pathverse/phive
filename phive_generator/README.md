@@ -182,18 +182,18 @@ below. Using any of them switches the file to the versioned format:
 {
   "format": 2,
   "bands": {
-    "api/v0": { "start": 10000, "end": 10999, "paths": ["lib/api/v0/**"] }
+    "api/v0": { "start": 500, "end": 599, "paths": ["lib/api/v0/**"] }
   },
   "types": {
     "api/v0/Lesson": {
-      "typeId": 10000,
+      "typeId": 500,
       "layout": "tolerant",
       "fields": { "id": 0, "title": 1 },
       "retiredFields": { "legacyFlag": 2 }
     }
   },
   "retiredTypeIds": {
-    "10001": { "key": "api/v0/OldModel" }
+    "501": { "key": "api/v0/OldModel" }
   }
 }
 ```
@@ -207,9 +207,16 @@ below. Using any of them switches the file to the versioned format:
   different bands therefore get distinct typeIds.
 - **`fields`** record each type's field shape:
   - for positional types, the stored field order;
-  - for tolerant types, the field tags.
+  - for tolerant types, the field tags;
+  - for enums (`"layout": "enum"`), the case tags.
 - **`retiredFields`** and **`retiredTypeIds`** are never reassigned to anything
   else.
+
+### Identifier ranges are yours
+
+Each consuming package chooses its bands and abandoned identifiers. The
+500–599 band above is an arbitrary example. A package with no declared bands
+starts unbanded assignment at 0, or at its caller-supplied `--start` floor.
 
 ### Bands
 
@@ -235,7 +242,7 @@ same class returns, it gets its original typeId back.
 
 ### Field shapes and re-identification
 
-Once a registry is versioned, or any class uses `TolerantLayout`, the tool
+Once a registry is versioned, a class uses `TolerantLayout`, or an enum is present, the tool
 records each type's fields.
 
 **Positional types** (no `TolerantLayout`):
@@ -254,13 +261,48 @@ records each type's fields.
 
 - They keep their typeId when fields change. New fields get unused tags, and
   removed fields' tags are retired.
-- An explicit `@PHiveField(index)` is used as the field's tag. It must be an
-  integer literal, and it may not retag an existing field.
+- An explicit `@PHiveField(index)` is used as the field's tag. Its value must resolve to an
+  integer constant, and it may not retag an existing field.
 
-The scan reads class declarations without resolving types. It covers
-unnamed-constructor parameters (with `autoFields`) and members annotated with
-`@PHiveField`. During `build_runner`, the generator checks the resolved fields
-against the recorded shape and stops if they differ.
+The tool resolves package libraries with the Dart analyzer and uses the
+generator's field collector, including inherited fields and evaluated constant
+indexes. Run `dart pub get` or `flutter pub get` before assignment.
+
+### Enum adapters
+
+```dart
+@PHiveAutoType()
+enum Color { red, green, blue }
+```
+
+The registry assigns a stable integer tag to each case. Reordering preserves
+the tags, removed cases retire their tags, and returning cases regain their
+original tags. Unknown tags and non-integer values always raise
+`PHiveSchemaDriftException`. Each enum adapter exposes a schema fingerprint.
+Enums cannot declare hooks.
+
+For `@PHiveType(id)` enums, annotate every case with a unique
+`@PHiveField(tag)`. Tags can exceed 255.
+
+### Explicit retirement and tombstones
+
+Retire abandoned identifiers that no current type holds, then generate
+registration for all retired identifiers.
+
+```bash
+dart run phive_generator:assign_type_ids --retire-id 7 --retire-id 20-22 --tombstones lib/phive_tombstones.g.dart
+dart run phive_generator:assign_type_ids --tombstones lib/phive_tombstones.g.dart --dry-run
+```
+
+These identifiers are arbitrary examples. Inclusive ranges are repeatable.
+Malformed ranges, out-of-range identifiers and active identifiers fail before
+either output file is written. Explicit retirements are permanent and use
+`legacy@<id>` registry keys.
+
+Import the generated file and call its `registerPHiveTombstones()` after
+registering your normal adapters. PHive registers tombstones only when your
+app calls the function. Untombstoned unknown identifiers propagate as Hive
+errors under every drift policy, and their entries are preserved.
 
 ### Adopting `TolerantLayout` on an existing type
 
@@ -275,6 +317,8 @@ Adopt it in two steps, so that records already in storage stay readable:
    - A type that had no hooks wrote header-free records. Those are reported as
      schema drift after the switch.
 2. Change fields as needed, then run the tool again.
+3. Generate tombstones with `--tombstones lib/phive_tombstones.g.dart` and call
+   `registerPHiveTombstones()` after `registerAdapters()` at startup.
 
 The tool refuses to do both steps in one run.
 

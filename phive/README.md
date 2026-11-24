@@ -236,30 +236,31 @@ router.register<Lesson>(
 );
 ```
 
-Under `deleteAndMiss`, these reads remove the entry from the primary store and
-behave as a miss:
+Under `deleteAndMiss`, a `PHiveSchemaDriftException` removes the entry from
+the primary store. `get` returns `null`, and `getAll` and container traversal
+skip the entry and continue. This includes enum drift and records containing
+a tombstoned type ID.
 
-- `get` returns `null`;
-- `getAll` and container traversal skip the entry and continue;
+Generate tombstones from your registry, then register them explicitly at startup.
 
-when either of the following occurs:
+```dart
+registerAdapters();
+registerPHiveTombstones();
+```
 
-- the adapter raises `PHiveSchemaDriftException`;
-- Hive reports an unknown type identifier for the record or a value nested in
-  it, for example a type you retired.
+`PHiveTombstoneAdapter<T>` reports a retired identifier as schema drift.
+`registerPHiveTombstone<T>(id)` skips identifiers that already have an adapter.
+The generated function supplies a distinct marker type per identifier and
+can safely run twice.
 
-Every other error still reaches the caller, and the entry is kept.
+An identifier with neither an adapter nor a tombstone raises Hive's storage
+error under every policy, and its entry is kept. Forgetting
+`registerPHiveTombstones()` therefore leaves retired records stored and
+surfaces the error to the caller.
 
-The default policy, `PHiveDriftPolicy.propagate`, **never deletes**. Hive
-reports the same unknown-type-identifier error when you simply forgot to
-register an adapter. Deleting by default would turn that setup mistake into
-data loss. Do not enable `deleteAndMiss` on stores that hold data you cannot
-refetch.
-
-Both routers apply the policy the same way. Hive CE has no typed error for an
-unknown type identifier, so PHive recognizes it by its message. A contract test
-pins that message for the supported Hive CE versions. If it ever changes, the
-error propagates rather than deleting anything.
+The default `PHiveDriftPolicy.propagate` keeps entries and propagates drift.
+Use `deleteAndMiss` for caches that can be refilled from a source of truth.
+Both routers apply the same policy.
 
 ### Schema fingerprints
 

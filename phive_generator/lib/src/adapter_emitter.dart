@@ -3,6 +3,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
+import 'schema_fingerprint.dart';
 
 /// Emits the full Dart source for one `PTypeAdapter` subclass and its optional
 /// router descriptor class.
@@ -92,7 +93,12 @@ String emitAdapter({
 class ${className}Adapter extends PTypeAdapter<$className> {
   @override
   final int typeId = $typeId;
-
+${emitSchemaFingerprintGetter(computeSchemaFingerprint(
+    typeId: typeId,
+    layout: 'positional',
+    tags: {for (final field in mappedFields) field.name: field.index!},
+    types: {for (final field in mappedFields) field.name: field.type},
+  ))}
   @override
   $className read(BinaryReader reader) {
 ${_emitReadMetadataHeaderPrelude(hasMetadataHeader)}
@@ -258,3 +264,13 @@ ${lines.join('\n')}
 }
 ''';
 }
+
+/// Emits the optional router descriptor for [className]; shared with the
+/// tolerant-layout emitter so both layouts produce identical descriptors.
+String emitRouterDescriptorSource({
+  required String className,
+  required RouterDescriptorConfig? descriptor,
+}) => _emitRouterDescriptorBlock(
+  className: className,
+  descriptor: descriptor,
+);

@@ -172,6 +172,112 @@ dart run build_runner build --delete-conflicting-outputs
 
 `phive_type_registry.json` is committed to version control. Ids are stable and never reassigned. `@PHiveAutoType` supports all the same options as `@PHiveType` — `hooks` and `autoFields` — just without the integer.
 
+### Registry formats
+
+A new or existing registry is a flat JSON object of class name to typeId. It
+stays flat, and is re-emitted byte for byte, until you use one of the features
+below. Using any of them switches the file to the versioned format:
+
+```json
+{
+  "format": 2,
+  "bands": {
+    "api/v0": { "start": 10000, "end": 10999, "paths": ["lib/api/v0/**"] }
+  },
+  "types": {
+    "api/v0/Lesson": {
+      "typeId": 10000,
+      "layout": "tolerant",
+      "fields": { "id": 0, "title": 1 },
+      "retiredFields": { "legacyFlag": 2 }
+    }
+  },
+  "retiredTypeIds": {
+    "10001": { "key": "api/v0/OldModel" }
+  }
+}
+```
+
+- **`bands`** declare inclusive typeId ranges. Each band is scoped to
+  package-relative path globs: `**` matches any characters including `/`, and
+  `*` matches any characters except `/`. Bands may not overlap, and a library
+  matched by two bands is an error.
+- **`types`** are keyed by `band/ClassName` for classes in a band, or by
+  `ClassName` for unbanded classes. Classes that share a simple name in
+  different bands therefore get distinct typeIds.
+- **`fields`** record each type's field shape:
+  - for positional types, the stored field order;
+  - for tolerant types, the field tags.
+- **`retiredFields`** and **`retiredTypeIds`** are never reassigned to anything
+  else.
+
+### Bands
+
+Declare bands by hand in the registry, then run the tool. Each class gets the
+next free typeId inside its band:
+
+```bash
+dart run phive_generator:assign_type_ids
+dart run phive_generator:assign_type_ids --band api/v0   # one band only
+dart run phive_generator:assign_type_ids --dry-run       # print each class's band and typeId
+```
+
+If a band is full, the tool reports it by name and assigns nothing outside the
+band. Unbanded classes keep the historical global sequence, which skips past
+declared bands.
+
+### Retirement
+
+When a banded class disappears from a scanned band, the tool retires its
+typeId instead of deleting it. In a versioned registry this applies to
+unbanded classes too. A retired typeId is never given to another class. If the
+same class returns, it gets its original typeId back.
+
+### Field shapes and re-identification
+
+Once a registry is versioned, or any class uses `TolerantLayout`, the tool
+records each type's fields.
+
+**Positional types** (no `TolerantLayout`):
+
+- Their records cannot survive a field change under the same typeId, so the
+  tool refuses to continue when the fields change and names the type and the
+  changed fields.
+- If you accept discarding records stored under the old shape, re-identify the
+  type. This retires the old typeId and allocates a new one in the same band:
+
+  ```bash
+  dart run phive_generator:assign_type_ids --reidentify api/v0/Card
+  ```
+
+**Tolerant types** (`classHooks: [TolerantLayout()]`):
+
+- They keep their typeId when fields change. New fields get unused tags, and
+  removed fields' tags are retired.
+- An explicit `@PHiveField(index)` is used as the field's tag. It must be an
+  integer literal, and it may not retag an existing field.
+
+The scan reads class declarations without resolving types. It covers
+unnamed-constructor parameters (with `autoFields`) and members annotated with
+`@PHiveField`. During `build_runner`, the generator checks the resolved fields
+against the recorded shape and stops if they differ.
+
+### Adopting `TolerantLayout` on an existing type
+
+Adopt it in two steps, so that records already in storage stay readable:
+
+1. Add `TolerantLayout()` to `classHooks` **without changing any fields**, then
+   run `assign_type_ids` and `build_runner`.
+   - If the type already had other hooks, the tool records its current
+     positional field order. The tolerant adapter uses that order to read the
+     existing version-2 records, and rewrites them as tagged records on their
+     next store.
+   - A type that had no hooks wrote header-free records. Those are reported as
+     schema drift after the switch.
+2. Change fields as needed, then run the tool again.
+
+The tool refuses to do both steps in one run.
+
 ## What the Generator Handles
 
 - emits `PTypeAdapter<T>` implementations for `@PHiveType` and `@PHiveAutoType`

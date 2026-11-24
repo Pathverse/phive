@@ -8,6 +8,23 @@ import 'package:analyzer/dart/element/element.dart';
 /// [InterfaceElement] values and return source strings or annotation objects
 /// without performing any I/O or mutations.
 
+/// Returns the package-relative POSIX path of the library declaring [element].
+///
+/// `package:pkg/a/b.dart` maps to `lib/a/b.dart`, and `asset:pkg/test/x.dart`
+/// maps to `test/x.dart`. The result is matched against registry band globs,
+/// so it must not depend on the build step.
+String packageRelativeLibraryPath(Element element) {
+  final uri = element.library!.uri;
+  final segments = uri.pathSegments;
+  if (uri.isScheme('package') && segments.length > 1) {
+    return ['lib', ...segments.skip(1)].join('/');
+  }
+  if (uri.isScheme('asset') && segments.length > 1) {
+    return segments.skip(1).join('/');
+  }
+  return uri.path;
+}
+
 /// Finds the first annotation in [annotations] whose element name matches
 /// [annotationName], or `null` if none is found.
 ElementAnnotation? findAnnotationNamed(

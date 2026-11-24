@@ -1,0 +1,78 @@
+// ignore_for_file: non_constant_identifier_names
+
+class ExplicitTolerantAdapter extends PTypeAdapter<ExplicitTolerant> {
+  @override
+  final int typeId = 77;
+
+  @override
+  String? get schemaFingerprint =>
+      'f58df72299bd3e52cccfe662241eb9eb49b8c35562140abcdaae44f7358de6d3';
+
+  @override
+  ExplicitTolerant read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+    final Map<int, dynamic> values;
+    if (metadata_header.isTagged) {
+      final raw_body = reader.read();
+      if (raw_body is! Map) {
+        throw PHiveSchemaDriftException(
+          typeName: 'ExplicitTolerant',
+          reason: 'tagged record body is not a map',
+        );
+      }
+      values = <int, dynamic>{
+        for (final entry in raw_body.entries)
+          if (entry.key is int) entry.key as int: entry.value,
+      };
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'ExplicitTolerant',
+        reason: 'version-2 record without a recorded positional sequence',
+      );
+    }
+    // id (tag 3)
+    final String res_id;
+    if (values.containsKey(3)) {
+      final raw_id = values[3];
+      try {
+        res_id = castStored<String>(raw_id);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'ExplicitTolerant',
+          fieldName: 'id',
+          reason: 'stored ${raw_id.runtimeType} does not match String',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'ExplicitTolerant',
+        fieldName: 'id',
+        reason: 'required field is missing',
+      );
+    }
+    final result = ExplicitTolerant(res_id);
+    final ctx_obj = PHiveCtx()..value = result;
+    applyMetadata(ctx_obj, metadata_header.globalMetadata);
+    runPreRead(const [TolerantLayout()], ctx_obj);
+    runPostRead(const [TolerantLayout()], ctx_obj);
+    return ctx_obj.value as ExplicitTolerant;
+  }
+
+  @override
+  void write(BinaryWriter writer, ExplicitTolerant obj) {
+    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const [TolerantLayout()], ctx_obj);
+    final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+    final write_obj = ctx_obj.value as ExplicitTolerant;
+
+    final metadata_header = createMetadataHeader(
+      version: PHiveMetadataHeader.taggedVersion,
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{},
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(<int, dynamic>{3: write_obj.id});
+
+    runPostWrite(const [TolerantLayout()], ctx_obj);
+  }
+}

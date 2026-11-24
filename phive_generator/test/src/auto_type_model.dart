@@ -15,6 +15,10 @@ class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
   final int typeId = 10;
 
   @override
+  String? get schemaFingerprint =>
+      '49ab66e9f620aed54679a9e672a19a2ef2b8a0af419ff23f8e13099abcd96b19';
+
+  @override
   AutoTypeSimple read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
@@ -71,6 +75,10 @@ class AutoTypeAutoFieldsAdapter extends PTypeAdapter<AutoTypeAutoFields> {
   final int typeId = 20;
 
   @override
+  String? get schemaFingerprint =>
+      '7ad9e34a1cbded52dd3e80f83cf6d1179d6c2398167a143e91492a584aadb1ff';
+
+  @override
   AutoTypeAutoFields read(BinaryReader reader) {
     // name (index 0)
     final res_name = reader.read() as String;
@@ -101,6 +109,10 @@ class AutoTypeAutoFields {
 class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
   @override
   final int typeId = 30;
+
+  @override
+  String? get schemaFingerprint =>
+      '68d23d3a346b8006cf79331164eb7313f84bfd8a20b93e9a33568d2b3499ec42';
 
   @override
   AutoTypeWithHooks read(BinaryReader reader) {
@@ -166,6 +178,10 @@ class AutoTypeWithClassHooksAdapter
   final int typeId = 35;
 
   @override
+  String? get schemaFingerprint =>
+      'c3476ccffc1d6e5c438814ea41ade623b189a22b06f0fad97e7ad1d9272a83a4';
+
+  @override
   AutoTypeWithClassHooks read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
@@ -211,6 +227,10 @@ class AutoTypeWithClassHooks {
 class AutoTypeRouterAdapter extends PTypeAdapter<AutoTypeRouter> {
   @override
   final int typeId = 40;
+
+  @override
+  String? get schemaFingerprint =>
+      'c089bf718ae76d357057d251dad234385d1b2501973876d0bf49642452b4f04d';
 
   @override
   AutoTypeRouter read(BinaryReader reader) {

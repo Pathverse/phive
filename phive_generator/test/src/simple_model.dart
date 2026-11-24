@@ -15,6 +15,10 @@ class SimpleModelAdapter extends PTypeAdapter<SimpleModel> {
   final int typeId = 1;
 
   @override
+  String? get schemaFingerprint =>
+      'e3a583aaffad49d9f474d5ea5db3ea34a5b5220e7533a579b05a57d9b3b64205';
+
+  @override
   SimpleModel read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
@@ -71,6 +75,10 @@ class AutoFieldModelAdapter extends PTypeAdapter<AutoFieldModel> {
   final int typeId = 2;
 
   @override
+  String? get schemaFingerprint =>
+      '4c0befdc2a4431871b11db47077429fd5ba4d270a029f66f88670447f13d4c57';
+
+  @override
   AutoFieldModel read(BinaryReader reader) {
     // id (index 0)
     final res_id = reader.read() as String;
@@ -101,6 +109,10 @@ class AutoFieldModel {
 class HybridAutoFieldModelAdapter extends PTypeAdapter<HybridAutoFieldModel> {
   @override
   final int typeId = 3;
+
+  @override
+  String? get schemaFingerprint =>
+      'b2526184112ab04939acfe3c44e9fa650f7fb4e33d4ba7e66fe536931d0cd998';
 
   @override
   HybridAutoFieldModel read(BinaryReader reader) {
@@ -158,6 +170,10 @@ class ClassHookModelAdapter extends PTypeAdapter<ClassHookModel> {
   final int typeId = 5;
 
   @override
+  String? get schemaFingerprint =>
+      'c3aa0f0aed89ef42fe310176c451f09df2a8413bd23f7052558c350d7b95d8a6';
+
+  @override
   ClassHookModel read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
@@ -209,6 +225,10 @@ class ClassHookModel {
 class RouterModelAdapter extends PTypeAdapter<RouterModel> {
   @override
   final int typeId = 4;
+
+  @override
+  String? get schemaFingerprint =>
+      '4b26a4df6897815b8a82071943d5e79c209be3087bf2d90fcc9e4f6c7ee0cde2';
 
   @override
   RouterModel read(BinaryReader reader) {
@@ -264,6 +284,10 @@ class RouterModel {
 class SingletonRouterModelAdapter extends PTypeAdapter<SingletonRouterModel> {
   @override
   final int typeId = 5;
+
+  @override
+  String? get schemaFingerprint =>
+      '0e2d5d22f8889d1162dbed245da1814ab3731eadc0eb77a89e2c2d984421575e';
 
   @override
   SingletonRouterModel read(BinaryReader reader) {

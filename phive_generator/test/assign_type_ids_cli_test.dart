@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:phive_generator/src/source_scan.dart';
 import 'package:test/test.dart';
 
 /// Runs the CLI against [root] and returns the process result.
@@ -22,7 +21,13 @@ Future<ProcessResult> _run(Directory root, List<String> extra) {
 void _write(Directory root, String relative, String content) {
   File('${root.path}/$relative')
     ..createSync(recursive: true)
-    ..writeAsStringSync(content);
+    ..writeAsStringSync(
+      relative.endsWith('.dart')
+          ? "import 'package:phive/phive.dart';\n$content\n"
+                'class Ttl extends PHiveHook { const Ttl([int? value]); }\n'
+                'const kIndex = 7;\n'
+          : content,
+    );
 }
 
 Map<String, dynamic> _registry(Directory root) =>
@@ -53,8 +58,29 @@ class Choice {
 void main() {
   late Directory root;
 
-  setUp(() {
+  setUp(() async {
     root = Directory.systemTemp.createTempSync('phive-bands-');
+    _write(root, 'pubspec.yaml', '''
+name: scan_fixture
+environment:
+  sdk: ^3.11.0
+dependencies:
+  phive:
+    path: ${Directory('../phive').absolute.path}
+dev_dependencies:
+  build_runner: ^2.12.1
+  phive_generator:
+    path: ${Directory.current.path}
+dependency_overrides:
+  phive:
+    path: ${Directory('../phive').absolute.path}
+''');
+    final result = await Process.run('flutter', [
+      'pub',
+      'get',
+      '--offline',
+    ], workingDirectory: root.path);
+    expect(result.exitCode, 0, reason: result.stderr.toString());
     _write(root, 'phive_type_registry.json', _bands);
     _write(root, 'lib/v0/choice.dart', _choice);
     _write(root, 'lib/v1/choice.dart', _choice);
@@ -73,42 +99,52 @@ void main() {
     expect(types['api/v0/Choice']['fields'], {'id': 0, 'label': 1});
   });
 
-  test('default root and paths resolve bands from the package directory', () async {
-    final generatorDir = Directory.current.absolute.path;
-    final result = await Process.run(
-      Platform.resolvedExecutable,
-      [
+  test(
+    'default root and paths resolve bands from the package directory',
+    () async {
+      final generatorDir = Directory.current.absolute.path;
+      final result = await Process.run(Platform.resolvedExecutable, [
         '--packages=$generatorDir/.dart_tool/package_config.json',
         '$generatorDir/bin/assign_type_ids.dart',
-      ],
-      workingDirectory: root.path,
-    );
-    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
-    expect(result.stdout, contains('(band api/v0)'));
-    expect(
-      (_registry(root)['types'] as Map).keys,
-      containsAll(['api/v0/Choice', 'api/v1/Choice']),
-    );
-  });
+      ], workingDirectory: root.path);
+      expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+      expect(result.stdout, contains('(band api/v0)'));
+      expect(
+        (_registry(root)['types'] as Map).keys,
+        containsAll(['api/v0/Choice', 'api/v1/Choice']),
+      );
+    },
+  );
 
   test('dry run prints each class band and leaves the file alone', () async {
     final result = await _run(root, ['--dry-run']);
     expect(result.exitCode, 0, reason: result.stderr.toString());
-    expect(result.stdout, contains('api/v0/Choice → typeId 10000 (band api/v0)'));
-    expect(result.stdout, contains('api/v1/Choice → typeId 11000 (band api/v1)'));
+    expect(
+      result.stdout,
+      contains('api/v0/Choice → typeId 10000 (band api/v0)'),
+    );
+    expect(
+      result.stdout,
+      contains('api/v1/Choice → typeId 11000 (band api/v1)'),
+    );
     expect(_registry(root)['types'], isEmpty);
   });
 
-  test('a rerun without source changes leaves the registry unchanged', () async {
-    await _run(root, []);
-    final before = File('${root.path}/phive_type_registry.json').readAsStringSync();
-    final result = await _run(root, []);
-    expect(result.stdout, contains('Registry unchanged.'));
-    expect(
-      File('${root.path}/phive_type_registry.json').readAsStringSync(),
-      before,
-    );
-  });
+  test(
+    'a rerun without source changes leaves the registry unchanged',
+    () async {
+      await _run(root, []);
+      final before = File(
+        '${root.path}/phive_type_registry.json',
+      ).readAsStringSync();
+      final result = await _run(root, []);
+      expect(result.stdout, contains('Registry unchanged.'));
+      expect(
+        File('${root.path}/phive_type_registry.json').readAsStringSync(),
+        before,
+      );
+    },
+  );
 
   test('a removed class is retired and its ID is not reused', () async {
     _write(root, 'lib/v0/extra.dart', '''
@@ -185,43 +221,39 @@ class Note { final String id; const Note(this.id); }
     expect(result.stderr, contains('overlap'));
   });
 
-  group('scanner', () {
-    test('records tolerance, other hooks and explicit indexes', () {
-      _write(root, 'lib/v0/model.dart', '''
-@PHiveAutoType(autoFields: true, hooks: [Ttl(1)], classHooks: [const TolerantLayout()])
-class Model {
-  @PHiveField(5)
-  final String a;
-  final String b;
-  @PHiveField(kIndex)
-  final String c;
-  const Model(this.a, this.b, this.c);
-}
-''');
-      final scanned = scanAutoTypes(
-        Directory('${root.path}/lib/v0'),
-        root: root,
-      ).firstWhere((it) => it.className == 'Model');
+  test(
+    'first run without options starts at zero and declares no bands',
+    () async {
+      File('${root.path}/phive_type_registry.json').deleteSync();
+      Directory('${root.path}/lib/v1').deleteSync(recursive: true);
+      final result = await _run(root, []);
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      expect(_registry(root)['bands'], isEmpty);
+      expect(_registry(root)['types']['Choice']['typeId'], 0);
+    },
+  );
 
-      expect(scanned.path, 'lib/v0/model.dart');
-      expect(scanned.tolerant, isTrue);
-      expect(scanned.hasOtherHooks, isTrue);
-      expect(scanned.fields, ['a', 'b', 'c']);
-      expect(scanned.explicitIndexes, {'a': 5});
-      expect(scanned.unresolvedIndexes, ['c']);
+  test('inherited fields are accepted by the following build', () async {
+    _write(
+      root,
+      'lib/v0/inherited.dart',
+      "import 'package:hive_ce/hive.dart';\n"
+          "part 'inherited.g.dart';\n"
+          'class Base { @PHiveField(0) final String id; const Base(this.id); }\n'
+          '@PHiveAutoType(classHooks: [TolerantLayout()])\n'
+          'class Inherited extends Base { @PHiveField(1) final String title; const Inherited(super.id, this.title); }',
+    );
+    final assigned = await _run(root, []);
+    expect(assigned.exitCode, 0, reason: assigned.stderr.toString());
+    expect(_registry(root)['types']['api/v0/Inherited']['fields'], {
+      'id': 0,
+      'title': 1,
     });
-
-    test('positional order matches generator index inference', () {
-      const scanned = ScannedAutoType(
-        className: 'M',
-        path: 'lib/m.dart',
-        tolerant: false,
-        hasOtherHooks: false,
-        fields: ['a', 'b', 'c'],
-        explicitIndexes: {'c': 0},
-        unresolvedIndexes: [],
-      );
-      expect(scanned.positionalOrder, ['c', 'a', 'b']);
-    });
+    final built = await Process.run('dart', [
+      'run',
+      'build_runner',
+      'build',
+    ], workingDirectory: root.path);
+    expect(built.exitCode, 0, reason: '${built.stdout} ${built.stderr}');
   });
 }

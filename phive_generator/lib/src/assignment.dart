@@ -1,4 +1,4 @@
-import 'source_scan.dart';
+import 'resolved_scan.dart';
 import 'type_registry.dart';
 
 /// Outcome of applying one source scan to a registry.
@@ -43,7 +43,7 @@ class AssignmentReport {
 /// Throws [StateError] (including [RegistryShapeChangeError]) for conflicts.
 AssignmentReport applyScan(
   TypeIdRegistry registry,
-  List<ScannedAutoType> scanned, {
+  List<ScannedType> scanned, {
   int startAt = 0,
   String? onlyBand,
   Set<String> reidentify = const {},
@@ -53,7 +53,7 @@ AssignmentReport applyScan(
   }
 
   final bandsByKey = <String, String?>{};
-  final selected = <String, ScannedAutoType>{};
+  final selected = <String, ScannedType>{};
   for (final type in scanned) {
     final band = registry.bandForPath(type.path)?.name;
     if (onlyBand != null && band != onlyBand) continue;
@@ -109,19 +109,12 @@ AssignmentReport applyScan(
   if (recordShapes) {
     for (final entry in selected.entries) {
       final type = entry.value;
-      if (type.unresolvedIndexes.isNotEmpty) {
-        throw StateError(
-          '"${entry.key}" uses non-literal @PHiveField indexes on '
-          '${type.unresolvedIndexes.join(', ')}; registry shapes need integer '
-          'literals.',
-        );
-      }
       final beforeId = current.lookupTypeId(entry.key);
       current = current.recordShape(
         entry.key,
         type.tolerant ? type.fields : type.positionalOrder,
         tolerant: type.tolerant,
-        explicitTags: type.tolerant ? type.explicitIndexes : const {},
+        explicitTags: type.tolerant ? type.explicitTags : const {},
         reidentify: reidentify.contains(entry.key),
         hadOtherHooks: type.hasOtherHooks,
         previouslyRegistered: registry.contains(entry.key),

@@ -43,19 +43,38 @@ void main() {
     () async {
       final dir = Directory.systemTemp.createTempSync('phive-type-ids-');
       addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: nested_fixture
+environment:
+  sdk: ^3.11.0
+dependencies:
+  phive:
+    path: ${Directory('../phive').absolute.path}
+''');
+      final get = await Process.run('flutter', [
+        'pub',
+        'get',
+        '--offline',
+      ], workingDirectory: dir.path);
+      expect(get.exitCode, 0, reason: get.stderr.toString());
       File('${dir.path}/models.dart').writeAsStringSync('''
+import 'package:phive/phive.dart';
+class Hook extends PHiveHook { const Hook(Object value); }
+class Other { const Other(Object value); }
 // @PHiveAutoType() class LineComment {}
 /* @PHiveAutoType() class BlockComment {} */
 const text = r'@PHiveAutoType() class StringLiteral {}';
 class Unannotated {}
-@PHiveAutoType(hooks: [Hook({'brace': [1, 2], 'text': ') class Wrong'})])
+@PHiveAutoType(autoFields: true, hooks: [Hook({'brace': [1, 2], 'text': ') class Wrong'})])
 @Other({'key': 1})
-abstract class Model {}
+class Model { final String id; const Model(this.id); }
 ''');
       final registry = File('${dir.path}/registry.json');
       final result = await Process.run(Platform.resolvedExecutable, [
         '--packages=.dart_tool/package_config.json',
         'bin/assign_type_ids.dart',
+        '--root',
+        dir.path,
         '--dir',
         dir.path,
         '--registry',

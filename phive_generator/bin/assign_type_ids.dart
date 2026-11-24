@@ -27,7 +27,7 @@ library;
 import 'dart:io';
 
 import 'package:phive_generator/src/assignment.dart';
-import 'package:phive_generator/src/source_scan.dart';
+import 'package:phive_generator/src/resolved_scan.dart';
 import 'package:phive_generator/src/type_registry.dart';
 
 Future<void> main(List<String> args) async {
@@ -55,14 +55,12 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final scanned = scanAutoTypes(scanDir, root: Directory(options.rootDir));
-  if (scanned.isEmpty) {
-    stdout.writeln('No @PHiveAutoType classes found in "${options.scanDir}".');
-    return;
-  }
-
   final AssignmentReport report;
   try {
+    final scanned = await scanResolved(
+      scanDir,
+      root: Directory(options.rootDir),
+    );
     report = applyScan(
       registry,
       scanned,

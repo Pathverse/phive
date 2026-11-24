@@ -1,291 +1,123 @@
 # phive
 
-See the [runnable storage example](example/README.md) for setup, adapter generation, and a complete write/read round trip.
+Store Dart models with Hive CE and retrieve them by key. PHive generates the serialization code and gives you a router for saving, reading, and deleting objects.
 
-Core runtime package for PHive.
+## Save your first note
 
-Use this package to define model annotations, hook pipelines, generated adapter runtime support, generated router descriptors, and router-based storage flows.
+This example runs from a terminal on macOS, Linux, or Windows. Use a Flutter SDK with Dart 3.11 or newer. For a complete repository example, see the [storage walkthrough](example/README.md).
 
-## What you get
+### Install
 
-- `@PHiveType` and `@PHiveAutoType` — model annotation with explicit or registry-assigned typeId
-- `@PHiveField`, `@PHivePrimaryKey`, `@PHiveRef`
-- `PTypeAdapter<T>` runtime support
-- `PHiveCtx` and `PHiveHook`
-- `PHiveActionException` and `PHiveActionBehavior`
-- `TolerantLayout`, `PHiveSchemaDriftException`, `phiveSchemaFingerprint` and
-  `PHiveFingerprinted` for evolving stored schemas
-- `PHiveRouter`, `PHiveDynamicRouter`, `PHiveStaticRouter`
-- `PHiveRouterDescriptor` and descriptor registration helpers
-- `PHiveContainerHandle` for parent-child containership
+From your Flutter project, add the runtime and development tools.
 
-## Install
-
-```yaml
-dependencies:
-  hive_ce: ^2.24.0
-  phive: ^0.9.0
+```sh
+flutter pub add phive hive_ce
+flutter pub add --dev phive_generator build_runner
 ```
 
-The public runtime constraint still accepts Hive CE `^2.19.3`. The examples
-select 2.24.0 or newer compatible releases; updating an existing application's
-lockfile requires `flutter pub upgrade hive_ce`.
+### Create the model
 
-If you are in this monorepo:
-
-```yaml
-dependencies:
-  phive:
-    path: ../phive
-```
-
-## Quick Start
+Save this as `lib/note.dart`. The number `1` identifies this model in storage. The field numbers identify its stored field order. Keep these numbers stable once you have saved data.
 
 ```dart
+import 'package:hive_ce/hive.dart';
 import 'package:phive/phive.dart';
 
+part 'note.g.dart';
+
 @PHiveType(1)
-class Session {
-  @PHiveField(0)
-  @PHivePrimaryKey(boxName: 'app_sessions')
-  final String id;
-
-  @PHiveField(1)
-  final String token;
-
-  const Session({required this.id, required this.token});
-}
-```
-
-Then run `phive_generator` with `build_runner` to emit the adapter and router descriptor.
-
-You can also opt into constructor-order field inference for simpler models:
-
-```dart
-@PHiveType(2, autoFields: true)
-class AutoSession {
-  final String id;
-  final String token;
-
-  const AutoSession(this.id, this.token);
-}
-```
-
-Or skip the typeId entirely with `@PHiveAutoType` and let the generator assign it from `phive_type_registry.json`:
-
-```dart
-@PHiveAutoType()
 class Note {
   @PHiveField(0)
+  @PHivePrimaryKey(boxName: 'notes')
   final String id;
 
   @PHiveField(1)
-  final String body;
+  final String text;
 
-  const Note({required this.id, required this.body});
+  const Note({required this.id, required this.text});
 }
 ```
 
-Run `dart run phive_generator:assign_type_ids` once after annotating, then `build_runner` as normal. See `phive_generator` for the full workflow.
+### Generate the adapter
 
-## Router Quick Use
-
-```dart
-Hive.registerAdapter(SessionAdapter());
-
-final router = PHiveDynamicRouter()
-  ..applyDescriptor(const SessionRouterDescriptor());
-
-await router.store(const Session(id: '1', token: 'abc'));
-final session = await router.get<Session>('1');
+```sh
+dart run build_runner build
 ```
 
-Manual registration remains available when you do not want generated descriptors.
+This creates `lib/note.g.dart` with `NoteAdapter` and `NoteRouterDescriptor`. Regenerate after changing the model.
 
-## Router Model
+### Save and read it
 
-Generated descriptors embed literal storage names: the lowercase model name for
-primary stores, and `__ref_Parent_Child` for relationships using declared simple
-names. Minification does not change these literals. Override them with
-`@PHivePrimaryKey(boxName: 'cards_v1')` and
-`@PHiveRef(Lesson, refBoxName: 'cards_by_lesson_v1')` when names must survive class
-renames or distinguish same-named models. Backend normalization still applies.
-
-For manual registration, pass `boxName` to `register` and `refBoxName` to
-`createRef`: their fallback still uses runtime type strings. Regenerate adapters
-on upgrade; formerly minified default stores may need application-owned
-recreation/repopulation or migration. PHive does not automatically migrate or
-delete them. Readable or opaque store names are identifiers, not a security
-boundary; serialization and encryption behavior are unchanged.
-
-- `PHiveDynamicRouter` uses runtime registration and `LazyBox<T>` for primary values so keyed reads can apply hook-driven exception behaviors.
-- `PHiveStaticRouter` uses one Hive CE `BoxCollection` with multiple named stores.
-- Both routers preserve PHive-generated adapter semantics and hook pipelines.
-
-Use the dynamic router when the type set is flexible. Use the static router when a fixed set of types and refs should share one logical database, especially on web.
-
-### Updating relationships
-
-Storing a child with the same primary key and a different parent moves its
-membership to the new parent's container. After `store` succeeds, the old
-container no longer returns that child, and deleting the old container or parent
-does not delete the moved child. Existing container handles remain usable.
-
-Each store scans the affected relationship's existing reference lists, removes
-old memberships, and retains exactly one destination membership. This also
-repairs stale links when a primary key is reused after `delete` or `clearType`,
-without reading the old value or triggering its hooks. Untouched stale keys are
-not swept. Cost grows with the number and size of lists in each relationship.
-
-Serialize mutations to the same logical store. Primary and reference writes are
-not an atomic transaction; storage errors propagate and can leave partial
-updates. `delete` and `clearType` still remove primary values only, and reads
-continue to tolerate missing children.
-
-### Metadata precedence
-
-On generated reads, a field's persisted metadata takes precedence over global
-defaults, including an explicitly stored null. Missing field keys inherit global
-values. Whole-object hooks receive only global metadata. Regenerate adapters to
-apply this ordering; the version-2 header and field byte layout are unchanged.
-
-## Exception Behavior Model
-
-PHive uses behavior-driven hook exceptions for read-side cleanup and fallback handling.
-
-- hooks throw `PHiveActionException`
-- the exception carries one or more `PHiveActionBehavior` values
-- routers execute those behaviors with storage context
-
-This keeps hooks responsible for declaring value semantics and routers responsible for applying storage side effects.
-
-PHive annotations expose two hook scopes:
-
-- `hooks` on `@PHiveType` and `@PHiveAutoType` are merged into each mapped field pipeline.
-- `classHooks` run once around the whole model instance during generated adapter read/write.
-- Hooked models write one versioned metadata header with `global` and `perField` sections before raw field values.
-- Global metadata is visible to whole-object hooks and field hooks, while per-field metadata remains scoped to the owning field.
-
-## Schema Evolution
-
-By default, generated adapters store fields **by position**. Adding, removing
-or reordering a field changes how existing records decode, so a positional
-model's field layout must not change while its records are in storage.
-
-Models whose shape will evolve (for example, models generated from an API
-contract) can opt into the **tolerant layout** by adding `TolerantLayout` to
-their `classHooks`:
+Save this as `lib/try_phive.dart`. It uses temporary storage so you can try the package without choosing an application data folder.
 
 ```dart
-@PHiveAutoType(autoFields: true, classHooks: [TolerantLayout()])
-class Lesson {
-  final String id;
-  final String? title;
+import 'dart:io';
+import 'package:hive_ce/hive.dart';
+import 'package:phive/phive.dart';
+import 'note.dart';
 
-  const Lesson({required this.id, this.title});
+Future<void> main() async {
+  final folder = await Directory.systemTemp.createTemp('phive_demo_');
+  try {
+    Hive.init(folder.path);
+    Hive.registerAdapter<Note>(NoteAdapter());
+    final router = PHiveDynamicRouter()
+      ..applyDescriptor(const NoteRouterDescriptor());
+    await router.ensureOpen();
+    await router.store(const Note(id: 'note-1', text: 'Hello PHive'));
+    final restored = (await router.get<Note>('note-1'))!;
+    stdout.writeln('Restored ${restored.id}: ${restored.text}');
+  } finally {
+    await Hive.close();
+    await folder.delete(recursive: true);
+  }
 }
 ```
 
-A tolerant adapter writes a version-3 metadata header followed by one map of
-field tag to value. Tags are persisted in the type registry, so they do not
-depend on declaration order. On read:
-
-- stored tags that the model no longer declares are ignored;
-- an absent nullable field restores as `null`, or as its constructor default;
-- a stored value of the wrong type, or an absent required field, raises
-  `PHiveSchemaDriftException` instead of returning a wrongly populated object.
-
-`TolerantLayout` changes only the stored layout. Its lifecycle methods are
-no-ops, and other class hooks such as encryption compose with it unchanged.
-Models without the hook keep their existing layout byte for byte.
-
-Header versions: positional records use version 2
-(`PHiveMetadataHeader.positionalVersion`), and tagged records use version 3
-(`PHiveMetadataHeader.taggedVersion`). `extractMetadataHeader` accepts both and
-reports which one it read.
-
-### Schema drift
-
-`PHiveSchemaDriftException` is a `PHiveActionException` that carries the
-drifted `typeName` and, when known, the `fieldName`. It requests no behavior by
-itself, so by default it reaches the caller and no data is removed:
-
-```dart
-try {
-  final lesson = await router.get<Lesson>('l1');
-} on PHiveSchemaDriftException catch (drift) {
-  log('Discarding cached ${drift.typeName}: ${drift.reason}');
-}
+```sh
+dart run lib/try_phive.dart
 ```
 
-### Drift policy
+Expected output is `Restored note-1: Hello PHive`. For application data, initialize Hive with a persistent app-specific storage directory. The example deletes its temporary directory on exit.
 
-For stores that are **caches** of a source of truth, you can have a router treat
-drift as a miss. Use `PHiveDriftPolicy.deleteAndMiss` as a router-wide default,
-or on a single registration:
+## Everyday operations
 
-```dart
-final router = PHiveDynamicRouter(driftPolicy: PHiveDriftPolicy.deleteAndMiss)
-  ..applyDescriptor(const LessonRouterDescriptor());
-
-// Or per type, overriding the router default:
-router.register<Lesson>(
-  primaryKey: (lesson) => lesson.id,
-  boxName: 'lessons_cache',
-  driftPolicy: PHiveDriftPolicy.deleteAndMiss,
-);
-```
-
-Under `deleteAndMiss`, a `PHiveSchemaDriftException` removes the entry from
-the primary store. `get` returns `null`, and `getAll` and container traversal
-skip the entry and continue. This includes enum drift and records containing
-a tombstoned type ID.
-
-Generate tombstones from your registry, then register them explicitly at startup.
+Once your router is registered and open, use the model type to select its store.
 
 ```dart
-registerAdapters();
-registerPHiveTombstones();
+final note = await router.get<Note>('note-1'); // null when absent
+final notes = await router.getAll<Note>();
+await router.delete<Note>('note-1');
+await router.clearType<Note>();
 ```
 
-`PHiveTombstoneAdapter<T>` reports a retired identifier as schema drift.
-`registerPHiveTombstone<T>(id)` skips identifiers that already have an adapter.
-The generated function supplies a distinct marker type per identifier and
-can safely run twice.
+Call `Hive.close()` when you finish using storage.
 
-An identifier with neither an adapter nor a tombstone raises Hive's storage
-error under every policy, and its entry is kept. Forgetting
-`registerPHiveTombstones()` therefore leaves retired records stored and
-surfaces the error to the caller.
+## Choose a router
 
-The default `PHiveDriftPolicy.propagate` keeps entries and propagates drift.
-Use `deleteAndMiss` for caches that can be refilled from a source of truth.
-Both routers apply the same policy.
+Start with `PHiveDynamicRouter`. For a fixed set of models sharing one logical database, including web apps, use `PHiveStaticRouter`. Register its models and relationships before calling `ensureOpen()`.
 
-### Schema fingerprints
+Give stores explicit names, such as the `notes` name in the model above, when those names need to survive model renames. Register every nested model's adapter as well as the parent adapter.
 
-Every generated adapter exposes `schemaFingerprint`, which is derived from its
-type ID, layout and fields. `phiveSchemaFingerprint` combines a set of adapters
-into one order-independent value. Store it beside your data to detect drift
-before reading:
+## Models that evolve
 
-```dart
-final current = phiveSchemaFingerprint([LessonAdapter(), CardAdapter()]);
-if (storedFingerprint != current) {
-  await router.clearType<Lesson>();
-}
-```
+The starter uses positional storage. Changing its field order or shape requires a migration. For new models that will evolve, use the generator's [tolerant-model setup](https://github.com/Pathverse/phive/blob/main/phive_generator/README.md#models-that-change-over-time). It preserves field identities through additions, removals, and reordering.
 
-Hand-written `TypeAdapter`s can take part by implementing `PHiveFingerprinted`.
-Adapters without a fingerprint contribute only their type ID. The fingerprint
-detects drift; it is not a security boundary.
+Use `PHiveDriftPolicy.deleteAndMiss` only for caches you can refill. It deletes incompatible entries and returns a miss. The default policy preserves entries and reports the error. An unknown type ID without a registered tombstone reports a storage error under either policy.
 
-## Nullable Fields
+To handle retired IDs, generate tombstones with the generator and call the generated `registerPHiveTombstones()` after registering normal adapters.
 
-Hooked fields keep their native Hive value types because metadata now lives in the record header instead of being encoded into field payloads. Nullable field types (`int?`, `bool?`, etc.) therefore round-trip without string coercion.
+## Expiry, encryption, and relationships
 
-## Notes
+- Add [phive_barrel](https://pub.dev/packages/phive_barrel) for TTL and encryption hooks.
+- Use `@PHiveRef` with a parent type to generate parent-child relationships. The [Flutter demo](https://github.com/Pathverse/phive/blob/main/example/README.md) shows loading containers and cascade deletion.
+- Moving a child with `store()` updates its parent membership. Serialize writes to the same logical store because primary and relationship writes are separate storage operations.
+- `delete()` and `clearType()` remove primary records. Use `deleteWithChildren()` for a parent and its descendants.
 
-- This package is runtime-only.
-- For ready-made hooks such as TTL and encryption, also add `phive_barrel`.
-- For adapter and descriptor generation, also add `phive_generator`.
+## Upgrading an existing app
+
+Back up data you need to retain before changing model identities or layouts. Keep type IDs and positional field order stable. Review the generator's [upgrade guidance](https://github.com/Pathverse/phive/blob/main/phive_generator/README.md#upgrading-existing-data) before regenerating deployed models.
+
+Version-3 tolerant records require PHive 0.9.0 or newer. After writing them, an older runtime cannot read that store. Generated adapters also expose `schemaFingerprint`, and `phiveSchemaFingerprint([...])` combines them for application-owned cache invalidation.
+
+More APIs and customization options are in the [API reference](https://pub.dev/documentation/phive/latest/).

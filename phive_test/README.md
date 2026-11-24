@@ -1,54 +1,45 @@
-# phive_test
+# Check PHive integration behavior
 
-Internal test package for PHive integration scenarios.
+Use this package when changing PHive itself. It generates real models and tests how the runtime, generator, and hooks work together. If you are adding PHive to an app, start with the [runtime guide](../phive/README.md).
 
-This package is mainly for contributors who want to validate generated adapters, generated router descriptors, and runtime behavior in one place.
+## Run the tests
 
-## What this Package is For
+From the repository root, run these commands with Flutter 3.44 or newer and its bundled Dart SDK.
 
-- integration-style validation of generator output
-- hook pipeline behavior checks such as TTL and encryption
-- regression tests while developing `phive`, `phive_generator`, and router behavior
-- fixture models that exercise class-level hooks, field-level hooks, `autoFields`, descriptor generation, and `@PHiveAutoType` registry-assigned typeIds
-
-## Install Dependencies
-
-Use the tested Flutter 3.47.5 / Dart 3.13.4 toolchain. This test consumer selects
-Hive CE `^2.24.0` and hive_ce_flutter `^2.6.0`. Refresh existing dependencies
-with `flutter pub upgrade`; the current generator stack uses build 5 and
-hive_ce_generator 1.12.1.
-
-The manifest permits Flutter >=3.44 and Dart ^3.11, but newer transitive
-dependencies can require newer SDKs. The selected latest stack is tested on
-the toolchain above; older SDKs need a separately resolved compatible graph.
-
-```bash
+```sh
+cd phive_test
 flutter pub get
-```
-
-## Run Tests
-
-```bash
-flutter test
-```
-
-## Regenerate Fixtures
-
-```bash
 dart run build_runner build
+flutter test --no-pub
 ```
 
-## Coverage Notes
+A successful run ends with `All tests passed!`. Dependencies resolve against the local packages through this package's overrides.
 
-This package is where PHive validates cross-package expectations such as:
+## Test one behavior
 
-- generated adapters and descriptors compile together
-- top-level and field-level hooks behave correctly
-- AES, GCM, TTL, and `autoFields` scenarios stay stable across refactors
-- `@PHiveAutoType` adapters with registry-assigned typeIds round-trip correctly
+```sh
+flutter test --no-pub test/empty_models_test.dart
+flutter test --no-pub test/enum_adapters_test.dart
+flutter test --no-pub test/tolerant_evolution_test.dart
+```
 
-## Quick Note
+Use the empty-model test when changing support for fieldless nested models, the enum test when changing case tags, and the evolution test when changing tolerant reads.
 
-If you only want to use PHive in your app, you usually do not need this package. Use `phive`, `phive_generator`, and optionally `phive_barrel`.
+## Add or update a generated fixture
 
-If you are contributing to PHive itself, this package is the quickest place to validate end-to-end generated-adapter behavior before changing example flows or package docs.
+1. Add the model under `lib/models` with its annotations and a matching `part` directive.
+2. If it uses `@PHiveAutoType`, run the assignment command below.
+3. Regenerate adapters, add a test under `test`, and run it.
+
+```sh
+dart run phive_generator:assign_type_ids --tombstones lib/phive_tombstones.g.dart
+dart run build_runner build
+flutter test --no-pub
+flutter analyze --no-pub
+```
+
+Commit registry changes with the corresponding generated fixtures. Keep the frozen bytes under `test/fixtures` intact when changing adapters. Their [fixture guide](test/fixtures/README.md) explains how to run the compatibility check.
+
+## Check browser releases
+
+The [acceptance guide](../features/README.md) runs naming, schema-evolution, and enum checks across separately compiled web builds.

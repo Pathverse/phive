@@ -1,74 +1,39 @@
-# PHive Example
+# Try PHive in a Flutter app
 
-Simple Flutter app demonstrating PHive storage through both router implementations.
+Use this demo to save a cached value, watch TTL expiry, and move or delete related lesson cards.
 
-## What it Shows
+## Run the demo
 
-- save strongly typed models into Hive CE
-- restore login/cache models through `PHiveDynamicRouter`
-- observe field-level hook behavior for TTL and encryption
-- inspect parent-child router relations through `PHiveStaticRouter`, `createRef`, `getContainer`, `deleteContainer`, and `deleteWithChildren`
-- show how static-router values remain hook-aware even though they are stored through `BoxCollection`
-- show generated router descriptors installing registration and ref wiring declaratively
+From the repository root, use Flutter 3.44 or newer with Dart 3.11 or newer and resolve dependencies for that SDK.
 
-## Run the App
-
-Use the tested Flutter 3.47.5 / Dart 3.13.4 toolchain. This demo selects Hive CE
-`^2.24.0` and hive_ce_flutter `^2.6.0`; its tracked lockfile records the tested
-versions; that lockfile requires Flutter >=3.47 and Dart >=3.13 because of
-transitive dependencies. The manifest's Flutter >=3.44 / Dart ^3.11 range
-allows Pub to resolve older compatible transitive versions separately.
-The Flutter companion enables accelerated checksums through
-`Hive.initFlutter` and flushes open boxes when the app is paused.
-
-Freezed 3 keeps this demo on build 4 and the compatible Hive generator 1.11.1.
-The PHive generator also accepts build 5, which is exercised by `phive_test`.
-
-```bash
+```sh
+cd example
 flutter pub get
 flutter run -d chrome
 ```
 
-## Regenerate Adapters After Model Changes
+Google Chrome and Flutter web support are needed for this command. You can choose another configured Flutter device instead.
 
-```bash
-dart run build_runner build --delete-conflicting-outputs
+## Try these flows
+
+1. Open **Hooked Cache Demo**. Save a value and restore it to see the stored data.
+2. Wait more than ten seconds and restore again to see TTL-backed values expire.
+3. Open **Router Relations Demo**. Seed the lesson graph, then load a lesson's cards.
+4. Try **Delete Cards Only**, then seed again and try **Cascade Delete Lesson** to compare the two actions.
+
+## Change a model
+
+Edit a model under `lib`, then regenerate its adapters before running the app again.
+
+```sh
+dart run build_runner build
 ```
 
-## Quick Flow
+The demo uses local copies of all three PHive packages. Its Freezed models and the integration package can resolve different compatible generator toolchains, so run `flutter pub get` inside the package you are using.
 
-1. Use the **Hooked Cache Demo** to save and restore encrypted and TTL-backed values through the dynamic router.
-2. Wait for TTL expiry and restore again to observe the temporary session fields expire and disappear.
-3. Use the **Router Relations Demo** to seed a lesson graph and load its contained cards through the static router.
-4. Try **Delete Cards Only** and **Cascade Delete Lesson** to see router ref behavior change in place.
+## Where to go next
 
-## Demo Behavior
-
-- `Settings.secretKey` uses `GCMEncrypted`
-- `Settings.cachedToken` uses `TTL(10)`
-- `Settings.config` uses `UniversalEncrypted`
-- `UserProfile.encryptedToken` uses `GCMEncrypted`
-- `UserProfile.tempSessionId` uses `TTL(10)`
-- expired TTL values trigger behavior-driven cleanup that deletes the stored entry and returns `null`
-- the login/cache section uses `PHiveDynamicRouter`
-- the lesson/card relations section uses `PHiveStaticRouter` with `BoxCollection`
-- static-router values are stored through a primitive string boundary so generated adapters and PHive hooks continue to define the payload semantics
-- `DemoLessonCard.lessonId` is routed through a generated `createRef<DemoLessonCard, DemoLesson>` relationship
-- `getContainer` loads all lesson cards for the current lesson handle
-- `deleteContainer` clears only the child card box entries and ref store entry
-- `deleteWithChildren` removes the lesson and its routed child cards together
-
-## Storage Notes
-
-The example intentionally shows both router boundaries:
-
-- the dynamic router uses `LazyBox<T>` for primary values so keyed reads can apply hook-driven behaviors
-- the static router uses one `BoxCollection` with multiple named stores
-
-When inspecting static-router values directly, remember that PHive may store base64-encoded Hive binary payloads at the `CollectionBox<String>` boundary. Read values back through PHive APIs for the decoded domain model.
-
-## Related Packages
-
-- `phive` (core runtime)
-- `phive_generator` (adapter and descriptor generation)
-- `phive_barrel` (ready-made hooks)
+- [Use PHive in your app](../phive/README.md).
+- [Generate your own adapters](../phive_generator/README.md).
+- [Configure expiry and encryption](../phive_barrel/README.md).
+- [Run the cross-package tests](../phive_test/README.md).

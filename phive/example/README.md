@@ -1,36 +1,35 @@
-# PHive storage example
+# Save and read your first PHive note
 
-This native command-line example registers a model and generated adapter, writes
-a note through `PHiveDynamicRouter`, and reads it back. It uses a temporary
-directory and removes it after closing Hive, including on failure.
+The example saves a note, reads it back, and removes its temporary storage.
 
-Install Flutter with Dart 3.11 or newer. Use `dart` from that Flutter SDK on your
-PATH. Flutter is needed to resolve the package dependencies; no emulator,
-platform project, or Flutter UI is needed. This example uses `dart:io` and runs
-on macOS, Linux, or Windows.
+## Run it
 
-From this `example/` directory:
+Use a full checkout of this repository and a Flutter SDK with Dart 3.11 or newer. These command-line examples run on macOS, Linux, and Windows. Their dependencies use local package paths in the checkout.
+
+From the repository root, run these commands.
 
 ```sh
+cd phive/example
 flutter pub get
 dart run build_runner build
-dart analyze
 dart run lib/main.dart
 ```
 
-Expected output:
+Expected output follows.
 
 ```text
 Restored note-1: Hello PHive
 Temporary storage removed.
 ```
 
-A mismatched restored value throws an error and exits unsuccessfully. The
-generated `lib/note.g.dart` is included for inspection; the generation command
-recreates it. Keep the model's field indexes and type ID stable when adapting
-this example to persistent application data.
+## Make it yours
 
-The parent `phive` package is loaded from `../`. All companion packages resolve
-from pub.dev, so this example also works in an unpacked package archive.
-The parent-only dependency override makes the hosted generator use that same
-local `phive` package. It does not require a sibling checkout.
+- Open `lib/note.dart` and change the note's fields or annotations.
+- Run `dart run build_runner build` after each model edit.
+- Open `lib/main.dart` to see adapter registration and storage calls.
+- Keep the type ID and field numbers stable after storing data you intend to retain.
+- Run `dart analyze` to check your edited example.
+
+The example uses temporary storage and deletes it after running. In an app, initialize Hive with a persistent app-specific directory.
+
+Return to the [package guide](../README.md) to add this workflow to your project.

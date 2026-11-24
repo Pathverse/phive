@@ -1,34 +1,35 @@
-# PHive generator example
+# Generate an adapter and save a note
 
-`lib/note.dart` declares a model using `@PHiveType`, `@PHiveField`, and
-`@PHivePrimaryKey`. Generation creates `NoteAdapter` and `NoteRouterDescriptor`.
-`lib/main.dart` registers the adapter, applies the descriptor, and verifies a
-real storage round trip with an explicit box name.
+The example generates a NoteAdapter and NoteRouterDescriptor, then uses them to save and read a note.
 
-Install Flutter with Dart 3.11 or newer and put its `dart` executable on PATH.
-Flutter is needed for dependency resolution. This native command-line example
-runs on macOS, Linux, or Windows; no Flutter UI or emulator is needed.
+## Run it
 
-From this `example/` directory:
+Use a full checkout of this repository and a Flutter SDK with Dart 3.11 or newer. These command-line examples run on macOS, Linux, and Windows. Their dependencies use local package paths in the checkout.
+
+From the repository root, run these commands.
 
 ```sh
+cd phive_generator/example
 flutter pub get
 dart run build_runner build
-dart analyze
 dart run lib/main.dart
 ```
 
-Expected output:
+Expected output follows.
 
 ```text
 Restored note-1: Hello PHive
 Temporary storage removed.
 ```
 
-The checked-in `lib/note.g.dart` shows the complete generated output. Regenerate
-it after changing the model. Keep type IDs and field indexes stable for deployed
-data. A mismatched round trip throws an error; temporary storage is closed and
-removed on both success and failure.
+## Make it yours
 
-The generator resolves from `../`, while companion packages resolve from
-pub.dev. No sibling repository or shared demo is required.
+- Open `lib/note.dart` and change the note's fields or annotations.
+- Run `dart run build_runner build` after each model edit.
+- Open `lib/main.dart` to see adapter registration and storage calls.
+- Keep the type ID and field numbers stable after storing data you intend to retain.
+- Run `dart analyze` to check your edited example.
+
+The example uses temporary storage and deletes it after running. In an app, initialize Hive with a persistent app-specific directory.
+
+Return to the [package guide](../README.md) to add this workflow to your project.

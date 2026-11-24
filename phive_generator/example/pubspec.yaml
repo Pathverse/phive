@@ -14,8 +14,3 @@ dev_dependencies:
     path: ../
   build_runner: ^2.12.1
   flutter_lints: ^6.0.0
-
-# Resolve the in-repo runtime until phive 0.9.0 is published.
-dependency_overrides:
-  phive:
-    path: ../../phive

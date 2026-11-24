@@ -1,6 +1,6 @@
 name: phive_generator
 description: "build_runner generator for PHive adapters from PHiveType and PHiveField annotations."
-version: 0.9.1
+version: 0.9.2
 homepage: https://github.com/Pathverse/phive
 
 environment:

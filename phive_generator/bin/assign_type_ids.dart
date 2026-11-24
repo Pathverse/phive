@@ -5,24 +5,29 @@
 ///   dart run phive_generator:assign_type_ids [options]
 ///
 /// Options:
-///   --dir {path}        Directory to scan for .dart files. Default: lib/
-///   --registry {path}   Registry file path. Default: phive_type_registry.json
-///   --start {int}       Minimum typeId to assign (floor). Default: 0
-///   --dry-run           Print changes without writing to disk.
-///   --help              Show this help message.
+///   --dir {path}         Directory to scan for .dart files. Default: lib/
+///   --root {path}        Package root that band paths are relative to.
+///                        Default: the current directory
+///   --registry {path}    Registry file path. Default: phive_type_registry.json
+///   --start {int}        Minimum typeId for unbanded classes. Default: 0
+///   --band {name}        Only assign and retire within this band.
+///   --reidentify {key}   Retire a positional type's typeId and allocate a new
+///                        one for its changed field shape (repeatable).
+///   --dry-run            Print changes without writing to disk.
+///   --help               Show this help message.
 ///
-/// The tool is idempotent: running it multiple times does not change already-
-/// assigned ids.  New classes found in subsequent scans are appended with the
-/// next available id.
+/// The tool is idempotent: running it again without source changes leaves the
+/// registry unchanged. Banded classes that disappear are retired, and their
+/// identifiers are never reassigned.
 ///
-/// Run this tool once after annotating new classes with `@PHiveAutoType`, then
+/// Run this tool after annotating or changing `@PHiveAutoType` classes, then
 /// commit `phive_type_registry.json` before invoking `build_runner`.
 library;
 
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/utilities.dart';
-import 'package:analyzer/dart/ast/ast.dart';
+import 'package:phive_generator/src/assignment.dart';
+import 'package:phive_generator/src/source_scan.dart';
 import 'package:phive_generator/src/type_registry.dart';
 
 Future<void> main(List<String> args) async {
@@ -38,110 +43,112 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  // ── Load existing registry ────────────────────────────────────────────────
-
   final registryFile = File(options.registryPath);
-  var registry = registryFile.existsSync()
-      ? TypeIdRegistry.fromJson(registryFile.readAsStringSync())
-      : TypeIdRegistry.empty();
+  final TypeIdRegistry registry;
+  try {
+    registry = registryFile.existsSync()
+        ? TypeIdRegistry.fromJson(registryFile.readAsStringSync())
+        : TypeIdRegistry.empty();
+  } on FormatException catch (error) {
+    stderr.writeln('Error: invalid registry: ${error.message}');
+    exitCode = 1;
+    return;
+  }
 
-  // ── Scan source files for @PHiveAutoType class names ──────────────────────
-
-  final discovered = _scanForAutoTypeClasses(scanDir);
-
-  if (discovered.isEmpty) {
+  final scanned = scanAutoTypes(scanDir, root: Directory(options.rootDir));
+  if (scanned.isEmpty) {
     stdout.writeln('No @PHiveAutoType classes found in "${options.scanDir}".');
     return;
   }
 
-  final newClasses = discovered
-      .where((name) => !registry.contains(name))
-      .toList();
-
-  if (newClasses.isEmpty) {
-    stdout.writeln(
-      'All ${discovered.length} discovered class(es) are already registered.',
+  final AssignmentReport report;
+  try {
+    report = applyScan(
+      registry,
+      scanned,
+      startAt: options.startAt,
+      onlyBand: options.band,
+      reidentify: options.reidentify,
     );
-    _printRegistry(registry);
+  } on StateError catch (error) {
+    stderr.writeln('Error: ${error.message}');
+    exitCode = 1;
     return;
   }
 
-  // ── Assign ids to new classes ─────────────────────────────────────────────
-
-  final updated = registry.assignAll(newClasses, startAt: options.startAt);
-
-  stdout.writeln(
-    'Discovered ${discovered.length} class(es), '
-    '${newClasses.length} newly assigned:',
-  );
-  for (final name in newClasses) {
-    stdout.writeln('  + $name → typeId ${updated.lookupTypeId(name)}');
+  final updated = report.registry;
+  stdout.writeln('Discovered ${report.bandsByKey.length} class(es):');
+  for (final entry in report.bandsByKey.entries) {
+    final band = entry.value == null ? 'unbanded' : 'band ${entry.value}';
+    final marker = report.assigned.contains(entry.key)
+        ? '+'
+        : report.reidentified.contains(entry.key)
+        ? '~'
+        : ' ';
+    stdout.writeln(
+      '  $marker ${entry.key} → typeId ${updated.lookupTypeId(entry.key)} '
+      '($band)',
+    );
+  }
+  for (final key in report.retired) {
+    stdout.writeln('  - $key retired');
   }
 
-  // ── Write registry ────────────────────────────────────────────────────────
-
+  final unchanged = updated.toJson() == registry.toJson();
   if (options.dryRun) {
     stdout.writeln(
       '\n[dry-run] Registry NOT written to "${options.registryPath}".',
     );
-    stdout.writeln('Resulting registry would be:');
-    stdout.writeln(updated.toJson());
+    if (!unchanged) {
+      stdout.writeln('Resulting registry would be:');
+      stdout.writeln(updated.toJson());
+    }
     return;
   }
 
+  if (unchanged && registryFile.existsSync()) {
+    stdout.writeln('\nRegistry unchanged.');
+    return;
+  }
   registryFile.writeAsStringSync(updated.toJson());
   stdout.writeln('\nRegistry written to "${options.registryPath}".');
-}
-
-// ── Scanner ───────────────────────────────────────────────────────────────────
-
-/// Finds annotated top-level classes using the Dart parser, without resolution.
-List<String> _scanForAutoTypeClasses(Directory dir) {
-  final names = <String>{};
-  final dartFiles = dir
-      .listSync(recursive: true)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.dart'));
-
-  for (final file in dartFiles) {
-    final unit = parseString(
-      content: file.readAsStringSync(),
-      path: file.path,
-      throwIfDiagnostics: false,
-    ).unit;
-    for (final declaration in unit.declarations.whereType<ClassDeclaration>()) {
-      if (declaration.metadata.any(
-        (annotation) => annotation.name.name.split('.').last == 'PHiveAutoType',
-      )) {
-        names.add(declaration.namePart.typeName.lexeme);
-      }
-    }
-  }
-
-  return names.toList()..sort();
 }
 
 // ── Argument parsing ──────────────────────────────────────────────────────────
 
 class _Options {
   final String scanDir;
+  final String rootDir;
   final String registryPath;
   final int startAt;
+  final String? band;
+  final Set<String> reidentify;
   final bool dryRun;
 
   const _Options({
     required this.scanDir,
+    required this.rootDir,
     required this.registryPath,
     required this.startAt,
+    required this.band,
+    required this.reidentify,
     required this.dryRun,
   });
 }
 
 _Options? _parseArgs(List<String> args) {
   var scanDir = 'lib';
+  var rootDir = '.';
   var registryPath = 'phive_type_registry.json';
   var startAt = 0;
+  String? band;
+  final reidentify = <String>{};
   var dryRun = false;
+
+  String value(int i, String flag) {
+    if (i + 1 >= args.length) _die('$flag requires a value');
+    return args[i + 1];
+  }
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -152,14 +159,19 @@ _Options? _parseArgs(List<String> args) {
       case '--dry-run':
         dryRun = true;
       case '--dir':
-        if (i + 1 >= args.length) _die('--dir requires a value');
-        scanDir = args[++i];
+        scanDir = value(i++, '--dir');
+      case '--root':
+        rootDir = value(i++, '--root');
       case '--registry':
-        if (i + 1 >= args.length) _die('--registry requires a value');
-        registryPath = args[++i];
+        registryPath = value(i++, '--registry');
+      case '--band':
+        band = value(i++, '--band');
+      case '--reidentify':
+        reidentify.add(value(i++, '--reidentify'));
       case '--start':
-        if (i + 1 >= args.length) _die('--start requires a value');
-        startAt = int.tryParse(args[++i]) ?? _die('--start must be an integer');
+        startAt =
+            int.tryParse(value(i++, '--start')) ??
+            _die('--start must be an integer');
       default:
         _die('Unknown argument: ${args[i]}');
     }
@@ -167,8 +179,11 @@ _Options? _parseArgs(List<String> args) {
 
   return _Options(
     scanDir: scanDir,
+    rootDir: rootDir,
     registryPath: registryPath,
     startAt: startAt,
+    band: band,
+    reidentify: reidentify,
     dryRun: dryRun,
   );
 }
@@ -187,14 +202,20 @@ Usage:
   dart run phive_generator:assign_type_ids [options]
 
 Options:
-  --dir <path>        Directory to scan for .dart source files.
-                      Default: lib/
-  --registry <path>   Path to the registry JSON file.
-                      Default: phive_type_registry.json
-  --start <int>       Minimum typeId to assign (floor for new ids).
-                      Default: 0
-  --dry-run           Print changes without writing to disk.
-  --help              Show this message.
+  --dir <path>         Directory to scan for .dart source files.
+                       Default: lib/
+  --root <path>        Package root that band path globs are relative to.
+                       Default: current directory
+  --registry <path>    Path to the registry JSON file.
+                       Default: phive_type_registry.json
+  --start <int>        Minimum typeId for unbanded classes.
+                       Default: 0
+  --band <name>        Only assign and retire within this band.
+  --reidentify <key>   Retire the typeId of a positional type whose fields
+                       changed and allocate a new one in its band.
+                       Repeatable. Example: --reidentify api/v1/Card
+  --dry-run            Print each class's band and typeId without writing.
+  --help               Show this message.
 
 Workflow:
   1. Annotate your models with @PHiveAutoType.
@@ -202,10 +223,4 @@ Workflow:
   3. Commit phive_type_registry.json.
   4. Run build_runner as normal.
 ''');
-}
-
-void _printRegistry(TypeIdRegistry registry) {
-  if (registry.isEmpty) return;
-  stdout.writeln('\nCurrent registry:');
-  stdout.writeln(registry.toJson());
 }

@@ -268,6 +268,18 @@ The tool resolves package libraries with the Dart analyzer and uses the
 generator's field collector, including inherited fields and evaluated constant
 indexes. Run `dart pub get` or `flutter pub get` before assignment.
 
+### Empty models
+
+A model with a zero-parameter unnamed constructor and no instance storage
+fields can have an empty mapping. This includes models with methods, computed
+getters and static members. Instance fields in superclasses and mixins also
+count as state and require mapping.
+
+Hookless positional adapters write zero payload values. Tolerant adapters
+write the version-3 header and an empty tag map. Both reconstruct the model
+through its unnamed constructor and expose a normal schema fingerprint.
+Empty mappings with unmapped instance state or constructor parameters fail.
+
 ### Enum adapters
 
 ```dart

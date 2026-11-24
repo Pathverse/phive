@@ -1,0 +1,54 @@
+// ignore_for_file: non_constant_identifier_names
+
+class AutoEmptyTolerantAdapter extends PTypeAdapter<AutoEmptyTolerant> {
+  @override
+  final int typeId = 73;
+
+  @override
+  String? get schemaFingerprint =>
+      '62ec6a9df0a7dd7bb4de70d9b665dc2354366db8a65260326b9b61876e200e35';
+
+  @override
+  AutoEmptyTolerant read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+
+    if (metadata_header.isTagged) {
+      final raw_body = reader.read();
+      if (raw_body is! Map) {
+        throw PHiveSchemaDriftException(
+          typeName: 'AutoEmptyTolerant',
+          reason: 'tagged record body is not a map',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoEmptyTolerant',
+        reason: 'version-2 record without a recorded positional sequence',
+      );
+    }
+
+    final result = AutoEmptyTolerant();
+    final ctx_obj = PHiveCtx()..value = result;
+    applyMetadata(ctx_obj, metadata_header.globalMetadata);
+    runPreRead(const [TolerantLayout()], ctx_obj);
+    runPostRead(const [TolerantLayout()], ctx_obj);
+    return ctx_obj.value as AutoEmptyTolerant;
+  }
+
+  @override
+  void write(BinaryWriter writer, AutoEmptyTolerant obj) {
+    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const [TolerantLayout()], ctx_obj);
+    final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+
+    final metadata_header = createMetadataHeader(
+      version: PHiveMetadataHeader.taggedVersion,
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{},
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(<int, dynamic>{});
+
+    runPostWrite(const [TolerantLayout()], ctx_obj);
+  }
+}

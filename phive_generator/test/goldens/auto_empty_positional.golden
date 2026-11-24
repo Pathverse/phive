@@ -1,0 +1,18 @@
+// ignore_for_file: non_constant_identifier_names
+
+class AutoEmptyPositionalAdapter extends PTypeAdapter<AutoEmptyPositional> {
+  @override
+  final int typeId = 72;
+
+  @override
+  String? get schemaFingerprint =>
+      '76ad91b3382a56563c24d9e570fb6c48d0ad8764437812e5fda181ee94230623';
+
+  @override
+  AutoEmptyPositional read(BinaryReader reader) {
+    return AutoEmptyPositional();
+  }
+
+  @override
+  void write(BinaryWriter writer, AutoEmptyPositional obj) {}
+}

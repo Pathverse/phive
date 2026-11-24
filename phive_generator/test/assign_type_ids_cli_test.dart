@@ -406,4 +406,41 @@ void main() {
       expect(File(dryOutput).existsSync(), isFalse);
     },
   );
+  test('empty shapes assign, reload and generate without a rerun', () async {
+    _write(root, 'lib/v0/empty.dart', """
+import 'package:hive_ce/hive.dart';
+part 'empty.g.dart';
+@PHiveAutoType()
+class Empty { const Empty(); }
+@PHiveAutoType(classHooks: [TolerantLayout()])
+class TaggedEmpty { const TaggedEmpty(); }
+""");
+    final assigned = await _run(root, []);
+    expect(assigned.exitCode, 0, reason: assigned.stderr.toString());
+    final reloaded = TypeIdRegistry.fromJson(
+      File('${root.path}/phive_type_registry.json').readAsStringSync(),
+    );
+    expect(reloaded.shapeOf('api/v0/Empty')!.fields, isEmpty);
+    expect(reloaded.shapeOf('api/v0/TaggedEmpty')!.fields, isEmpty);
+    final built = await Process.run('dart', [
+      'run',
+      'build_runner',
+      'build',
+    ], workingDirectory: root.path);
+    expect(built.exitCode, 0, reason: '${built.stdout} ${built.stderr}');
+    final output = File('${root.path}/lib/v0/empty.g.dart').readAsStringSync();
+    expect(output, contains('class EmptyAdapter'));
+    expect(output, contains('class TaggedEmptyAdapter'));
+    expect(output, contains('schemaFingerprint'));
+    final analyzed = await Process.run('dart', [
+      'analyze',
+      'lib/v0/empty.dart',
+      'lib/v0/empty.g.dart',
+    ], workingDirectory: root.path);
+    expect(
+      analyzed.exitCode,
+      0,
+      reason: '${analyzed.stdout} ${analyzed.stderr}',
+    );
+  });
 }

@@ -1,0 +1,40 @@
+// ignore_for_file: non_constant_identifier_names
+
+class ExplicitEnumAdapter extends PTypeAdapter<ExplicitEnum> {
+  @override
+  final int typeId = 81;
+
+  @override
+  String? get schemaFingerprint =>
+      '2e6f6732272dd16ba153b73f3625686d64fad43a957315d38e5ee2ac9308e55f';
+
+  @override
+  ExplicitEnum read(BinaryReader reader) {
+    final raw_tag = reader.read();
+    if (raw_tag is! int) {
+      throw PHiveSchemaDriftException(
+        typeName: 'ExplicitEnum',
+        reason: 'stored ${raw_tag.runtimeType} is not an enum case tag',
+      );
+    }
+    switch (raw_tag) {
+      case 7:
+        return ExplicitEnum.quiz;
+      case 300:
+        return ExplicitEnum.survey;
+      default:
+        throw PHiveSchemaDriftException(
+          typeName: 'ExplicitEnum',
+          reason: 'unknown case tag $raw_tag',
+        );
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, ExplicitEnum obj) {
+    writer.write(switch (obj) {
+      ExplicitEnum.quiz => 7,
+      ExplicitEnum.survey => 300,
+    });
+  }
+}

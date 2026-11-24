@@ -8,6 +8,9 @@ enum RegistryLayout {
 
   /// Fields are stored under persisted tags and may evolve.
   tolerant,
+
+  /// Enum cases persisted under stable tags.
+  enumeration,
 }
 
 /// A named, bounded range of type identifiers scoped to library paths.
@@ -165,7 +168,10 @@ class TypeIdRegistry {
     }
   }
 
-  static TypeIdRegistry _fromFlat(Map<dynamic, dynamic> decoded, String source) {
+  static TypeIdRegistry _fromFlat(
+    Map<dynamic, dynamic> decoded,
+    String source,
+  ) {
     final assignments = <String, int>{};
     for (final entry in decoded.entries) {
       final value = entry.value;
@@ -285,7 +291,10 @@ class TypeIdRegistry {
     Map<String, int> intMap(dynamic raw, String name) {
       if (raw == null) return const {};
       if (raw is! Map) {
-        throw FormatException('Type "$key": "$name" must be an object.', source);
+        throw FormatException(
+          'Type "$key": "$name" must be an object.',
+          source,
+        );
       }
       return {
         for (final entry in raw.entries)
@@ -300,10 +309,17 @@ class TypeIdRegistry {
 
     final layoutName = value['layout'] ?? RegistryLayout.positional.name;
     final layout = RegistryLayout.values
-        .where((it) => it.name == layoutName)
+        .where(
+          (it) =>
+              (it == RegistryLayout.enumeration ? 'enum' : it.name) ==
+              layoutName,
+        )
         .firstOrNull;
     if (layout == null) {
-      throw FormatException('Type "$key": unknown layout "$layoutName".', source);
+      throw FormatException(
+        'Type "$key": unknown layout "$layoutName".',
+        source,
+      );
     }
     final rawPositional = value['positionalFields'];
     if (rawPositional != null && rawPositional is! List) {
@@ -406,7 +422,8 @@ class TypeIdRegistry {
   RegistryBand? bandOfKey(String key) {
     for (final band in _bands.values) {
       final prefix = '${band.name}/';
-      if (key.startsWith(prefix) && !key.substring(prefix.length).contains('/')) {
+      if (key.startsWith(prefix) &&
+          !key.substring(prefix.length).contains('/')) {
         return band;
       }
     }
@@ -429,9 +446,8 @@ class TypeIdRegistry {
   }
 
   /// Returns a new registry with [band] declared.
-  TypeIdRegistry withBand(RegistryBand band) => _copy(
-    bands: {..._bands, band.name: band},
-  );
+  TypeIdRegistry withBand(RegistryBand band) =>
+      _copy(bands: {..._bands, band.name: band});
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
@@ -659,6 +675,7 @@ class TypeIdRegistry {
     String key,
     List<String> orderedFields, {
     required bool tolerant,
+    bool enumeration = false,
     Map<String, int> explicitTags = const {},
     bool reidentify = false,
     bool hadOtherHooks = false,
@@ -666,8 +683,49 @@ class TypeIdRegistry {
   }) {
     lookupTypeId(key);
     final existing = _shapes[key];
+    if (existing != null &&
+        (existing.layout == RegistryLayout.enumeration) != enumeration) {
+      if (reidentify) {
+        return this.reidentify(
+          key,
+          RegistryShape(
+            layout: enumeration
+                ? RegistryLayout.enumeration
+                : tolerant
+                ? RegistryLayout.tolerant
+                : RegistryLayout.positional,
+            fields: _allocateTags(
+              key,
+              orderedFields,
+              explicitTags,
+              current: const {},
+              retired: const {},
+            ),
+          ),
+        );
+      }
+      throw RegistryShapeChangeError(
+        key,
+        '"$key" changed between an enum and a model; re-identify it with --reidentify $key.',
+      );
+    }
+    if (enumeration && existing == null) {
+      return withShape(
+        key,
+        RegistryShape(
+          layout: RegistryLayout.enumeration,
+          fields: _allocateTags(
+            key,
+            orderedFields,
+            explicitTags,
+            current: const {},
+            retired: const {},
+          ),
+        ),
+      );
+    }
 
-    if (!tolerant) {
+    if (!tolerant && !enumeration) {
       final positional = RegistryShape(
         layout: RegistryLayout.positional,
         fields: {
@@ -753,7 +811,9 @@ class TypeIdRegistry {
       retired: retiredFields,
     );
     final updated = RegistryShape(
-      layout: RegistryLayout.tolerant,
+      layout: enumeration
+          ? RegistryLayout.enumeration
+          : RegistryLayout.tolerant,
       fields: tags,
       retiredFields: retiredFields,
       positionalFields: existing.positionalFields,
@@ -846,7 +906,9 @@ class TypeIdRegistry {
 
     Map<String, dynamic> shapeJson(RegistryShape? shape) => {
       if (shape != null) ...{
-        'layout': shape.layout.name,
+        'layout': shape.layout == RegistryLayout.enumeration
+            ? 'enum'
+            : shape.layout.name,
         'fields': _sortedByValue(shape.fields),
         if (shape.retiredFields.isNotEmpty)
           'retiredFields': _sortedByValue(shape.retiredFields),

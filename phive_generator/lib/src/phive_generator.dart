@@ -9,6 +9,7 @@ import 'package:source_gen/source_gen.dart';
 import 'package:hive_ce_generator/src/helper/helper.dart' as hive_helper;
 
 import 'adapter_emitter.dart';
+import 'enum_emitter.dart';
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
@@ -33,6 +34,13 @@ class PhiveGenerator extends GeneratorForAnnotation<PHiveType> {
       );
     }
 
+    if (element is EnumElement) {
+      return emitEnumAdapter(
+        element: element,
+        annotation: annotation,
+        typeId: annotation.read('typeId').intValue,
+      );
+    }
     final cls = hive_helper.getClass(element);
     final constr = hive_helper.getConstructor(cls);
     final typeId = annotation.read('typeId').intValue;

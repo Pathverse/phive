@@ -10,6 +10,7 @@ import 'package:source_gen/source_gen.dart';
 import 'package:hive_ce_generator/src/helper/helper.dart' as hive_helper;
 
 import 'adapter_emitter.dart';
+import 'enum_emitter.dart';
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
@@ -81,6 +82,22 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
     }
 
     final typeId = registry.lookupTypeId(key);
+    if (element is EnumElement) {
+      final shape = registry.shapeOf(key);
+      if (shape == null || shape.layout != RegistryLayout.enumeration) {
+        throw InvalidGenerationSourceError(
+          '"$key" is an enum but phive_type_registry.json has no enum case tags for it. Run `dart run phive_generator:assign_type_ids` before build_runner.',
+          element: element,
+        );
+      }
+      return emitEnumAdapter(
+        element: element,
+        annotation: annotation,
+        typeId: typeId,
+        tags: shape.fields,
+        key: key,
+      );
+    }
     final cls = hive_helper.getClass(element);
     final constr = hive_helper.getConstructor(cls);
     final autoFields = annotation.peek('autoFields')?.boolValue ?? false;

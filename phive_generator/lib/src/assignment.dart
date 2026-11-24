@@ -104,7 +104,10 @@ AssignmentReport applyScan(
   }
 
   final recordShapes =
-      current.isVersioned || selected.values.any((type) => type.tolerant);
+      current.isVersioned ||
+      selected.values.any(
+        (type) => type.tolerant || type.kind == ScannedKind.enumeration,
+      );
   final reidentified = <String>[];
   if (recordShapes) {
     for (final entry in selected.entries) {
@@ -114,7 +117,10 @@ AssignmentReport applyScan(
         entry.key,
         type.tolerant ? type.fields : type.positionalOrder,
         tolerant: type.tolerant,
-        explicitTags: type.tolerant ? type.explicitTags : const {},
+        enumeration: type.kind == ScannedKind.enumeration,
+        explicitTags: type.tolerant || type.kind == ScannedKind.enumeration
+            ? type.explicitTags
+            : const {},
         reidentify: reidentify.contains(entry.key),
         hadOtherHooks: type.hasOtherHooks,
         previouslyRegistered: registry.contains(entry.key),

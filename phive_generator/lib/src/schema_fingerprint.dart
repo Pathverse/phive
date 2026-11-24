@@ -13,19 +13,23 @@ String computeSchemaFingerprint({
   required int typeId,
   required String layout,
   required Map<String, int> tags,
-  required Map<String, String> types,
+  Map<String, String>? types,
 }) {
   final fields = tags.entries.toList()
     ..sort((a, b) => a.value.compareTo(b.value));
   final canonical = StringBuffer('$typeId|$layout|')
     ..writeAll([
-      for (final field in fields) '${field.value}:${field.key}:${types[field.key]}',
+      for (final field in fields)
+        types == null
+            ? '${field.value}:${field.key}'
+            : '${field.value}:${field.key}:${types[field.key]}',
     ], ',');
   return sha256.convert(utf8.encode(canonical.toString())).toString();
 }
 
 /// Emits the `schemaFingerprint` getter override for a generated adapter.
-String emitSchemaFingerprintGetter(String fingerprint) => '''
+String emitSchemaFingerprintGetter(String fingerprint) =>
+    '''
 
   @override
   String? get schemaFingerprint => '$fingerprint';

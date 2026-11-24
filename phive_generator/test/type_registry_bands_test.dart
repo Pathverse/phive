@@ -13,17 +13,15 @@ RegistryBand _band(String name, int start, int end, [List<String>? paths]) =>
 
 TypeIdRegistry _banded() => TypeIdRegistry(
   {},
-  bands: {
-    'a': _band('a', 10000, 10999),
-    'b': _band('b', 11000, 11999),
-  },
+  bands: {'a': _band('a', 10000, 10999), 'b': _band('b', 11000, 11999)},
 );
 
 void main() {
   group('flat format compatibility', () {
     test('an existing flat registry re-emits byte-identically', () {
       // A registry as written by phive_generator 0.8.x.
-      const source = '{\n'
+      const source =
+          '{\n'
           '  "AutoNote": 10,\n'
           '  "AutoMetadata": 12,\n'
           '  "AutoNamingCard": 22,\n'
@@ -44,11 +42,10 @@ void main() {
   group('versioned format', () {
     test('round-trips bands, types, shapes and retirements', () {
       var registry = _banded().assign('Lesson', band: 'a');
-      registry = registry.recordShape(
-        'a/Lesson',
-        ['id', 'title'],
-        tolerant: true,
-      );
+      registry = registry.recordShape('a/Lesson', [
+        'id',
+        'title',
+      ], tolerant: true);
       registry = registry.assign('Old', band: 'a').retire('a/Old');
 
       final reloaded = TypeIdRegistry.fromJson(registry.toJson());
@@ -105,7 +102,11 @@ void main() {
       expect(
         () => registry.assign('Z', band: 's'),
         throwsA(
-          isA<StateError>().having((e) => e.message, 'message', contains('"s"')),
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('"s"'),
+          ),
         ),
       );
     });
@@ -124,10 +125,7 @@ void main() {
       expect(
         () => TypeIdRegistry(
           {},
-          bands: {
-            'a': _band('a', 10000, 10999),
-            'b': _band('b', 10500, 11499),
-          },
+          bands: {'a': _band('a', 10000, 10999), 'b': _band('b', 10500, 11499)},
         ),
         throwsA(
           isA<StateError>().having(
@@ -215,11 +213,11 @@ void main() {
 
     test('a shape change is refused naming the type and fields', () {
       expect(
-        () => withPositional().recordShape(
-          'a/Card',
-          ['id', 'body', 'extra'],
-          tolerant: false,
-        ),
+        () => withPositional().recordShape('a/Card', [
+          'id',
+          'body',
+          'extra',
+        ], tolerant: false),
         throwsA(
           isA<RegistryShapeChangeError>()
               .having((e) => e.key, 'key', 'a/Card')
@@ -238,7 +236,11 @@ void main() {
 
       expect(registry.lookupTypeId('a/Card'), 10001);
       expect(registry.retiredTypeIds.keys, contains(10000));
-      expect(registry.shapeOf('a/Card')!.orderedFields, ['id', 'body', 'extra']);
+      expect(registry.shapeOf('a/Card')!.orderedFields, [
+        'id',
+        'body',
+        'extra',
+      ]);
       // The retired identifier survives a reload and is still not reusable.
       final reloaded = TypeIdRegistry.fromJson(registry.toJson());
       expect(reloaded.assign('Next', band: 'a').lookupTypeId('a/Next'), 10002);
@@ -257,21 +259,20 @@ void main() {
     });
 
     test('adding a field keeps the identifier and uses an unused tag', () {
-      final registry = withTolerant().recordShape(
-        'a/Lesson',
-        ['id', 'title', 'image'],
-        tolerant: true,
-      );
+      final registry = withTolerant().recordShape('a/Lesson', [
+        'id',
+        'title',
+        'image',
+      ], tolerant: true);
       expect(registry.lookupTypeId('a/Lesson'), 10000);
       expect(registry.shapeOf('a/Lesson')!.fields['image'], 2);
     });
 
     test('reordering fields keeps their tags', () {
-      final registry = withTolerant().recordShape(
-        'a/Lesson',
-        ['title', 'id'],
-        tolerant: true,
-      );
+      final registry = withTolerant().recordShape('a/Lesson', [
+        'title',
+        'id',
+      ], tolerant: true);
       expect(registry.shapeOf('a/Lesson')!.fields, {'id': 0, 'title': 1});
     });
 
@@ -371,13 +372,98 @@ void main() {
     });
 
     test('a type registered in the same run gets no snapshot', () {
-      final registry = TypeIdRegistry.empty().assign('Card').recordShape(
-        'Card',
-        ['id', 'body'],
-        tolerant: true,
-        hadOtherHooks: true,
-      );
+      final registry = TypeIdRegistry.empty()
+          .assign('Card')
+          .recordShape(
+            'Card',
+            ['id', 'body'],
+            tolerant: true,
+            hadOtherHooks: true,
+          );
       expect(registry.shapeOf('Card')!.positionalFields, isNull);
     });
+  });
+  group('enum shapes', () {
+    test('tags survive reorder, removal and re-add and serialize as enum', () {
+      var registry = _banded()
+          .assign('E', band: 'a')
+          .recordShape('a/E', ['a', 'b'], tolerant: false, enumeration: true);
+      registry = registry.recordShape(
+        'a/E',
+        ['b', 'a'],
+        tolerant: false,
+        enumeration: true,
+      );
+      expect(registry.shapeOf('a/E')!.fields, {'a': 0, 'b': 1});
+      registry = registry.recordShape(
+        'a/E',
+        ['a', 'c'],
+        tolerant: false,
+        enumeration: true,
+      );
+      expect(registry.shapeOf('a/E')!.retiredFields, {'b': 1});
+      expect(registry.shapeOf('a/E')!.fields['c'], 2);
+      registry = registry.recordShape(
+        'a/E',
+        ['b', 'c', 'a'],
+        tolerant: false,
+        enumeration: true,
+      );
+      expect(registry.shapeOf('a/E')!.fields['b'], 1);
+      expect(
+        TypeIdRegistry.fromJson(registry.toJson()).shapeOf('a/E')!.layout,
+        RegistryLayout.enumeration,
+      );
+      expect(registry.toJson(), contains('"layout": "enum"'));
+      expect(registry.shapeOf('a/E')!.positionalFields, isNull);
+    });
+    test(
+      'explicit tags cannot retag and model switches require reidentification',
+      () {
+        final registry = _banded()
+            .assign('E', band: 'a')
+            .recordShape(
+              'a/E',
+              ['a'],
+              tolerant: false,
+              enumeration: true,
+              explicitTags: {'a': 42},
+            );
+        expect(registry.shapeOf('a/E')!.fields['a'], 42);
+        expect(
+          () => registry.recordShape(
+            'a/E',
+            ['a'],
+            tolerant: false,
+            enumeration: true,
+            explicitTags: {'a': 43},
+          ),
+          throwsStateError,
+        );
+        expect(
+          () => registry.recordShape('a/E', ['a'], tolerant: false),
+          throwsStateError,
+        );
+        final changed = registry.recordShape(
+          'a/E',
+          ['a'],
+          tolerant: false,
+          reidentify: true,
+        );
+        expect(
+          changed.lookupTypeId('a/E'),
+          isNot(registry.lookupTypeId('a/E')),
+        );
+        expect(
+          () => changed.recordShape(
+            'a/E',
+            ['a'],
+            tolerant: false,
+            enumeration: true,
+          ),
+          throwsStateError,
+        );
+      },
+    );
   });
 }

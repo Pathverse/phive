@@ -1,144 +1,91 @@
 # phive_barrel
 
-See the [runnable TTL example](example/README.md) for generated hooks, expiry, and router-driven deletion.
+Add expiry and encryption to PHive records with annotations. Start with TTL to try a hook, then add encrypted string fields when you have key storage configured.
 
-Ready-to-use PHive hooks package.
+## Give a note a 60-second lifetime
 
-Use this package when you want common behaviors like TTL and encryption without writing your own hook classes.
+Add the packages and generator tools to your Flutter project.
 
-## Install
-
-```yaml
-dependencies:
-  phive_barrel: ^0.9.0
+```sh
+flutter pub add phive phive_barrel hive_ce
+flutter pub add --dev phive_generator build_runner
 ```
 
-If you are in this monorepo:
-
-```yaml
-dependencies:
-  phive_barrel:
-    path: ../phive_barrel
-```
-
-## Common Hooks
-
-- `TTL(seconds)`
-- `GCMEncrypted()`
-- `AESEncrypted()`
-- `UniversalEncrypted()`
-
-These hooks are designed to run inside generated `PTypeAdapter<T>` code produced by `phive_generator`.
-
-## Quick Start
+Save this as `lib/note.dart`.
 
 ```dart
+import 'package:hive_ce/hive.dart';
 import 'package:phive/phive.dart';
-import 'package:phive_barrel/phive_barrel.dart';
+import 'package:phive_barrel/templates/ttl.dart';
+
+part 'note.g.dart';
 
 @PHiveType(1)
-class Session {
+class Note {
   @PHiveField(0)
+  @PHivePrimaryKey(boxName: 'notes')
   final String id;
 
-  @PHiveField(1, hooks: [GCMEncrypted(), TTL(10)])
-  final String token;
+  @PHiveField(1, hooks: [TTL(60)])
+  final String text;
 
-  const Session({required this.id, required this.token});
+  const Note({required this.id, required this.text});
 }
 ```
 
-Then regenerate adapters with `build_runner`.
+Generate the adapter.
 
-## Hook Model
+```sh
+dart run build_runner build
+```
 
-- hooks run through `PHiveCtx`
-- model-level hooks declared on `@PHiveType` are merged with field-level hooks on `@PHiveField`
-- whole-object hooks can be declared with `classHooks` and run once around the full model value
-- `classHooks` persist shared metadata in the version-2 record header's `global` section before field payloads
-- shared class metadata is merged into each field context without overwriting field-specific metadata
-- field-specific values, including null, take precedence; fields without an override inherit the global value, and whole-object hooks receive global metadata only
-- encryption hooks may attach metadata such as nonces into the PHive payload envelope
-- hooks declare read-side cleanup through `PHiveActionException` and `PHiveActionBehavior`
-- routers remain responsible for applying storage side effects such as delete or clear
+Use `NoteAdapter` and `NoteRouterDescriptor` with the [runtime save/read example](https://github.com/Pathverse/phive/blob/main/phive/README.md#save-and-read-it). A fresh read returns your note. A read after 60 seconds returns null and removes the expired record.
 
-## TTL Behavior
+TTL is measured in seconds. Expiry is checked on read. An expired field causes deletion of its enclosing record. Nullable fields with a null value do not receive TTL metadata.
 
-The built-in TTL hook detects expiry on read and throws a behavior-driven exception that requests:
+For a complete example that waits for expiry and checks deletion, run the [one-second TTL walkthrough](example/README.md).
 
-- `deleteEntry`
-- `returnNull`
+## Encrypt a string field
 
-This keeps expiry detection inside the hook while leaving storage mutation inside the router.
-
-## Encryption Seed Setup
-
-Encryption hooks read their key material synchronously at hook runtime, so register and initialize the seed provider before encrypted reads or writes.
+In a Flutter app, configure the seed provider before your first encrypted read or write.
 
 ```dart
+import 'package:flutter/widgets.dart';
 import 'package:phive_barrel/phive_barrel.dart';
 
-Future<void> configurePhiveEncryption() async {
+Future<void> configureEncryption() async {
+  WidgetsFlutterBinding.ensureInitialized();
   PhiveMetaRegistry.registerSeedProvider(
-    SecureStorageSeedProvider(
-      seedIds: const ['session-token', 'profile-cache'],
-    ),
+    SecureStorageSeedProvider(seedIds: const ['note-text']),
   );
   await PhiveMetaRegistry.init();
 }
 ```
 
-Then point hooks at one of those preloaded seed ids:
+Add `import 'package:phive_barrel/phive_barrel.dart';` to the note model. To encrypt its text, replace the text field's annotation with this and regenerate.
 
 ```dart
-@PHiveType(2)
-class Session {
-  @PHiveField(0)
-  final String id;
-
-  @PHiveField(1, hooks: [GCMEncrypted(seedId: 'session-token')])
-  final String token;
-
-  const Session({required this.id, required this.token});
-}
+@PHiveField(1, hooks: [GCMEncrypted(seedId: 'note-text')])
+final String text;
 ```
 
-If you use a custom `seedId`, include it in `SecureStorageSeedProvider(seedIds: [...])` before calling `PhiveMetaRegistry.init()`.
+Call `await configureEncryption()` at startup before opening a flow that reads or writes encrypted records. Include every custom seed ID in the provider's `seedIds` list. Secure-storage access needs the platform setup for your Flutter app.
 
-## Secure-storage 10 and 11 compatibility
+## Choose a hook
 
-The dependency range accepts both major versions. `SecureStorageSeedProvider`
-continues to use `phive_encryption_key` for the default seed and
-`phive_encryption_key__<seedId>` for named seeds, with base64url-encoded bytes.
-Existing PHive encrypted records and seed identifiers do not change.
+| Hook | Use it for |
+| --- | --- |
+| `TTL(seconds)` | Expiring cached records when they are read. |
+| `GCMEncrypted(seedId: ...)` | Authenticated encryption of string fields. |
+| `AESEncrypted(...)` | AES-CBC string storage used by existing PHive models. |
+| `UniversalEncrypted(...)` | Authenticated encryption of JSON-serializable values. |
 
-Before adopting version 11, deployments with legacy secure-storage data must
-first run an appropriate 10.x release and complete its migration. Version 11
-removes RSA PKCS1 and AES-CBC storage algorithms, `encryptedSharedPreferences`,
-and `sharedPreferencesName` (use `storageNamespace`). Retaining deprecated
-storage settings or skipping the migration can make existing seeds unreadable.
-These are the plugin's storage algorithms; PHive's `AESEncrypted` record format
-is unchanged. See the [upstream migration notes](https://pub.dev/packages/flutter_secure_storage/changelog).
+Field hooks go on `@PHiveField(..., hooks: [...])`. Annotation-level `hooks` apply to every mapped field, and `classHooks` run around the whole object. The [Flutter demo](https://github.com/Pathverse/phive/blob/main/example/README.md) shows cache expiry, encryption, and relationships together.
 
-For flutter_secure_storage 11.2.0, Android requires minSdk 24 and Java 17
-compatibility. The plugin uses the selected Flutter SDK's compileSdk value;
-11.1 replaced the earlier fixed compileSdk 37 requirement. Its declared SDK
-requirements are Dart >=3.8 and Flutter >=3.19, while PHive itself requires
-Dart ^3.11. The selected Darwin implementation (0.4.3) declares iOS 13 and
-macOS 10.14 minimums; the app's Flutter toolchain can require newer versions.
-Check the resolved platform packages when upgrading.
+## Upgrade an app that already stores encryption keys
 
-Initialize Flutter bindings before accessing secure storage. Follow upstream
-platform setup instructions, including Keychain entitlements and Android backup
-configuration. A successful Dart mock test does not establish native key-store
-migration compatibility. The repository includes an Android retained-data
-acceptance harness at `tool/secure_storage_upgrade/`.
+Keep access to the same stored seeds when upgrading. Apps with legacy secure-storage data need to complete the appropriate 10.x migration before adopting flutter_secure_storage 11. Platform configuration depends on the resolved plugin version. Follow the upstream setup and migration instructions. [flutter_secure_storage changelog](https://pub.dev/packages/flutter_secure_storage/changelog)
 
-## Nullable Fields
+The repository's [Android upgrade walkthrough](https://github.com/Pathverse/phive/blob/main/tool/secure_storage_upgrade/README.md) checks retained keys and records on a disposable test device.
 
-All barrel hooks are null-safe. `TTL` skips writing metadata when the field value is null so nullable fields (`int?`, `bool?`, etc.) round-trip correctly without payload corruption. Encryption hooks (`GCMEncrypted`, `AESEncrypted`, `UniversalEncrypted`) already skipped non-string values. No special annotation is needed; nullability is handled automatically.
-
-## Notes
-
-- Hooks are designed to work with PHive-generated adapters.
-- For a working dynamic-router and static-router example, see the monorepo `example` app.
+See the [API reference](https://pub.dev/documentation/phive_barrel/latest/) for hook constructors and custom seed providers.

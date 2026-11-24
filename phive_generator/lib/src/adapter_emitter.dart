@@ -110,7 +110,7 @@ ${_emitReadReturnBlock(className: className, constructorArgs: constructorArgs, h
 
   @override
   void write(BinaryWriter writer, $className obj) {
-${_emitWriteClassHooksPrelude(className: className, classHooksSource: classHooksSource, hasMetadataHeader: hasMetadataHeader)}
+${_emitWriteClassHooksPrelude(className: className, classHooksSource: classHooksSource, hasMetadataHeader: hasMetadataHeader, hasFields: mappedFields.isNotEmpty)}
 ${writePreparationBlocks.join('\n')}
 ${_emitMetadataHeaderWriteBlock(hookedFields: hookedFields, hasMetadataHeader: hasMetadataHeader)}
 ${writeBlocks.join('\n')}
@@ -176,6 +176,7 @@ String _emitWriteClassHooksPrelude({
   required String className,
   required String classHooksSource,
   required bool hasMetadataHeader,
+  required bool hasFields,
 }) {
   if (!hasMetadataHeader) return '';
 
@@ -186,7 +187,7 @@ String _emitWriteClassHooksPrelude({
   return '''    final ctx_obj = PHiveCtx()..value = obj;
     runPreWrite(const $classHooksSource, ctx_obj);
     final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
-    final write_obj = ctx_obj.value as $className;''';
+${hasFields ? '    final write_obj = ctx_obj.value as $className;' : ''}''';
 }
 
 /// Emits the whole-object post-write hook block for generated adapters.

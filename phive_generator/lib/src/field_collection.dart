@@ -19,8 +19,9 @@ import 'annotation_helpers.dart';
 /// `@PHiveField` annotation are included and assigned the next available index.
 /// Explicit indexes always win over inferred ones.
 ///
-/// Throws [InvalidGenerationSourceError] when no fields are found or when
-/// duplicate explicit indexes are detected.
+/// Stateless models with zero-parameter unnamed constructors can have no fields.
+/// Throws [InvalidGenerationSourceError] for empty mappings with instance state
+/// or constructor parameters, and for duplicate explicit indexes.
 List<CollectedField> collectMappedFields({
   required InterfaceElement element,
   required InterfaceElement cls,
@@ -68,7 +69,8 @@ List<CollectedField> collectMappedFields({
 
   final resolved = _assignResolvedIndexes(element, [...fieldsByName.values]);
 
-  if (resolved.isEmpty) {
+  if (resolved.isEmpty &&
+      (constr.formalParameters.isNotEmpty || _hasInstanceStorage(cls))) {
     throw InvalidGenerationSourceError(
       'No fields were mapped for ${element.name}. '
       'Add @PHiveField annotations or enable autoFields on @PHiveType / @PHiveAutoType.',
@@ -81,6 +83,14 @@ List<CollectedField> collectMappedFields({
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
+
+bool _hasInstanceStorage(InterfaceElement type) {
+  return type.fields.any(
+        (field) => !field.isStatic && !field.isOriginGetterSetter,
+      ) ||
+      type.mixins.any((mixin) => _hasInstanceStorage(mixin.element)) ||
+      (type.supertype != null && _hasInstanceStorage(type.supertype!.element));
+}
 
 CollectedField? _fieldFromParameter(
   FormalParameterElement param, {

@@ -1,23 +1,29 @@
-# Android secure-storage upgrade acceptance
+# Check an Android secure-storage upgrade
 
-This disposable app checks PHive's default and named seed persistence and
-decrypts two retained GCM records across flutter_secure_storage 10.3.4 → 11.2.0.
-It uses real Android secure storage. It does not use plugin mocks or real user
-data. The fixture includes disposable seed baselines in app-private files so a
-missing seed cannot be mistaken for a successful migration.
+Use this walkthrough to confirm that an Android app can still read its saved
+PHive encryption seeds and decrypt old records after moving from
+flutter_secure_storage 10.3.4 to 11.2.0.
+
+You will run three phases on a disposable test installation. First save data
+with version 10, upgrade that same installation to version 11, then check a
+separate fresh version-11 installation. Each phase writes a JSON result that
+must report passed as true.
 
 Prerequisites: Python 3, Flutter 3.47.5 / Dart 3.13.4, Android SDK/build tools,
 and an Android device or emulator (API 24+). Put Flutter and adb on PATH. The
 generated app uses the Flutter template's compileSdk and debug signing key.
 Use the same workspace, application ID and signing key for both upgrade phases.
 
+## Save the version-10 records
+
 From the repository root, choose a new directory outside the repository and
 the serial of a disposable Android test device:
 
 ```sh
+proof_repo="$PWD"
 proof_workspace=$(mktemp -d)/phive_storage_upgrade
 proof_device=emulator-5556
-python3 tool/secure_storage_upgrade/prepare.py "$proof_workspace" --version 10.3.4
+python3 "$proof_repo/tool/secure_storage_upgrade/prepare.py" "$proof_workspace" --version 10.3.4
 cd "$proof_workspace"
 flutter build apk --debug --target-platform android-arm64 \
   --dart-define=PHIVE_PHASE=write --dart-define=STORAGE_VERSION=10.3.4
@@ -34,10 +40,12 @@ Wait for the result file, then require `passed: true`, `phase: write`, and
 use a fresh disposable device/app installation before starting; the writer
 deliberately rejects preexisting fixtures and secure-storage entries.
 
-From the repository root, prepare the same workspace with version 11:
+## Upgrade the same installation
+
+In the same terminal, prepare that workspace with version 11.
 
 ```sh
-python3 tool/secure_storage_upgrade/prepare.py "$proof_workspace" --version 11.2.0
+python3 "$proof_repo/tool/secure_storage_upgrade/prepare.py" "$proof_workspace" --version 11.2.0
 cd "$proof_workspace"
 flutter build apk --debug --target-platform android-arm64 \
   --dart-define=PHIVE_PHASE=verify --dart-define=STORAGE_VERSION=11.2.0
@@ -55,7 +63,9 @@ app data, delete seeds, or recreate the emulator between these two phases.
 The reader checks raw native values before provider initialization, compares
 both seed bytes with their original baselines, and decrypts both old records.
 
-After saving the upgrade proof, test a fresh 11 installation separately:
+## Check a fresh installation
+
+After saving the upgrade proof, test a fresh 11 installation separately.
 
 ```sh
 adb -s "$proof_device" uninstall dev.phive.acceptance.phive_storage_upgrade
@@ -67,6 +77,8 @@ adb -s "$proof_device" shell am start -W \
 adb -s "$proof_device" exec-out run-as dev.phive.acceptance.phive_storage_upgrade \
   cat files/phive-upgrade-result.json
 ```
+
+## Save the results
 
 Require `passed: true` and `phase: fresh`. Save API level, resolved pubspec.lock,
 build logs, signing certificate fingerprints, and the three result files with

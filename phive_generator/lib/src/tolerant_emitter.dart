@@ -122,6 +122,14 @@ ${_absentBranch(field, type, constructor, className)}
     }''');
   }
 
+  final taggedValuesRead = mappedFields.isEmpty
+      ? ''
+      : '''
+      values = <int, dynamic>{
+        for (final entry in raw_body.entries)
+          if (entry.key is int) entry.key as int: entry.value,
+      };''';
+
   final positionalRead = positionalFields == null
       ? '''
       throw PHiveSchemaDriftException(
@@ -129,7 +137,7 @@ ${_absentBranch(field, type, constructor, className)}
         reason: 'version-2 record without a recorded positional sequence',
       );'''
       : [
-          '      values = <int, dynamic>{};',
+          if (mappedFields.isNotEmpty) '      values = <int, dynamic>{};',
           for (final name in positionalFields)
             if (tags.containsKey(name))
               '      values[${tags[name]}] = reader.read(); // $name'
@@ -171,7 +179,7 @@ $fingerprintBlock
   @override
   $className read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
-    final Map<int, dynamic> values;
+${mappedFields.isEmpty ? '' : '    final Map<int, dynamic> values;'}
     if (metadata_header.isTagged) {
       final raw_body = reader.read();
       if (raw_body is! Map) {
@@ -180,10 +188,7 @@ $fingerprintBlock
           reason: 'tagged record body is not a map',
         );
       }
-      values = <int, dynamic>{
-        for (final entry in raw_body.entries)
-          if (entry.key is int) entry.key as int: entry.value,
-      };
+$taggedValuesRead
     } else {
 $positionalRead
     }
@@ -203,7 +208,7 @@ ${constructorArgs.join(',\n')}
     final ctx_obj = PHiveCtx()..value = obj;
     runPreWrite(const $classHooksSource, ctx_obj);
     final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
-    final write_obj = ctx_obj.value as $className;
+${mappedFields.isEmpty ? '' : '    final write_obj = ctx_obj.value as $className;'}
 ${writePrep.join('\n')}
     final metadata_header = createMetadataHeader(
       version: PHiveMetadataHeader.taggedVersion,

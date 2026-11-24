@@ -1,69 +1,57 @@
-# Acceptance proofs
+# Run PHive acceptance checks
 
-Run from the repository root after restoring Flutter dependencies in `phive` and
-`phive_test` and regenerating integration models in `phive_test` with the local
-generator:
+These checks exercise complete storage journeys, including reads after a second browser build. Run them when changing behavior that spans the runtime and generated adapters.
 
-```powershell
+## Prepare the checkout
+
+Install Flutter, Python, and uv. The browser checks also need Google Chrome and Flutter web support. From the repository root, prepare the two test packages.
+
+```sh
+cd phive
+flutter pub get
+cd ../phive_test
+flutter pub get
+dart run build_runner build
+cd ..
+```
+
+## Run every journey
+
+```sh
 uv run --with behave python -m behave
 uv run --with behave python -m unittest discover -s features/tests -v
 ```
 
-`features/steps/proof_steps.py` maps each supported proof tag to its owning
-package. Router and action-exception proofs run from `phive`; the
-`proof_hook_metadata` proof runs from `phive_test`, where generated adapters
-restore actual stored bytes. The runner invokes `flutter test --no-pub --tags
-<tag>` and includes the package, command, and captured output in failure reports.
-Unknown tags fail before execution.
+Expect a Behave summary with zero failed scenarios, followed by `OK` from the binding tests.
 
-`proof_router_reparenting` covers both router implementations and both ways to
-delete a former container after moving a child. `proof_hook_metadata` covers both
-explicit and automatic type IDs with both routers, including field overrides,
-global defaults, null overrides, and whole-object metadata scope.
+## Run a browser check directly
 
-`proof_generated_store_names` runs native generated-model persistence checks in
-`phive_test`. `proof_release_store_names` runs a dedicated browser proof through
-`tool/verify_store_names_web.py`. The latter requires `uv`, Flutter web support,
-and Google Chrome. Playwright is resolved as development tooling by `uv`; no
-browser tooling is added to runtime packages.
+For storage names and parent-child relationships across two minified builds, run this from the repository root.
 
-Run the release proof directly from the repository root:
-
-```powershell
+```sh
 uv run --with playwright python tool/verify_store_names_web.py
 ```
 
-The runner builds two minified JavaScript releases, uses an isolated headless
-Chrome context, inspects IndexedDB names, and verifies primary and relationship
-reads across builds at one origin without resetting storage. Builds and logs go
-under ignored `.dart_tool/store_names/`. Browser/build/assertion failures fail the
-scenario. `--skip-build` and `--single-build` are diagnostic options, not substitutes
-for the complete acceptance run. To verify failure propagation after building:
+The successful run prints `PASS: minified storage naming across two builds`.
 
-```powershell
-uv run --with playwright python tool/verify_store_names_web.py --skip-build --single-build --expect-name deliberately_missing_store
-```
+For tolerant fields, enum cases, and positional collections across two builds, run the second probe.
 
-That command must exit nonzero. This proves generated naming on JavaScript web
-and native storage; it does not establish all IndexedDB, native-obfuscation, or
-Wasm behavior.
-
-### Tolerant records across release builds
-
-`proof_tolerant_evolution`, `proof_drift_policy` and `proof_tolerant_opt_in` run
-in `phive_test` against stored bytes on the native backends. The browser
-counterpart uses two minified JavaScript releases at one origin:
-
-```powershell
+```sh
 uv run --with playwright python tool/verify_tolerant_web.py
 ```
 
-Build A stores tolerant records. Build B is compiled separately and runs
-without resetting storage. On both routers it checks that:
+The successful run prints `PASS: tolerant records across two minified builds`. Both probes use an isolated headless browser context and keep storage between their writer and reader builds. Their build logs are under `.dart_tool/store_names/` and `.dart_tool/tolerant_web/`.
 
-- the evolved model restores the original values;
-- a retyped field reports schema drift by default;
-- the same field becomes a miss under `PHiveDriftPolicy.deleteAndMiss`.
+## Find a failure
 
-This proves that the tolerant type checks are not removed by release
-optimization. Builds and logs go under the ignored `.dart_tool/tolerant_web/`.
+Read the failed scenario's output for the owning package and Flutter command. Run that command inside the package to reproduce it. For example, run `flutter test --no-pub --tags proof_enum_adapters` inside `phive_test`.
+
+`features/steps/proof_steps.py` maps tags to packages. Add a mapping there when introducing a new proof. The binding tests check that unsupported tags fail before a command is launched.
+
+After building the naming probe, this diagnostic command deliberately asks for a missing store and should exit with an error.
+
+```sh
+uv run --with playwright python tool/verify_store_names_web.py --skip-build --single-build --expect-name deliberately_missing_store
+```
+
+Use the complete two-build commands above for acceptance evidence.

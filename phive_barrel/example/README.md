@@ -1,25 +1,21 @@
-# PHive TTL example
+# Watch a cached note expire
 
-`lib/note.dart` applies `TTL(1)` to a field. Its generated adapter persists the
-TTL metadata and runs the hook on read. A `PHiveDynamicRouter` retrieves fresh
-data, then handles the hook's expiry action by deleting the record and returning
-null. The example checks the backing lazy box to verify deletion.
+The example saves a note with a one-second TTL, reads it while fresh, then verifies that an expired read removes it.
 
-Install Flutter with Dart 3.11 or newer and use that SDK's `dart` on PATH.
-Flutter is required for dependency resolution. The example imports the public
-TTL library directly, so it needs no secure-storage initialization or Flutter
-UI. It runs natively on macOS, Linux, or Windows, using temporary storage.
+## Run it
 
-From this `example/` directory:
+Use a full checkout of this repository and a Flutter SDK with Dart 3.11 or newer. These command-line examples run on macOS, Linux, and Windows. Their dependencies use local package paths in the checkout.
+
+From the repository root, run these commands.
 
 ```sh
+cd phive_barrel/example
 flutter pub get
 dart run build_runner build
-dart analyze
 dart run lib/main.dart
 ```
 
-After a fresh read and a 1.2-second wait, expect:
+Expected output after about a second follows.
 
 ```text
 Restored note-1: Hello PHive
@@ -28,11 +24,14 @@ Expired record removed: true
 Temporary storage removed.
 ```
 
-A failed round trip or missing deletion throws an error. Hive closes and the
-temporary directory is removed even on failure. The short one-second TTL is
-for demonstration; choose an appropriate duration for application records.
-Expiry is detected when reading, rather than by a background timer.
+## Make it yours
 
-The generated `lib/note.g.dart` is included and can be regenerated with the
-command above. The parent package resolves from `../`; all companion packages
-come from pub.dev. This example works outside the monorepo.
+- Open `lib/note.dart` and change the note's fields or annotations.
+- Run `dart run build_runner build` after each model edit.
+- Open `lib/main.dart` to see adapter registration and storage calls.
+- Change `TTL(1)` to the number of seconds appropriate for your cache. Reading an expired record deletes it and returns null.
+- Run `dart analyze` to check your edited example.
+
+The example uses temporary storage and deletes it after running. In an app, initialize Hive with a persistent app-specific directory.
+
+Return to the [package guide](../README.md) to add this workflow to your project.

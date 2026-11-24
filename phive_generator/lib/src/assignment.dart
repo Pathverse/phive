@@ -12,6 +12,9 @@ class AssignmentReport {
   /// Keys retired in this run because their class was not found.
   final List<String> retired;
 
+  /// Newly explicitly retired identifiers, in ascending order.
+  final List<int> explicitlyRetired;
+
   /// Keys re-identified in this run.
   final List<String> reidentified;
 
@@ -23,6 +26,7 @@ class AssignmentReport {
     required this.registry,
     required this.assigned,
     required this.retired,
+    required this.explicitlyRetired,
     required this.reidentified,
     required this.bandsByKey,
   });
@@ -45,9 +49,14 @@ AssignmentReport applyScan(
   TypeIdRegistry registry,
   List<ScannedType> scanned, {
   int startAt = 0,
+  Set<int> retireIds = const {},
   String? onlyBand,
   Set<String> reidentify = const {},
 }) {
+  final explicitlyRetired =
+      retireIds.where((id) => !registry.retiredTypeIds.containsKey(id)).toList()
+        ..sort();
+  registry = registry.retireIds(retireIds);
   if (onlyBand != null && !registry.bands.containsKey(onlyBand)) {
     throw StateError('Unknown band "$onlyBand".');
   }
@@ -140,6 +149,7 @@ AssignmentReport applyScan(
     registry: current,
     assigned: assigned,
     retired: retired,
+    explicitlyRetired: explicitlyRetired,
     reidentified: reidentified,
     bandsByKey: bandsByKey,
   );

@@ -13,6 +13,8 @@
 ///   --band {name}        Only assign and retire within this band.
 ///   --reidentify {key}   Retire a positional type's typeId and allocate a new
 ///                        one for its changed field shape (repeatable).
+///   --retire-id {N|N-M}  Retire abandoned IDs. Inclusive ranges, repeatable.
+///   --tombstones {path}   Generate explicit tombstone registration.
 ///   --dry-run            Print changes without writing to disk.
 ///   --help               Show this help message.
 ///
@@ -29,6 +31,7 @@ import 'dart:io';
 import 'package:phive_generator/src/assignment.dart';
 import 'package:phive_generator/src/resolved_scan.dart';
 import 'package:phive_generator/src/type_registry.dart';
+import 'package:phive_generator/src/tombstone_emitter.dart';
 
 Future<void> main(List<String> args) async {
   final options = _parseArgs(args);
@@ -65,6 +68,7 @@ Future<void> main(List<String> args) async {
       registry,
       scanned,
       startAt: options.startAt,
+      retireIds: options.retireIds,
       onlyBand: options.band,
       reidentify: options.reidentify,
     );
@@ -92,6 +96,17 @@ Future<void> main(List<String> args) async {
     stdout.writeln('  - $key retired');
   }
 
+  for (var i = 0; i < report.explicitlyRetired.length; i++) {
+    final start = report.explicitlyRetired[i];
+    var end = start;
+    while (i + 1 < report.explicitlyRetired.length &&
+        report.explicitlyRetired[i + 1] == end + 1) {
+      end = report.explicitlyRetired[++i];
+    }
+    stdout.writeln(
+      '  x ${start == end ? '$start' : '$start-$end'} retired (explicit)',
+    );
+  }
   final unchanged = updated.toJson() == registry.toJson();
   if (options.dryRun) {
     stdout.writeln(
@@ -101,15 +116,31 @@ Future<void> main(List<String> args) async {
       stdout.writeln('Resulting registry would be:');
       stdout.writeln(updated.toJson());
     }
+    if (options.tombstones != null) {
+      stdout.writeln(
+        '[dry-run] Tombstones NOT written to "${options.tombstones}".',
+      );
+    }
     return;
   }
 
   if (unchanged && registryFile.existsSync()) {
     stdout.writeln('\nRegistry unchanged.');
-    return;
+  } else {
+    registryFile.writeAsStringSync(updated.toJson());
+    stdout.writeln('\nRegistry written to "${options.registryPath}".');
   }
-  registryFile.writeAsStringSync(updated.toJson());
-  stdout.writeln('\nRegistry written to "${options.registryPath}".');
+  if (options.tombstones case final path?) {
+    final file = File(path);
+    final content = emitTombstoneFile(updated);
+    if (file.existsSync() && file.readAsStringSync() == content) {
+      stdout.writeln('Tombstones unchanged.');
+    } else {
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync(content);
+      stdout.writeln('Tombstones written to "$path".');
+    }
+  }
 }
 
 // ── Argument parsing ──────────────────────────────────────────────────────────
@@ -122,6 +153,8 @@ class _Options {
   final String? band;
   final Set<String> reidentify;
   final bool dryRun;
+  final Set<int> retireIds;
+  final String? tombstones;
 
   const _Options({
     required this.scanDir,
@@ -131,6 +164,8 @@ class _Options {
     required this.band,
     required this.reidentify,
     required this.dryRun,
+    required this.retireIds,
+    required this.tombstones,
   });
 }
 
@@ -142,6 +177,8 @@ _Options? _parseArgs(List<String> args) {
   String? band;
   final reidentify = <String>{};
   var dryRun = false;
+  final retireIds = <int>{};
+  String? tombstones;
 
   String value(int i, String flag) {
     if (i + 1 >= args.length) _die('$flag requires a value');
@@ -166,6 +203,19 @@ _Options? _parseArgs(List<String> args) {
         band = value(i++, '--band');
       case '--reidentify':
         reidentify.add(value(i++, '--reidentify'));
+      case '--tombstones':
+        tombstones = value(i++, '--tombstones');
+      case '--retire-id':
+        final spec = value(i++, '--retire-id');
+        final match = RegExp(r'^(\d+)(?:-(\d+))?$').firstMatch(spec);
+        if (match == null) _die('--retire-id $spec: expected N or N-M');
+        final start = int.tryParse(match.group(1)!);
+        final end = int.tryParse(match.group(2) ?? match.group(1)!);
+        if (start == null || end == null || start > 65439 || end > 65439) {
+          _die('--retire-id $spec: typeId must be in 0..65439');
+        }
+        if (start > end) _die('--retire-id $spec: range start exceeds end');
+        retireIds.addAll(Iterable.generate(end - start + 1, (i) => start + i));
       case '--start':
         startAt =
             int.tryParse(value(i++, '--start')) ??
@@ -183,6 +233,8 @@ _Options? _parseArgs(List<String> args) {
     band: band,
     reidentify: reidentify,
     dryRun: dryRun,
+    retireIds: retireIds,
+    tombstones: tombstones,
   );
 }
 
@@ -212,6 +264,8 @@ Options:
   --reidentify <key>   Retire the typeId of a positional type whose fields
                        changed and allocate a new one in its band.
                        Repeatable. Example: --reidentify api/v1/Card
+  --retire-id <N|N-M>  Retire abandoned IDs. Inclusive ranges, repeatable.
+  --tombstones <path>   Generate explicit tombstone registration.
   --dry-run            Print each class's band and typeId without writing.
   --help               Show this message.
 

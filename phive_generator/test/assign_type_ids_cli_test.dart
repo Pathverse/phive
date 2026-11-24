@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
+import 'package:phive_generator/src/type_registry.dart';
+import 'package:phive_generator/src/tombstone_emitter.dart';
 
 /// Runs the CLI against [root] and returns the process result.
 Future<ProcessResult> _run(Directory root, List<String> extra) {
@@ -256,4 +258,152 @@ class Note { final String id; const Note(this.id); }
     ], workingDirectory: root.path);
     expect(built.exitCode, 0, reason: '${built.stdout} ${built.stderr}');
   });
+  test('enum in a band retains removed case tags', () async {
+    _write(
+      root,
+      'lib/v0/color.dart',
+      '@PHiveAutoType() enum Color { red, blue }',
+    );
+    var result = await _run(root, []);
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    var shape = _registry(root)['types']['api/v0/Color'];
+    expect(shape['layout'], 'enum');
+    expect(shape['fields'], {'red': 0, 'blue': 1});
+    _write(
+      root,
+      'lib/v0/color.dart',
+      '@PHiveAutoType() enum Color { red, green }',
+    );
+    result = await _run(root, []);
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    shape = _registry(root)['types']['api/v0/Color'];
+    expect(shape['retiredFields'], {'blue': 1});
+    expect(shape['fields'], {'red': 0, 'green': 2});
+  });
+
+  test(
+    'explicit retirements are applied before assignment and are idempotent',
+    () async {
+      final result = await _run(root, [
+        '--retire-id',
+        '0-2',
+        '--retire-id',
+        '7',
+      ]);
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      expect(result.stdout, contains('x 0-2 retired (explicit)'));
+      expect(result.stdout, contains('x 7 retired (explicit)'));
+      final retired = _registry(root)['retiredTypeIds'];
+      for (final id in [0, 1, 2, 7]) {
+        expect(retired['$id']['key'], 'legacy@$id');
+      }
+      final again = await _run(root, ['--retire-id', '0-2']);
+      expect(again.exitCode, 0);
+      expect(again.stdout, isNot(contains('retired (explicit)')));
+    },
+  );
+
+  test('active ID retirement writes neither output', () async {
+    await _run(root, []);
+    final file = File('${root.path}/phive_type_registry.json');
+    final before = file.readAsStringSync();
+    final result = await _run(root, [
+      '--retire-id',
+      '10000',
+      '--tombstones',
+      '${root.path}/out.dart',
+    ]);
+    expect(result.exitCode, 1);
+    expect(
+      result.stderr,
+      contains(
+        'Cannot retire typeId 10000: it is assigned to "api/v0/Choice".',
+      ),
+    );
+    expect(file.readAsStringSync(), before);
+    expect(File('${root.path}/out.dart').existsSync(), isFalse);
+  });
+
+  for (final item in {
+    '9-3': 'range start exceeds end',
+    'a-3': 'expected N or N-M',
+    '70000': 'typeId must be in 0..65439',
+  }.entries) {
+    test('rejects retirement ${item.key} before writing', () async {
+      final file = File('${root.path}/phive_type_registry.json');
+      final before = file.readAsStringSync();
+      final result = await _run(root, [
+        '--retire-id',
+        item.key,
+        '--tombstones',
+        '${root.path}/out.dart',
+      ]);
+      expect(result.exitCode, 1);
+      expect(result.stderr, contains('--retire-id ${item.key}: ${item.value}'));
+      expect(file.readAsStringSync(), before);
+      expect(File('${root.path}/out.dart').existsSync(), isFalse);
+    });
+  }
+
+  test(
+    'tombstones compile, register without warnings, and avoid rewriting',
+    () async {
+      final output = '${root.path}/lib/tombstones.dart';
+      var result = await _run(root, [
+        '--retire-id',
+        '3-5',
+        '--tombstones',
+        output,
+      ]);
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      final content = File(output).readAsStringSync();
+      expect(
+        content,
+        emitTombstoneFile(
+          TypeIdRegistry.fromJson(
+            File('${root.path}/phive_type_registry.json').readAsStringSync(),
+          ),
+        ),
+      );
+      final analyzed = await Process.run('dart', [
+        'analyze',
+        output,
+      ], workingDirectory: root.path);
+      expect(
+        analyzed.exitCode,
+        0,
+        reason: '${analyzed.stdout} ${analyzed.stderr}',
+      );
+      result = await _run(root, ['--tombstones', output]);
+      expect(result.stdout, contains('Tombstones unchanged.'));
+      _write(root, 'check.dart', """
+import 'dart:async';
+import 'lib/tombstones.dart';
+void main() {
+  final lines = <String>[];
+  runZoned(() { registerPHiveTombstones(); registerPHiveTombstones(); },
+      zoneSpecification: ZoneSpecification(print: (self, parent, zone, message) => lines.add(message)));
+  if (lines.any((line) => line.contains('already a TypeAdapter for this type'))) {
+    throw StateError(lines.join('\\n'));
+  }
+}
+""");
+      final checked = await Process.run('dart', [
+        'run',
+        'check.dart',
+      ], workingDirectory: root.path);
+      expect(
+        checked.exitCode,
+        0,
+        reason: '${checked.stdout} ${checked.stderr}',
+      );
+      final dryOutput = '${root.path}/dry.dart';
+      result = await _run(root, ['--tombstones', dryOutput, '--dry-run']);
+      expect(
+        result.stdout,
+        contains('[dry-run] Tombstones NOT written to "$dryOutput".'),
+      );
+      expect(File(dryOutput).existsSync(), isFalse);
+    },
+  );
 }

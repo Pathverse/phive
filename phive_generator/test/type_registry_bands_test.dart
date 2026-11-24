@@ -466,4 +466,12 @@ void main() {
       },
     );
   });
+  test('explicit retirements reserve ranges before allocation', () {
+    final registry = TypeIdRegistry.empty().retireIds(Iterable.generate(200));
+    expect(registry.retiredTypeIds.length, 200);
+    expect(registry.assign('A').lookupTypeId('A'), 200);
+    expect(registry.retireIds([7]).toJson(), registry.toJson());
+    expect(() => registry.assign('A').retireIds([200]), throwsStateError);
+    expect(() => registry.retireIds([65440]), throwsStateError);
+  });
 }

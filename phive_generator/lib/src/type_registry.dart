@@ -612,6 +612,24 @@ class TypeIdRegistry {
     return current;
   }
 
+  /// Permanently retires abandoned identifiers without an active holder.
+  TypeIdRegistry retireIds(Iterable<int> ids) {
+    final retired = {..._retired};
+    for (final id in ids) {
+      _validateId(id);
+      final holder = _assignments.entries
+          .where((entry) => entry.value == id)
+          .firstOrNull;
+      if (holder != null) {
+        throw StateError(
+          'Cannot retire typeId $id: it is assigned to "${holder.key}".',
+        );
+      }
+      retired.putIfAbsent(id, () => 'legacy@$id');
+    }
+    return _copy(retired: retired);
+  }
+
   /// Returns a new registry with [key] retired.
   ///
   /// Its identifier is kept as retired and never given to another key. Its

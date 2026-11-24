@@ -90,6 +90,197 @@ dependency_overrides:
 
   tearDown(() => root.deleteSync(recursive: true));
 
+  test(
+    'band enrollment, D5 rejection and recovery preserve other outputs',
+    () async {
+      const key = 'api/v0/Choice';
+      final registryFile = File('${root.path}/phive_type_registry.json');
+      final tombstones = File('${root.path}/tombstones.dart');
+      final output = ['--tombstones', tombstones.path];
+      Future<void> success(List<String> args) async {
+        final result = await _run(root, [...args, ...output]);
+        expect(result.exitCode, 0, reason: result.stderr.toString());
+      }
+
+      await success([]);
+      final legacy = registryFile.readAsStringSync();
+      await success(['--band', 'api/v0', '--guard-field-types', '--dry-run']);
+      expect(registryFile.readAsStringSync(), legacy);
+      await success(['--band', 'api/v0', '--guard-field-types']);
+      final baseline = registryFile.readAsStringSync();
+      final before = tombstones.readAsStringSync();
+      final data = _registry(root);
+      expect(data['types'][key]['fieldTypes'], {'0': 'String', '1': 'String?'});
+      expect(data['types']['api/v1/Choice'].containsKey('fieldTypes'), isFalse);
+      _write(
+        root,
+        'lib/v0/choice.dart',
+        _choice.replaceFirst('String? label', 'int? label'),
+      );
+      for (final flags in [
+        <String>[],
+        ['--reidentify', 'api/v1/Choice'],
+      ]) {
+        final result = await _run(root, [...flags, ...output]);
+        expect(result.exitCode, isNot(0));
+        for (final detail in [
+          '$key.label',
+          'String?',
+          'int?',
+          '--reidentify $key',
+        ]) {
+          expect(result.stderr, contains(detail));
+        }
+        expect(registryFile.readAsStringSync(), baseline);
+        expect(tombstones.readAsStringSync(), before);
+      }
+      await success(['--reidentify', key, '--dry-run']);
+      expect(registryFile.readAsStringSync(), baseline);
+      expect(tombstones.readAsStringSync(), before);
+      final full = jsonDecode(baseline);
+      full['bands']['api/v0']['end'] = 10000;
+      registryFile.writeAsStringSync(jsonEncode(full));
+      final exhausted = await _run(root, ['--reidentify', key, ...output]);
+      expect(exhausted.exitCode, isNot(0));
+      expect(registryFile.readAsStringSync(), jsonEncode(full));
+      expect(tombstones.readAsStringSync(), before);
+      registryFile.writeAsStringSync(baseline);
+      await success(['--reidentify', key]);
+      final accepted = registryFile.readAsStringSync();
+      final updated = _registry(root);
+      expect(updated['types'][key]['typeId'], 10001);
+      expect(updated['types'][key]['fieldTypes']['1'], 'int?');
+      expect(updated['retiredTypeIds'].containsKey('10000'), isTrue);
+      expect(tombstones.readAsStringSync(), contains('10000'));
+      await success(['--reidentify', key]);
+      await success([]);
+      expect(registryFile.readAsStringSync(), accepted);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+  test(
+    'D5 rejects a retyped field in both entry points and rebuilds after recovery',
+    () async {
+      const key = 'api/v0/Sample';
+      const registryPath = 'phive_type_registry.json';
+      final file = File('${root.path}/$registryPath');
+      _write(
+        root,
+        'build.yaml',
+        'additional_public_assets: [phive_type_registry.json]\n',
+      );
+      for (final band in ['v0', 'v1']) {
+        File('${root.path}/lib/$band/choice.dart').deleteSync();
+      }
+      void model(String type) => _write(root, 'lib/v0/sample.dart', """
+import 'package:hive_ce/hive.dart';
+part 'sample.g.dart';
+@PHiveAutoType(autoFields:true,classHooks:[TolerantLayout()])
+class Sample {
+  final $type? value;
+  const Sample(this.value);
+}
+""");
+      Future<ProcessResult> dart(List<String> args) => Process.run(
+        Platform.resolvedExecutable,
+        args,
+        workingDirectory: root.path,
+      );
+      Future<void> ok(Future<ProcessResult> command) async {
+        final r = await command;
+        expect(r.exitCode, 0, reason: '${r.stdout}\n${r.stderr}');
+      }
+
+      Future<ProcessResult> build() => dart(['run', 'build_runner', 'build']);
+      File('${root.path}/roundtrip.dart').writeAsStringSync("""
+import 'package:hive_ce/hive.dart';
+import 'package:phive/phive.dart';
+import 'lib/v0/sample.dart';
+Future<void> main(List<String> args) async {
+  Hive.init('data');
+  final adapter = SampleAdapter();
+  if (adapter.typeId != int.parse(args[1])) {
+    throw StateError('Adapter has unexpected type ID \${adapter.typeId}');
+  }
+  Hive.registerAdapter(adapter);
+  final box = await Hive.openLazyBox<Sample>('records');
+  try {
+    if (args.first == 'drift') {
+      try {
+        await box.get('old');
+      } on PHiveSchemaDriftException catch (error) {
+        if (error.fieldName == 'value') return;
+        rethrow;
+      }
+      throw StateError('Expected schema drift');
+    }
+    final writingBaseline = args.first == 'write';
+    final dynamic value = writingBaseline ? 42 : 'replacement';
+    final key = writingBaseline ? 'old' : 'new';
+    await box.put(key, Sample(value));
+    if ((await box.get(key))?.value != value) throw StateError('Wrong value');
+  } finally {
+    await Hive.close();
+  }
+}
+""");
+      model('int');
+      final flags = ['--band', 'api/v0', '--guard-field-types'];
+      await ok(_run(root, flags));
+      final baseline = file.readAsStringSync();
+      final id = _registry(root)['types'][key]['typeId'] as int;
+      await ok(build());
+      await ok(dart(['run', 'roundtrip.dart', 'write', '$id']));
+      model('String');
+      final rejected = await _run(root, []);
+      expect(rejected.exitCode, isNot(0));
+      final failedBuild = await build();
+      expect(failedBuild.exitCode, isNot(0));
+      for (final r in [rejected, failedBuild]) {
+        expect('${r.stdout}\n${r.stderr}', contains('$key.value'));
+      }
+      expect(file.readAsStringSync(), baseline);
+      await ok(
+        _run(root, [
+          '--reidentify',
+          key,
+          '--tombstones',
+          '${root.path}/lib/tombstones.dart',
+        ]),
+      );
+      final accepted = file.readAsStringSync();
+      final updated = _registry(root);
+      final replacementId = updated['types'][key]['typeId'] as int;
+      expect(replacementId, greaterThan(id));
+      expect(updated['retiredTypeIds'].containsKey('$id'), isTrue);
+      await ok(build());
+      await ok(
+        dart([
+          'analyze',
+          'lib/v0/sample.dart',
+          'lib/v0/sample.g.dart',
+          'roundtrip.dart',
+        ]),
+      );
+      await ok(
+        dart(['run', 'roundtrip.dart', 'replacement', '$replacementId']),
+      );
+      await ok(_run(root, []));
+      expect(file.readAsStringSync(), accepted);
+
+      // Replay the same old bytes using the original ID in an unenrolled registry.
+      final legacy = jsonDecode(baseline);
+      legacy['format'] = 2;
+      for (final shape in legacy['types'].values) {
+        shape.remove('fieldTypes');
+      }
+      file.writeAsStringSync(jsonEncode(legacy));
+      await ok(_run(root, []));
+      await ok(build());
+      await ok(dart(['run', 'roundtrip.dart', 'drift', '$id']));
+    },
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
   test('same-named classes in two bands get distinct banded IDs', () async {
     final result = await _run(root, []);
     expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');

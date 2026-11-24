@@ -52,6 +52,7 @@ AssignmentReport applyScan(
   Set<int> retireIds = const {},
   String? onlyBand,
   Set<String> reidentify = const {},
+  bool guardFieldTypes = false,
 }) {
   final explicitlyRetired =
       retireIds.where((id) => !registry.retiredTypeIds.containsKey(id)).toList()
@@ -126,6 +127,12 @@ AssignmentReport applyScan(
         entry.key,
         type.tolerant ? type.fields : type.positionalOrder,
         tolerant: type.tolerant,
+        resolvedTypes:
+            type.tolerant &&
+                (guardFieldTypes ||
+                    current.shapeOf(entry.key)?.fieldTypes != null)
+            ? type.resolveFieldTypes!()
+            : null,
         enumeration: type.kind == ScannedKind.enumeration,
         explicitTags: type.tolerant || type.kind == ScannedKind.enumeration
             ? type.explicitTags

@@ -58,9 +58,94 @@ void main() {
       expect(jsonDecode(registry.toJson())['format'], 2);
     });
 
+    test('guarded format preserves active, historical and empty baselines', () {
+      final original = _banded()
+          .assign('Card', band: 'a')
+          .assign('Empty', band: 'a')
+          .withShape(
+            'a/Card',
+            RegistryShape(
+              layout: RegistryLayout.tolerant,
+              fields: {'x': 2},
+              retiredFields: {'legacy': 0, 'known': 1},
+              fieldTypes: {2: 'String?', 1: 'int'},
+            ),
+          )
+          .withShape(
+            'a/Empty',
+            RegistryShape(
+              layout: RegistryLayout.tolerant,
+              fields: {},
+              fieldTypes: {},
+            ),
+          );
+      final encoded = original.toJson();
+      expect(jsonDecode(encoded)['format'], 3);
+      final restored = TypeIdRegistry.fromJson(encoded);
+      expect(restored.toJson(), encoded);
+      expect(restored.shapeOf('a/Card')!.fieldTypes, {1: 'int', 2: 'String?'});
+      expect(restored.shapeOf('a/Empty')!.fieldTypes, isEmpty);
+      for (final invalid in [
+        null,
+        [],
+        {'1': 'int'},
+        {'2': ''},
+        {'2': 'String?', '8': 'int'},
+      ]) {
+        final data = jsonDecode(encoded);
+        data['types']['a/Card']['fieldTypes'] = invalid;
+        expect(
+          () => TypeIdRegistry.fromJson(jsonEncode(data)),
+          throwsFormatException,
+        );
+      }
+      expect(
+        () => TypeIdRegistry.fromJson(
+          encoded.replaceFirst('"format": 3', '"format": 2'),
+        ),
+        throwsFormatException,
+      );
+    });
+    test(
+      'known returning tags enforce their baseline and unknown retired tags enroll on return',
+      () {
+        var registry = _banded()
+            .assign('Card', band: 'a')
+            .withShape(
+              'a/Card',
+              RegistryShape(
+                layout: RegistryLayout.tolerant,
+                fields: {'text': 0},
+                retiredFields: {'legacy': 1},
+              ),
+            );
+        TypeIdRegistry assign(Map<String, String> types) =>
+            registry.recordShape(
+              'a/Card',
+              types.keys.toList(),
+              tolerant: true,
+              resolvedTypes: types,
+            );
+        registry = assign({'text': 'String'});
+        registry = assign({'extra': 'int', 'legacy': 'bool'});
+        expect(registry.shapeOf('a/Card')!.fields, {'extra': 2, 'legacy': 1});
+        registry = TypeIdRegistry.fromJson(registry.toJson());
+        expect(
+          () => assign({'text': 'int'}),
+          throwsA(isA<RegistryShapeChangeError>()),
+        );
+        registry = assign({'text': 'String', 'legacy': 'bool', 'extra': 'int'});
+        expect(registry.lookupTypeId('a/Card'), 10000);
+        expect(registry.shapeOf('a/Card')!.fields, {
+          'text': 0,
+          'extra': 2,
+          'legacy': 1,
+        });
+      },
+    );
     test('rejects an unsupported format number', () {
       expect(
-        () => TypeIdRegistry.fromJson('{"format": 3}'),
+        () => TypeIdRegistry.fromJson('{"format": 4}'),
         throwsFormatException,
       );
     });

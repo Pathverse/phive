@@ -4,12 +4,12 @@ The example generates a NoteAdapter and NoteRouterDescriptor, then uses them to 
 
 ## Run it
 
-Use a full checkout of this repository and a Flutter SDK with Dart 3.11 or newer. These command-line examples run on macOS, Linux, and Windows. Their dependencies use local package paths in the checkout.
+Use a Flutter SDK with Dart 3.11 or newer on macOS, Linux, or Windows. The example uses the generator in the parent directory and downloads the PHive runtime from pub.dev.
 
-From the repository root, run these commands.
+From the `phive_generator` package directory, run these commands.
 
 ```sh
-cd phive_generator/example
+cd example
 flutter pub get
 dart run build_runner build
 dart run lib/main.dart

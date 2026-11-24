@@ -9,6 +9,7 @@ import 'package:hive_ce_generator/src/helper/helper.dart' as hive_helper;
 
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
+import 'field_type_identity.dart';
 import 'tolerant_emitter.dart';
 
 /// Kind of persisted declaration.
@@ -23,6 +24,7 @@ class ScannedType {
   final bool hasOtherHooks;
   final List<String> fields;
   final Map<String, int> explicitTags;
+  final Map<String, String> Function()? resolveFieldTypes;
 
   const ScannedType({
     required this.className,
@@ -32,6 +34,7 @@ class ScannedType {
     required this.hasOtherHooks,
     required this.fields,
     required this.explicitTags,
+    this.resolveFieldTypes,
   });
 
   List<String> get positionalOrder => fields;
@@ -129,6 +132,7 @@ ScannedType scanModel(
         hookListNonEmpty(annotation, 'hooks') ||
         classHooks.any((hook) => hook.type?.element?.name != 'TolerantLayout'),
     fields: [for (final field in mapped) field.name],
+    resolveFieldTypes: () => resolvedFieldTypes(cls, mapped),
     explicitTags: {
       for (final field in mapped)
         if (field.hasExplicitAnnotation) field.name: field.index!,

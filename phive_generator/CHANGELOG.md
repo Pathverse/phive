@@ -1,3 +1,9 @@
+## 0.9.2
+
+- Run `assign_type_ids --guard-field-types` on your last accepted models to record their field types. Subsequent assignment and adapter builds reject incompatible edits such as `int?` to `String?` and identify the affected field.
+- Accept an intentional retype with `--reidentify <key>` to retire the old ID and allocate a replacement in the same band. Additions, removals and field reordering keep the model ID.
+- Enrollment upgrades the registry to format 3, which requires phive_generator 0.9.2 or later. Existing unenrolled registries continue to work. The generator remains compatible with phive 0.9.0.
+
 ## 0.9.1
 
 - Generate adapters for stateless models with zero-parameter unnamed constructors,

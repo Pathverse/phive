@@ -69,17 +69,37 @@ class RegistryShape {
   /// the tolerant layout, used to read its version-2 records.
   final List<String>? positionalFields;
 
+  /// Canonical types of active and previously observed retired tags once enrolled.
+  final Map<int, String>? fieldTypes;
+
   /// Creates an immutable shape.
   RegistryShape({
     required this.layout,
     required Map<String, int> fields,
     Map<String, int> retiredFields = const {},
     List<String>? positionalFields,
-  }) : fields = Map.unmodifiable(fields),
+    Map<int, String>? fieldTypes,
+  }) : fieldTypes = fieldTypes == null ? null : Map.unmodifiable(fieldTypes),
+       fields = Map.unmodifiable(fields),
        retiredFields = Map.unmodifiable(retiredFields),
        positionalFields = positionalFields == null
            ? null
            : List.unmodifiable(positionalFields);
+
+  /// Returns a diagnostic for the first incompatible active or returning tag.
+  String? fieldTypeMismatch(String key, Map<String, String> resolved) {
+    final baseline = fieldTypes;
+    if (baseline == null) return null;
+    for (final entry in resolved.entries) {
+      final tag = fields[entry.key] ?? retiredFields[entry.key];
+      final old = baseline[tag];
+      if (old != null && old != entry.value) {
+        return '"$key.${entry.key}" changed type from $old to ${entry.value}. '
+            'To retire this identity, run assign_type_ids with --reidentify $key.';
+      }
+    }
+    return null;
+  }
 
   /// Field names ordered by tag or position.
   List<String> get orderedFields =>
@@ -115,6 +135,7 @@ class TypeIdRegistry {
 
   /// Format number written for versioned registries.
   static const int versionedFormat = 2;
+  static const int guardedFormat = 3;
 
   final Map<String, int> _assignments;
   final Map<String, RegistryBand> _bands;
@@ -191,7 +212,8 @@ class TypeIdRegistry {
     Map<dynamic, dynamic> decoded,
     String source,
   ) {
-    if (decoded['format'] != versionedFormat) {
+    final guarded = decoded['format'] == guardedFormat;
+    if (!guarded && decoded['format'] != versionedFormat) {
       throw FormatException(
         'Unsupported registry format: ${decoded['format']}.',
         source,
@@ -248,7 +270,7 @@ class TypeIdRegistry {
         throw FormatException('Type "$key" must be an object.', source);
       }
       assignments[key] = field<int>(value, 'typeId', 'Type "$key"');
-      final shape = _shapeFromJson(value, key, source);
+      final shape = _shapeFromJson(value, key, source, guarded);
       if (shape != null) shapes[key] = shape;
     }
 
@@ -268,7 +290,7 @@ class TypeIdRegistry {
       }
       final key = field<String>(value, 'key', 'Retired ${entry.key}');
       retired[id] = key;
-      final shape = _shapeFromJson(value, key, source);
+      final shape = _shapeFromJson(value, key, source, guarded);
       if (shape != null && !assignments.containsKey(key)) shapes[key] = shape;
     }
 
@@ -284,8 +306,13 @@ class TypeIdRegistry {
     Map<dynamic, dynamic> value,
     String key,
     String source,
+    bool guarded,
   ) {
     final rawFields = value['fields'];
+    if (value.containsKey('fieldTypes') &&
+        (!guarded || rawFields == null || value['fieldTypes'] is! Map)) {
+      throw FormatException('Type "$key": invalid guarded fieldTypes.', source);
+    }
     if (rawFields == null) return null;
 
     Map<String, int> intMap(dynamic raw, String name) {
@@ -329,10 +356,40 @@ class TypeIdRegistry {
       );
     }
 
+    final fields = intMap(rawFields, 'fields');
+    final retired = intMap(value['retiredFields'], 'retiredFields');
+    Map<int, String>? fieldTypes;
+    if (value['fieldTypes'] case final Map rawTypes) {
+      final validTags = {...fields.values, ...retired.values};
+      fieldTypes = {};
+      for (final entry in rawTypes.entries) {
+        final tag = int.tryParse(entry.key as String);
+        final identity = entry.value;
+        if (tag == null ||
+            tag.toString() != entry.key ||
+            !validTags.contains(tag) ||
+            identity is! String ||
+            identity.trim().isEmpty) {
+          throw FormatException(
+            'Type "$key": invalid fieldTypes entry ${entry.key}.',
+            source,
+          );
+        }
+        fieldTypes[tag] = identity;
+      }
+      if (layout != RegistryLayout.tolerant ||
+          !fields.values.every(fieldTypes.containsKey)) {
+        throw FormatException(
+          'Type "$key": incomplete or misplaced fieldTypes.',
+          source,
+        );
+      }
+    }
     return RegistryShape(
       layout: layout,
-      fields: intMap(rawFields, 'fields'),
-      retiredFields: intMap(value['retiredFields'], 'retiredFields'),
+      fields: fields,
+      fieldTypes: fieldTypes,
+      retiredFields: retired,
       positionalFields: (rawPositional as List?)?.cast<String>(),
     );
   }
@@ -698,6 +755,58 @@ class TypeIdRegistry {
     bool reidentify = false,
     bool hadOtherHooks = false,
     bool previouslyRegistered = false,
+    Map<String, String>? resolvedTypes,
+  }) {
+    final existing = _shapes[key];
+    if (tolerant && existing?.fieldTypes != null && resolvedTypes == null) {
+      throw StateError(
+        'Missing resolved field types for guarded model "$key".',
+      );
+    }
+    final mismatch = resolvedTypes == null
+        ? null
+        : existing?.fieldTypeMismatch(key, resolvedTypes);
+    if (mismatch != null && !reidentify) {
+      throw RegistryShapeChangeError(key, mismatch);
+    }
+
+    final next = _recordTags(
+      key,
+      orderedFields,
+      tolerant: tolerant,
+      enumeration: enumeration,
+      explicitTags: explicitTags,
+      reidentify: reidentify,
+      hadOtherHooks: hadOtherHooks,
+      previouslyRegistered: previouslyRegistered,
+    );
+    if (!tolerant || resolvedTypes == null) return next;
+    final shape = next.shapeOf(key)!;
+    final guarded = RegistryShape(
+      layout: shape.layout,
+      fields: shape.fields,
+      retiredFields: shape.retiredFields,
+      positionalFields: mismatch == null ? shape.positionalFields : null,
+      fieldTypes: {
+        ...?existing?.fieldTypes,
+        for (final entry in shape.fields.entries)
+          entry.value: resolvedTypes[entry.key]!,
+      },
+    );
+    return mismatch == null
+        ? next.withShape(key, guarded)
+        : next.reidentify(key, guarded);
+  }
+
+  TypeIdRegistry _recordTags(
+    String key,
+    List<String> orderedFields, {
+    required bool tolerant,
+    required bool enumeration,
+    required Map<String, int> explicitTags,
+    required bool reidentify,
+    required bool hadOtherHooks,
+    required bool previouslyRegistered,
   }) {
     lookupTypeId(key);
     final existing = _shapes[key];
@@ -928,6 +1037,11 @@ class TypeIdRegistry {
             ? 'enum'
             : shape.layout.name,
         'fields': _sortedByValue(shape.fields),
+        if (shape.fieldTypes case final identities?)
+          'fieldTypes': {
+            for (final tag in identities.keys.toList()..sort())
+              '$tag': identities[tag],
+          },
         if (shape.retiredFields.isNotEmpty)
           'retiredFields': _sortedByValue(shape.retiredFields),
         if (shape.positionalFields != null)
@@ -943,7 +1057,9 @@ class TypeIdRegistry {
       ..sort((a, b) => a.key.compareTo(b.key));
 
     return encoder.convert({
-      'format': versionedFormat,
+      'format': _shapes.values.any((shape) => shape.fieldTypes != null)
+          ? guardedFormat
+          : versionedFormat,
       'bands': {for (final band in bandEntries) band.name: band._toJson()},
       'types': {
         for (final entry in typeEntries)

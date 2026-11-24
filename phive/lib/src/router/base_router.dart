@@ -8,6 +8,12 @@ import 'router.dart';
 
 /// Shared routing operations over the two Hive storage backends.
 abstract class PHiveBaseRouter implements PHiveRouter {
+  /// Creates a router whose registrations default to [driftPolicy].
+  PHiveBaseRouter({this.driftPolicy = PHiveDriftPolicy.propagate});
+
+  /// Drift policy applied to registrations that do not supply their own.
+  final PHiveDriftPolicy driftPolicy;
+
   final _types = <Type, PHiveTypeRegistration>{};
   final _refs = <PHiveRefRegistration>[];
 
@@ -31,6 +37,7 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   void register<T>({
     required String Function(T item) primaryKey,
     String? boxName,
+    PHiveDriftPolicy? driftPolicy,
   }) {
     checkRegistration('register types');
     final name = boxName ?? T.toString().toLowerCase();
@@ -38,6 +45,7 @@ abstract class PHiveBaseRouter implements PHiveRouter {
       primaryKey: (dynamic item) => primaryKey(item as T),
       boxName: name,
       openBox: () => openRegisteredBox<T>(name),
+      driftPolicy: driftPolicy ?? this.driftPolicy,
     );
   }
 
@@ -104,6 +112,10 @@ abstract class PHiveBaseRouter implements PHiveRouter {
   ) async {
     try {
       return (await read(), false);
+    } on PHiveSchemaDriftException {
+      if (reg.driftPolicy != PHiveDriftPolicy.deleteAndMiss) rethrow;
+      await deletePrimary(reg, [key]);
+      return (null, false);
     } on PHiveActionException catch (error) {
       final cleared = error.behaviors.contains(PHiveActionBehavior.clearBox);
       if (cleared) {

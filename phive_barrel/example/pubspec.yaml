@@ -8,10 +8,16 @@ environment:
 dependencies:
   phive_barrel:
     path: ../
-  phive: ^0.8.0
+  phive: ^0.9.0
   hive_ce: ^2.24.0
 
 dev_dependencies:
-  phive_generator: ^0.8.0
+  phive_generator:
+    path: ../../phive_generator
   build_runner: ^2.12.1
   flutter_lints: ^6.0.0
+
+# Resolve the in-repo runtime until phive 0.9.0 is published.
+dependency_overrides:
+  phive:
+    path: ../../phive

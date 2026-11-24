@@ -1,0 +1,40 @@
+// ignore_for_file: non_constant_identifier_names
+
+class AutoEnumAdapter extends PTypeAdapter<AutoEnum> {
+  @override
+  final int typeId = 80;
+
+  @override
+  String? get schemaFingerprint =>
+      '151a87454be7ca723785a95554963b33adc29ca355494717e9a15f7725bbd20d';
+
+  @override
+  AutoEnum read(BinaryReader reader) {
+    final raw_tag = reader.read();
+    if (raw_tag is! int) {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoEnum',
+        reason: 'stored ${raw_tag.runtimeType} is not an enum case tag',
+      );
+    }
+    switch (raw_tag) {
+      case 0:
+        return AutoEnum.survey;
+      case 1:
+        return AutoEnum.quiz;
+      default:
+        throw PHiveSchemaDriftException(
+          typeName: 'AutoEnum',
+          reason: 'unknown case tag $raw_tag',
+        );
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, AutoEnum obj) {
+    writer.write(switch (obj) {
+      AutoEnum.survey => 0,
+      AutoEnum.quiz => 1,
+    });
+  }
+}

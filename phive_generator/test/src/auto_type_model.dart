@@ -7,7 +7,7 @@ class AutoStubHook extends PHiveHook {
   const AutoStubHook();
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
@@ -15,11 +15,25 @@ class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
   final int typeId = 10;
 
   @override
+  String? get schemaFingerprint =>
+      '49ab66e9f620aed54679a9e672a19a2ef2b8a0af419ff23f8e13099abcd96b19';
+
+  @override
   AutoTypeSimple read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeSimple',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // data (index 1)
     final raw_data = reader.read();
     final ctx_data = PHiveCtx()..value = raw_data;
@@ -27,7 +41,16 @@ class AutoTypeSimpleAdapter extends PTypeAdapter<AutoTypeSimple> {
     applyMetadata(ctx_data, metadata_header.globalMetadata);
     runPreRead(const [AutoStubHook()], ctx_data);
     runPostRead(const [AutoStubHook()], ctx_data);
-    final res_data = ctx_data.value as String;
+    final String res_data;
+    try {
+      res_data = castStored<String>(ctx_data.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeSimple',
+        fieldName: 'data',
+        reason: 'stored ${ctx_data.value.runtimeType} does not match String',
+      );
+    }
     return AutoTypeSimple(res_id, res_data);
   }
 
@@ -63,7 +86,7 @@ class AutoTypeSimple {
   AutoTypeSimple(this.id, this.data);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class AutoTypeAutoFieldsAdapter extends PTypeAdapter<AutoTypeAutoFields> {
@@ -71,11 +94,35 @@ class AutoTypeAutoFieldsAdapter extends PTypeAdapter<AutoTypeAutoFields> {
   final int typeId = 20;
 
   @override
+  String? get schemaFingerprint =>
+      '7ad9e34a1cbded52dd3e80f83cf6d1179d6c2398167a143e91492a584aadb1ff';
+
+  @override
   AutoTypeAutoFields read(BinaryReader reader) {
     // name (index 0)
-    final res_name = reader.read() as String;
+    final raw_name = reader.read();
+    final String res_name;
+    try {
+      res_name = castStored<String>(raw_name);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeAutoFields',
+        fieldName: 'name',
+        reason: 'stored ${raw_name.runtimeType} does not match String',
+      );
+    }
     // score (index 1)
-    final res_score = reader.read() as int;
+    final raw_score = reader.read();
+    final int res_score;
+    try {
+      res_score = castStored<int>(raw_score);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeAutoFields',
+        fieldName: 'score',
+        reason: 'stored ${raw_score.runtimeType} does not match int',
+      );
+    }
     return AutoTypeAutoFields(res_name, res_score);
   }
 
@@ -95,12 +142,16 @@ class AutoTypeAutoFields {
   AutoTypeAutoFields(this.name, this.score);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
   @override
   final int typeId = 30;
+
+  @override
+  String? get schemaFingerprint =>
+      '68d23d3a346b8006cf79331164eb7313f84bfd8a20b93e9a33568d2b3499ec42';
 
   @override
   AutoTypeWithHooks read(BinaryReader reader) {
@@ -119,7 +170,16 @@ class AutoTypeWithHooksAdapter extends PTypeAdapter<AutoTypeWithHooks> {
       ...[AutoStubHook()],
       ...[AutoStubHook()],
     ], ctx_token);
-    final res_token = ctx_token.value as String;
+    final String res_token;
+    try {
+      res_token = castStored<String>(ctx_token.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeWithHooks',
+        fieldName: 'token',
+        reason: 'stored ${ctx_token.value.runtimeType} does not match String',
+      );
+    }
     return AutoTypeWithHooks(res_token);
   }
 
@@ -157,7 +217,7 @@ class AutoTypeWithHooks {
   AutoTypeWithHooks(this.token);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class AutoTypeWithClassHooksAdapter
@@ -166,11 +226,25 @@ class AutoTypeWithClassHooksAdapter
   final int typeId = 35;
 
   @override
+  String? get schemaFingerprint =>
+      'c3476ccffc1d6e5c438814ea41ade623b189a22b06f0fad97e7ad1d9272a83a4';
+
+  @override
   AutoTypeWithClassHooks read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // token (index 0)
-    final res_token = reader.read() as String;
+    final raw_token = reader.read();
+    final String res_token;
+    try {
+      res_token = castStored<String>(raw_token);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeWithClassHooks',
+        fieldName: 'token',
+        reason: 'stored ${raw_token.runtimeType} does not match String',
+      );
+    }
     final result = AutoTypeWithClassHooks(res_token);
     final ctx_obj = PHiveCtx()..value = result;
     applyMetadata(ctx_obj, metadata_header.globalMetadata);
@@ -205,7 +279,7 @@ class AutoTypeWithClassHooks {
   AutoTypeWithClassHooks(this.token);
 }
 
-@ShouldGenerate('''
+@ShouldGenerate(r'''
 // ignore_for_file: non_constant_identifier_names
 
 class AutoTypeRouterAdapter extends PTypeAdapter<AutoTypeRouter> {
@@ -213,11 +287,35 @@ class AutoTypeRouterAdapter extends PTypeAdapter<AutoTypeRouter> {
   final int typeId = 40;
 
   @override
+  String? get schemaFingerprint =>
+      'c089bf718ae76d357057d251dad234385d1b2501973876d0bf49642452b4f04d';
+
+  @override
   AutoTypeRouter read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeRouter',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // parentId (index 1)
-    final res_parentId = reader.read() as String;
+    final raw_parentId = reader.read();
+    final String res_parentId;
+    try {
+      res_parentId = castStored<String>(raw_parentId);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoTypeRouter',
+        fieldName: 'parentId',
+        reason: 'stored ${raw_parentId.runtimeType} does not match String',
+      );
+    }
     return AutoTypeRouter(res_id, res_parentId);
   }
 

@@ -10,9 +10,11 @@ import 'package:source_gen/source_gen.dart';
 import 'package:hive_ce_generator/src/helper/helper.dart' as hive_helper;
 
 import 'adapter_emitter.dart';
+import 'enum_emitter.dart';
 import 'annotation_helpers.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
+import 'tolerant_emitter.dart';
 import 'type_registry.dart';
 
 /// Generates `PTypeAdapter` implementations for `@PHiveAutoType` models.
@@ -61,16 +63,41 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
     final className = element.displayName;
     final registry = await _resolveRegistry(buildStep);
 
-    if (!registry.contains(className)) {
+    final libraryPath = packageRelativeLibraryPath(element);
+    final RegistryBand? band;
+    try {
+      band = registry.bandForPath(libraryPath);
+    } on StateError catch (error) {
+      throw InvalidGenerationSourceError(error.message, element: element);
+    }
+    final key = TypeIdRegistry.keyFor(className, band: band?.name);
+
+    if (!registry.contains(key)) {
       throw InvalidGenerationSourceError(
-        '"$className" is not in phive_type_registry.json.  '
+        '"$key" is not in phive_type_registry.json.  '
         'Run `dart run phive_generator:assign_type_ids` to register it '
         'before running build_runner.',
         element: element,
       );
     }
 
-    final typeId = registry.lookupTypeId(className);
+    final typeId = registry.lookupTypeId(key);
+    if (element is EnumElement) {
+      final shape = registry.shapeOf(key);
+      if (shape == null || shape.layout != RegistryLayout.enumeration) {
+        throw InvalidGenerationSourceError(
+          '"$key" is an enum but phive_type_registry.json has no enum case tags for it. Run `dart run phive_generator:assign_type_ids` before build_runner.',
+          element: element,
+        );
+      }
+      return emitEnumAdapter(
+        element: element,
+        annotation: annotation,
+        typeId: typeId,
+        tags: shape.fields,
+        key: key,
+      );
+    }
     final cls = hive_helper.getClass(element);
     final constr = hive_helper.getConstructor(cls);
     final autoFields = annotation.peek('autoFields')?.boolValue ?? false;
@@ -82,10 +109,51 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
       autoFields: autoFields,
     );
 
+    final shape = registry.shapeOf(key);
+    final tolerant = hasTolerantLayout(annotation);
     final routerDescriptor = collectRouterDescriptorConfig(
       element: element,
       cls: cls,
       constr: constr,
+    );
+
+    if (tolerant) {
+      if (shape == null || shape.layout != RegistryLayout.tolerant) {
+        throw InvalidGenerationSourceError(
+          '"$key" declares TolerantLayout but phive_type_registry.json has no '
+          'tolerant field tags for it. Run '
+          '`dart run phive_generator:assign_type_ids` before build_runner.',
+          element: element,
+        );
+      }
+      return emitTolerantAdapter(
+        element: element,
+        className: className,
+        typeId: typeId,
+        mappedFields: mappedFields,
+        constructor: constr,
+        routerDescriptor: routerDescriptor,
+        modelHooksSource: extractModelHooksSource(element),
+        classHooksSource: extractModelClassHooksSource(element),
+        tags: shape.fields,
+        retiredTags: shape.retiredFields,
+        positionalFields: shape.positionalFields,
+      );
+    }
+
+    if (shape != null && shape.layout == RegistryLayout.tolerant) {
+      throw InvalidGenerationSourceError(
+        '"$key" is recorded as tolerant but no longer declares '
+        'TolerantLayout. Tagged records cannot be read positionally; restore '
+        'the hook or re-identify the type with assign_type_ids.',
+        element: element,
+      );
+    }
+    _checkRecordedShape(
+      element: element,
+      key: key,
+      shape: shape,
+      mappedFields: mappedFields,
     );
 
     return emitAdapter(
@@ -97,6 +165,36 @@ class PhiveAutoTypeGenerator extends GeneratorForAnnotation<PHiveAutoType> {
       modelHooksSource: extractModelHooksSource(element),
       classHooksSource: extractModelClassHooksSource(element),
     );
+  }
+
+  /// Rejects a build whose resolved fields disagree with the registry shape.
+  ///
+  /// The registry is written by a parse-only scan; this check, which sees the
+  /// fully resolved type, keeps generated adapters consistent with it.
+  void _checkRecordedShape({
+    required Element element,
+    required String key,
+    required RegistryShape? shape,
+    required List<CollectedField> mappedFields,
+  }) {
+    if (shape == null || shape.layout != RegistryLayout.positional) return;
+    final resolved = [for (final field in mappedFields) field.name];
+    final recorded = shape.orderedFields;
+    final matches =
+        resolved.length == recorded.length &&
+        Iterable<int>.generate(
+          resolved.length,
+        ).every((i) => resolved[i] == recorded[i]);
+    if (!matches) {
+      throw InvalidGenerationSourceError(
+        'The fields of "$key" (${resolved.join(', ')}) do not match the '
+        'shape recorded in phive_type_registry.json '
+        '(${recorded.join(', ')}). Run '
+        '`dart run phive_generator:assign_type_ids` and resolve any '
+        'reported shape change before running build_runner.',
+        element: element,
+      );
+    }
   }
 
   /// Returns the [TypeIdRegistry] to use for this generation pass.

@@ -1,8 +1,10 @@
 import 'package:analyzer/dart/element/element.dart';
 
 import 'annotation_helpers.dart';
+import 'collection_conversion.dart';
 import 'field_collection.dart';
 import 'router_collection.dart';
+import 'schema_fingerprint.dart';
 
 /// Emits the full Dart source for one `PTypeAdapter` subclass and its optional
 /// router descriptor class.
@@ -45,7 +47,8 @@ String emitAdapter({
       writeBlocks.add('    writer.write($writeTarget.${field.name});');
       readBlocks.add('''
     // ${field.name} (index ${field.index})
-    final res_${field.name} = reader.read() as ${field.type};''');
+    final raw_${field.name} = reader.read();
+${emitConvertedRead(field: field, className: className, valueExpr: 'raw_${field.name}')}''');
       continue;
     }
 
@@ -67,7 +70,7 @@ String emitAdapter({
     applyMetadata(ctx_${field.name}, metadata_header.globalMetadata);
     runPreRead(const $hooks, ctx_${field.name});
     runPostRead(const $hooks, ctx_${field.name});
-    final res_${field.name} = ctx_${field.name}.value as ${field.type};''');
+${emitConvertedRead(field: field, className: className, valueExpr: 'ctx_${field.name}.value')}''');
   }
 
   final hasMetadataHeader = hasClassHooks || hookedFields.isNotEmpty;
@@ -92,7 +95,12 @@ String emitAdapter({
 class ${className}Adapter extends PTypeAdapter<$className> {
   @override
   final int typeId = $typeId;
-
+${emitSchemaFingerprintGetter(computeSchemaFingerprint(
+    typeId: typeId,
+    layout: 'positional',
+    tags: {for (final field in mappedFields) field.name: field.index!},
+    types: {for (final field in mappedFields) field.name: field.type},
+  ))}
   @override
   $className read(BinaryReader reader) {
 ${_emitReadMetadataHeaderPrelude(hasMetadataHeader)}
@@ -258,3 +266,13 @@ ${lines.join('\n')}
 }
 ''';
 }
+
+/// Emits the optional router descriptor for [className]; shared with the
+/// tolerant-layout emitter so both layouts produce identical descriptors.
+String emitRouterDescriptorSource({
+  required String className,
+  required RouterDescriptorConfig? descriptor,
+}) => _emitRouterDescriptorBlock(
+  className: className,
+  descriptor: descriptor,
+);

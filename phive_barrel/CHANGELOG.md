@@ -1,3 +1,8 @@
+## 0.9.0
+
+- Require `phive ^0.9.0` and release alongside the 0.9.0 runtime and generator.
+- `AESEncrypted` and `TTL` compose with the new `TolerantLayout` class hook.
+
 ## 0.8.1
 
 - Support flutter_secure_storage 11 alongside 10. Seed keys and base64url

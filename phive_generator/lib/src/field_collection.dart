@@ -1,4 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'annotation_helpers.dart';
@@ -97,6 +98,7 @@ CollectedField? _fieldFromParameter(
     index: config.index,
     hooksSource: config.hooksSource,
     type: param.type.getDisplayString(),
+    dartType: param.type,
     hasExplicitAnnotation: phiveFieldMeta != null,
   );
 }
@@ -121,6 +123,7 @@ CollectedField? _fieldFromAccessor(
     index: config.index,
     hooksSource: config.hooksSource,
     type: accessor.returnType.getDisplayString(),
+    dartType: accessor.returnType,
     hasExplicitAnnotation: phiveFieldMeta != null,
   );
 }
@@ -203,6 +206,9 @@ class CollectedField {
   /// Whether this field came from an explicit `@PHiveField` annotation.
   final bool hasExplicitAnnotation;
 
+  /// Resolved Dart type of the field, used for tolerant-layout conversions.
+  final DartType? dartType;
+
   /// Creates an immutable description of one collected field.
   const CollectedField({
     required this.name,
@@ -210,6 +216,7 @@ class CollectedField {
     required this.hooksSource,
     required this.type,
     required this.hasExplicitAnnotation,
+    this.dartType,
   });
 
   /// Returns a copy with selected fields replaced.
@@ -219,6 +226,7 @@ class CollectedField {
     String? hooksSource,
     String? type,
     bool? hasExplicitAnnotation,
+    DartType? dartType,
   }) {
     return CollectedField(
       name: name ?? this.name,
@@ -227,6 +235,7 @@ class CollectedField {
       type: type ?? this.type,
       hasExplicitAnnotation:
           hasExplicitAnnotation ?? this.hasExplicitAnnotation,
+      dartType: dartType ?? this.dartType,
     );
   }
 }

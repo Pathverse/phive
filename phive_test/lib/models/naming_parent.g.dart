@@ -13,9 +13,23 @@ class NamingParentAdapter extends PTypeAdapter<NamingParent> {
   final int typeId = 20;
 
   @override
+  String? get schemaFingerprint =>
+      '98610c9e9f1ab83d4f13ea5f1770028d787f5c0cff848fb9392868030b57c615';
+
+  @override
   NamingParent read(BinaryReader reader) {
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'NamingParent',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     return NamingParent(res_id);
   }
 

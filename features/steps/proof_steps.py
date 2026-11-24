@@ -5,6 +5,8 @@ from behave import given, when, then
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROOF_PACKAGES = {
+    "proof_enum_adapters": "phive_test",
+    "proof_retired_tombstones": "phive_test",
     "proof_router_crud": "phive",
     "proof_router_container": "phive",
     "proof_router_reset": "phive",
@@ -13,6 +15,10 @@ PROOF_PACKAGES = {
     "proof_hook_action_exception": "phive",
     "proof_hook_metadata": "phive_test",
     "proof_generated_store_names": "phive_test",
+    "proof_tolerant_evolution": "phive_test",
+    "proof_drift_policy": "phive_test",
+    "proof_tolerant_opt_in": "phive_test",
+    "proof_positional_collections": "phive_test",
 }
 
 

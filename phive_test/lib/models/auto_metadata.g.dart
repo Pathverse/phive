@@ -13,11 +13,25 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
   final int typeId = 12;
 
   @override
+  String? get schemaFingerprint =>
+      '08c89a464cab2c72b4f77d20ef8c373cfe272554ab866ec37d30858bc56ea553';
+
+  @override
   AutoMetadata read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoMetadata',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // overridden (index 1)
     final raw_overridden = reader.read();
     final ctx_overridden = PHiveCtx()..value = raw_overridden;
@@ -28,7 +42,17 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     applyMetadata(ctx_overridden, metadata_header.globalMetadata);
     runPreRead(const [OverrideMarker(), ReadMarker()], ctx_overridden);
     runPostRead(const [OverrideMarker(), ReadMarker()], ctx_overridden);
-    final res_overridden = ctx_overridden.value as String;
+    final String res_overridden;
+    try {
+      res_overridden = castStored<String>(ctx_overridden.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoMetadata',
+        fieldName: 'overridden',
+        reason:
+            'stored ${ctx_overridden.value.runtimeType} does not match String',
+      );
+    }
     // inherited (index 2)
     final raw_inherited = reader.read();
     final ctx_inherited = PHiveCtx()..value = raw_inherited;
@@ -36,7 +60,17 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     applyMetadata(ctx_inherited, metadata_header.globalMetadata);
     runPreRead(const [ReadMarker()], ctx_inherited);
     runPostRead(const [ReadMarker()], ctx_inherited);
-    final res_inherited = ctx_inherited.value as String;
+    final String res_inherited;
+    try {
+      res_inherited = castStored<String>(ctx_inherited.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoMetadata',
+        fieldName: 'inherited',
+        reason:
+            'stored ${ctx_inherited.value.runtimeType} does not match String',
+      );
+    }
     // nullable (index 3)
     final raw_nullable = reader.read();
     final ctx_nullable = PHiveCtx()..value = raw_nullable;
@@ -44,7 +78,17 @@ class AutoMetadataAdapter extends PTypeAdapter<AutoMetadata> {
     applyMetadata(ctx_nullable, metadata_header.globalMetadata);
     runPreRead(const [NullMarker(), ReadMarker()], ctx_nullable);
     runPostRead(const [NullMarker(), ReadMarker()], ctx_nullable);
-    final res_nullable = ctx_nullable.value as String?;
+    final String? res_nullable;
+    try {
+      res_nullable = castStored<String?>(ctx_nullable.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'AutoMetadata',
+        fieldName: 'nullable',
+        reason:
+            'stored ${ctx_nullable.value.runtimeType} does not match String?',
+      );
+    }
     final result = AutoMetadata(
       id: res_id,
       overridden: res_overridden,

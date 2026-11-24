@@ -47,3 +47,23 @@ uv run --with playwright python tool/verify_store_names_web.py --skip-build --si
 That command must exit nonzero. This proves generated naming on JavaScript web
 and native storage; it does not establish all IndexedDB, native-obfuscation, or
 Wasm behavior.
+
+### Tolerant records across release builds
+
+`proof_tolerant_evolution`, `proof_drift_policy` and `proof_tolerant_opt_in` run
+in `phive_test` against stored bytes on the native backends. The browser
+counterpart uses two minified JavaScript releases at one origin:
+
+```powershell
+uv run --with playwright python tool/verify_tolerant_web.py
+```
+
+Build A stores tolerant records. Build B is compiled separately and runs
+without resetting storage. On both routers it checks that:
+
+- the evolved model restores the original values;
+- a retyped field reports schema drift by default;
+- the same field becomes a miss under `PHiveDriftPolicy.deleteAndMiss`.
+
+This proves that the tolerant type checks are not removed by release
+optimization. Builds and logs go under the ignored `.dart_tool/tolerant_web/`.

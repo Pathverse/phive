@@ -13,6 +13,10 @@ class DemoTopLevelAesUserAdapter extends PTypeAdapter<DemoTopLevelAesUser> {
   final int typeId = 2;
 
   @override
+  String? get schemaFingerprint =>
+      'ed5f2079ae39a21077f6c5a6948b1617536fadb28a2b31d0f392593c0e4db717';
+
+  @override
   DemoTopLevelAesUser read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
@@ -23,7 +27,16 @@ class DemoTopLevelAesUserAdapter extends PTypeAdapter<DemoTopLevelAesUser> {
     applyMetadata(ctx_id, metadata_header.globalMetadata);
     runPreRead(const [AESEncrypted()], ctx_id);
     runPostRead(const [AESEncrypted()], ctx_id);
-    final res_id = ctx_id.value as String;
+    final String res_id;
+    try {
+      res_id = castStored<String>(ctx_id.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoTopLevelAesUser',
+        fieldName: 'id',
+        reason: 'stored ${ctx_id.value.runtimeType} does not match String',
+      );
+    }
     // secret (index 1)
     final raw_secret = reader.read();
     final ctx_secret = PHiveCtx()..value = raw_secret;
@@ -31,7 +44,16 @@ class DemoTopLevelAesUserAdapter extends PTypeAdapter<DemoTopLevelAesUser> {
     applyMetadata(ctx_secret, metadata_header.globalMetadata);
     runPreRead(const [AESEncrypted()], ctx_secret);
     runPostRead(const [AESEncrypted()], ctx_secret);
-    final res_secret = ctx_secret.value as String;
+    final String res_secret;
+    try {
+      res_secret = castStored<String>(ctx_secret.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoTopLevelAesUser',
+        fieldName: 'secret',
+        reason: 'stored ${ctx_secret.value.runtimeType} does not match String',
+      );
+    }
     return DemoTopLevelAesUser(id: res_id, secret: res_secret);
   }
 

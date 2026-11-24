@@ -1,3 +1,47 @@
+## 0.9.0
+
+- Generate enum adapters with persisted case tags, case retirement, fingerprints
+  and schema drift for unknown or non-integer tags. Explicit-ID enums require
+  unique tags on every case. Enums cannot declare hooks.
+- Resolve assignment shapes with the generator's field collector, including
+  inherited fields and constant indexes. Assignment requires package resolution.
+- Add `--retire-id N` and inclusive `--retire-id N-M`, plus `--tombstones`
+  to generate explicit, idempotent registration for retired type IDs.
+
+Model layouts and type-ID bands are opt-in. Assignment now resolves package
+libraries and requires `pub get`. A flat registry stays flat for model-only
+packages without versioned features. Regeneration adds fingerprints and
+restores typed positional collections while preserving their stored format.
+
+- Generate tolerant-layout adapters for models with `TolerantLayout` in
+  `classHooks`:
+  - fields are read by tag, with element-wise conversion of lists, sets and
+    maps;
+  - absent nullable fields restore as `null`, and absent fields with a default
+    use the constructor default;
+  - incompatible records raise schema drift;
+  - existing hooked types that adopt the layout keep reading their version-2
+    records through a recorded positional sequence.
+- Add the versioned registry format (`"format": 2`):
+  - bounded, path-scoped bands, with band-qualified keys so equal simple names
+    in different bands get distinct type IDs;
+  - retired type IDs and field tags that are never reassigned;
+  - recorded field shapes. The generator rejects builds whose resolved fields
+    disagree with the recorded shape.
+- `assign_type_ids` adds `--root`, `--band` and `--reidentify`, retires
+  removed classes, and prints each class's band. It refuses positional
+  field-shape changes unless the type is re-identified.
+- Every generated adapter now exposes a `schemaFingerprint` (SHA-256 over its
+  type ID, layout and fields). This adds one getter to generated code; stored
+  bytes are unchanged.
+- **Fix:** positional adapters now restore fields typed as lists or sets of
+  models, typed maps and nested collections. Hive CE restores those values
+  untyped, and the previous whole-value cast threw on read. Stored bytes are
+  unchanged, so records written by 0.8.x adapters restore after regenerating.
+  A stored value that does not match its declared type now raises
+  `PHiveSchemaDriftException` instead of a raw `TypeError`.
+- Requires `phive` 0.9.0. Adds `crypto` as a build-time dependency.
+
 ## 0.8.1
 
 - Apply Dart 3.13 formatting to existing library sources.

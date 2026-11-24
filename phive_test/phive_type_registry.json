@@ -1,6 +1,181 @@
 {
-  "AutoNote": 10,
-  "AutoMetadata": 12,
-  "AutoNamingCard": 22,
-  "AutoCustomNamingCard": 24
+  "format": 2,
+  "bands": {},
+  "types": {
+    "AutoNote": {
+      "typeId": 10,
+      "layout": "positional",
+      "fields": {
+        "id": 0,
+        "title": 1,
+        "body": 2
+      }
+    },
+    "AutoMetadata": {
+      "typeId": 12,
+      "layout": "positional",
+      "fields": {
+        "id": 0,
+        "overridden": 1,
+        "inherited": 2,
+        "nullable": 3
+      }
+    },
+    "AutoNamingCard": {
+      "typeId": 22,
+      "layout": "positional",
+      "fields": {
+        "id": 0,
+        "parentId": 1
+      }
+    },
+    "AutoCustomNamingCard": {
+      "typeId": 24,
+      "layout": "positional",
+      "fields": {
+        "id": 0,
+        "parentId": 1
+      }
+    },
+    "TolerantCard": {
+      "typeId": 25,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "body": 1
+      }
+    },
+    "TolerantLesson": {
+      "typeId": 26,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "title": 1,
+        "count": 2,
+        "labels": 3,
+        "scores": 4,
+        "cards": 5
+      }
+    },
+    "EvolvedLesson": {
+      "typeId": 27,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "title": 1,
+        "count": 2,
+        "scores": 4,
+        "cards": 5,
+        "summary": 6
+      }
+    },
+    "LegacyNote": {
+      "typeId": 28,
+      "layout": "positional",
+      "fields": {
+        "id": 0,
+        "legacy": 1,
+        "body": 2
+      }
+    },
+    "MigratedNote": {
+      "typeId": 29,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "body": 2
+      },
+      "retiredFields": {
+        "legacy": 1
+      },
+      "positionalFields": [
+        "id",
+        "legacy",
+        "body"
+      ]
+    },
+    "RequiredAddedLesson": {
+      "typeId": 30,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "region": 7
+      }
+    },
+    "RetypedLesson": {
+      "typeId": 31,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "count": 2
+      }
+    },
+    "BenchTolerant": {
+      "typeId": 33,
+      "layout": "tolerant",
+      "fields": {
+        "id": 0,
+        "title": 1,
+        "count": 2,
+        "labels": 3,
+        "scores": 4
+      }
+    },
+    "BenchPositional": {
+      "typeId": 35,
+      "layout": "positional",
+      "fields": {
+        "id": 0,
+        "title": 1,
+        "count": 2,
+        "labels": 3,
+        "scores": 4
+      }
+    },
+    "Palette": {
+      "typeId": 121,
+      "layout": "tolerant",
+      "fields": {
+        "primary": 0,
+        "extras": 1
+      }
+    },
+    "ProofColor": {
+      "typeId": 122,
+      "layout": "enum",
+      "fields": {
+        "red": 0,
+        "green": 1,
+        "blue": 2
+      }
+    },
+    "ProofColorReordered": {
+      "typeId": 123,
+      "layout": "enum",
+      "fields": {
+        "red": 0,
+        "green": 1,
+        "blue": 2
+      }
+    },
+    "ProofColorTrimmed": {
+      "typeId": 124,
+      "layout": "enum",
+      "fields": {
+        "red": 0,
+        "green": 1
+      }
+    }
+  },
+  "retiredTypeIds": {
+    "32": {
+      "key": "BenchPositional@32"
+    },
+    "34": {
+      "key": "BenchPositional@34"
+    },
+    "120": {
+      "key": "legacy@120"
+    }
+  }
 }

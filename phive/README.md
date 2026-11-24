@@ -13,6 +13,8 @@ Use this package to define model annotations, hook pipelines, generated adapter 
 - `PTypeAdapter<T>` runtime support
 - `PHiveCtx` and `PHiveHook`
 - `PHiveActionException` and `PHiveActionBehavior`
+- `TolerantLayout`, `PHiveSchemaDriftException`, `phiveSchemaFingerprint` and
+  `PHiveFingerprinted` for evolving stored schemas
 - `PHiveRouter`, `PHiveDynamicRouter`, `PHiveStaticRouter`
 - `PHiveRouterDescriptor` and descriptor registration helpers
 - `PHiveContainerHandle` for parent-child containership
@@ -22,7 +24,7 @@ Use this package to define model annotations, hook pipelines, generated adapter 
 ```yaml
 dependencies:
   hive_ce: ^2.24.0
-  phive: ^0.8.0
+  phive: ^0.9.0
 ```
 
 The public runtime constraint still accepts Hive CE `^2.19.3`. The examples
@@ -163,6 +165,120 @@ PHive annotations expose two hook scopes:
 - `classHooks` run once around the whole model instance during generated adapter read/write.
 - Hooked models write one versioned metadata header with `global` and `perField` sections before raw field values.
 - Global metadata is visible to whole-object hooks and field hooks, while per-field metadata remains scoped to the owning field.
+
+## Schema Evolution
+
+By default, generated adapters store fields **by position**. Adding, removing
+or reordering a field changes how existing records decode, so a positional
+model's field layout must not change while its records are in storage.
+
+Models whose shape will evolve (for example, models generated from an API
+contract) can opt into the **tolerant layout** by adding `TolerantLayout` to
+their `classHooks`:
+
+```dart
+@PHiveAutoType(autoFields: true, classHooks: [TolerantLayout()])
+class Lesson {
+  final String id;
+  final String? title;
+
+  const Lesson({required this.id, this.title});
+}
+```
+
+A tolerant adapter writes a version-3 metadata header followed by one map of
+field tag to value. Tags are persisted in the type registry, so they do not
+depend on declaration order. On read:
+
+- stored tags that the model no longer declares are ignored;
+- an absent nullable field restores as `null`, or as its constructor default;
+- a stored value of the wrong type, or an absent required field, raises
+  `PHiveSchemaDriftException` instead of returning a wrongly populated object.
+
+`TolerantLayout` changes only the stored layout. Its lifecycle methods are
+no-ops, and other class hooks such as encryption compose with it unchanged.
+Models without the hook keep their existing layout byte for byte.
+
+Header versions: positional records use version 2
+(`PHiveMetadataHeader.positionalVersion`), and tagged records use version 3
+(`PHiveMetadataHeader.taggedVersion`). `extractMetadataHeader` accepts both and
+reports which one it read.
+
+### Schema drift
+
+`PHiveSchemaDriftException` is a `PHiveActionException` that carries the
+drifted `typeName` and, when known, the `fieldName`. It requests no behavior by
+itself, so by default it reaches the caller and no data is removed:
+
+```dart
+try {
+  final lesson = await router.get<Lesson>('l1');
+} on PHiveSchemaDriftException catch (drift) {
+  log('Discarding cached ${drift.typeName}: ${drift.reason}');
+}
+```
+
+### Drift policy
+
+For stores that are **caches** of a source of truth, you can have a router treat
+drift as a miss. Use `PHiveDriftPolicy.deleteAndMiss` as a router-wide default,
+or on a single registration:
+
+```dart
+final router = PHiveDynamicRouter(driftPolicy: PHiveDriftPolicy.deleteAndMiss)
+  ..applyDescriptor(const LessonRouterDescriptor());
+
+// Or per type, overriding the router default:
+router.register<Lesson>(
+  primaryKey: (lesson) => lesson.id,
+  boxName: 'lessons_cache',
+  driftPolicy: PHiveDriftPolicy.deleteAndMiss,
+);
+```
+
+Under `deleteAndMiss`, a `PHiveSchemaDriftException` removes the entry from
+the primary store. `get` returns `null`, and `getAll` and container traversal
+skip the entry and continue. This includes enum drift and records containing
+a tombstoned type ID.
+
+Generate tombstones from your registry, then register them explicitly at startup.
+
+```dart
+registerAdapters();
+registerPHiveTombstones();
+```
+
+`PHiveTombstoneAdapter<T>` reports a retired identifier as schema drift.
+`registerPHiveTombstone<T>(id)` skips identifiers that already have an adapter.
+The generated function supplies a distinct marker type per identifier and
+can safely run twice.
+
+An identifier with neither an adapter nor a tombstone raises Hive's storage
+error under every policy, and its entry is kept. Forgetting
+`registerPHiveTombstones()` therefore leaves retired records stored and
+surfaces the error to the caller.
+
+The default `PHiveDriftPolicy.propagate` keeps entries and propagates drift.
+Use `deleteAndMiss` for caches that can be refilled from a source of truth.
+Both routers apply the same policy.
+
+### Schema fingerprints
+
+Every generated adapter exposes `schemaFingerprint`, which is derived from its
+type ID, layout and fields. `phiveSchemaFingerprint` combines a set of adapters
+into one order-independent value. Store it beside your data to detect drift
+before reading:
+
+```dart
+final current = phiveSchemaFingerprint([LessonAdapter(), CardAdapter()]);
+if (storedFingerprint != current) {
+  await router.clearType<Lesson>();
+}
+```
+
+Hand-written `TypeAdapter`s can take part by implementing `PHiveFingerprinted`.
+Adapters without a fingerprint contribute only their type ID. The fingerprint
+detects drift; it is not a security boundary.
 
 ## Nullable Fields
 

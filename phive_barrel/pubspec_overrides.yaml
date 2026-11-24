@@ -1,0 +1,4 @@
+# Local development: resolve the in-repo phive until 0.9.0 is published.
+dependency_overrides:
+  phive:
+    path: ../phive

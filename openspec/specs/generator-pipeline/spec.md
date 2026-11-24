@@ -8,7 +8,7 @@ The generator pipeline (`phive_generator`) turns annotated Dart models into `PTy
 
 ### Requirement: Deterministic auto typeId assignment persisted to a registry
 
-`TypeIdRegistry` SHALL be the authoritative source of typeId assignments for `@PHiveAutoType`-annotated classes, persisted to `phive_type_registry.json` in the package root and committed to version control as a stable `build_runner` input. Assignment SHALL be additive and idempotent: `assign` SHALL give a class the lowest available id at or above the `startAt` floor (`max(startAt, maxAssignedId + 1)`), `assignAll` SHALL skip already-registered names, and re-assigning an existing class SHALL throw `StateError`. Serialization SHALL be deterministic, emitting entries sorted by typeId.
+`TypeIdRegistry` SHALL be the authoritative source of typeId assignments for `@PHiveAutoType`-annotated classes, persisted to `phive_type_registry.json` in the package root and committed to version control as a stable `build_runner` input. Assignment SHALL be additive and idempotent: `assign` SHALL give a class the lowest available id at or above the `startAt` floor (`max(startAt, maxAssignedId + 1)`), `assignAll` SHALL skip already-registered names, and re-assigning an existing class SHALL throw `StateError`. When the class belongs to a declared band, the floor SHALL be the band start, the maximum SHALL be computed over that band only, and retired identifiers SHALL count as assigned. Serialization SHALL be deterministic, emitting entries sorted by typeId.
 
 #### Scenario: A new class receives the next available id
 
@@ -24,6 +24,11 @@ The generator pipeline (`phive_generator`) turns annotated Dart models into `PTy
 
 - **WHEN** a registry with several assignments is serialized via `toJson`
 - **THEN** entries are emitted sorted by typeId for a readable diff.
+
+#### Scenario: Allocation inside a band ignores other bands
+
+- **WHEN** band `a` spans 10000–10999 with 10004 as its highest ID, band `b` spans 11000–11999, and a new class in band `a` is assigned
+- **THEN** it receives 10005 regardless of identifiers assigned in band `b`
 
 > Coverage gap: no behave scenario exercises typeId assignment; it is covered by generator unit tests over `phive_type_registry.json`.
 
@@ -214,3 +219,165 @@ The upgrade guide SHALL explain how to compare the previous generated field sequ
 
 - **WHEN** the corrected adapter reads a fixed pre-change record after literal indices pin its original field sequence
 - **THEN** each of two same-typed fields recovers its own original value, including the field whose constant index previously fell back to inference.
+
+### Requirement: The registry declares bounded, path-scoped bands
+
+The registry SHALL support named bands, each with an inclusive start and end within the Hive CE user range and a set of library path patterns. Bands SHALL NOT overlap. A class SHALL belong to the band whose patterns match its library. A class matched by more than one band SHALL be rejected.
+
+#### Scenario: Band exhaustion fails loudly
+
+- **WHEN** assignment needs an identifier and every identifier in the class's band is assigned or retired
+- **THEN** assignment fails naming the band, and no identifier outside the band is used
+
+#### Scenario: Overlapping bands are rejected
+
+- **WHEN** a registry declares bands 10000–10999 and 10500–11499
+- **THEN** loading the registry fails identifying both bands
+
+### Requirement: Registry keys are qualified by band
+
+Within a banded registry, type identity SHALL be keyed by band name and class simple name. Classes that share a simple name in different bands SHALL receive distinct identifiers, and generation SHALL resolve each class's identifier through its own band.
+
+#### Scenario: Same simple name in two bands
+
+- **WHEN** a package declares a class named `Choice` in the libraries of band `a` and of band `b`
+- **THEN** both are registered with distinct identifiers and each generated adapter uses its own band's identifier
+
+### Requirement: The existing flat registry format remains readable
+
+A registry file in the existing flat class-name-to-identifier format SHALL load unchanged as unbanded assignments. Writing SHALL emit the versioned format only when the registry declares bands, retirements or field tags; otherwise the flat format SHALL be preserved.
+
+#### Scenario: Existing project upgrades without registry churn
+
+- **WHEN** a project with a flat registry upgrades and reruns assignment without declaring bands or opting into tolerance
+- **THEN** the registry file is byte-identical and every class keeps its identifier
+
+### Requirement: Retired type identifiers are never reassigned
+
+When an assigned class is no longer found by the assignment tool, the tool SHALL mark its identifier retired instead of deleting it. A retired identifier SHALL never be given to another class. Restoring the same band-qualified class SHALL reactivate its original identifier.
+
+#### Scenario: Removed class frees no identifier
+
+- **WHEN** a class with identifier 10007 is removed from source and a new class is then assigned in the same band
+- **THEN** 10007 is recorded as retired and the new class receives a different identifier
+
+### Requirement: Persisted field shapes guard positional types
+
+The registry SHALL record each registered type's field names with their tags. For a type without the tolerant layout hook, assignment SHALL fail when the declared field set or order differs from the recorded shape. The failure SHALL clear only when the caller explicitly requests that the type be re-identified: its identifier is retired and a new one is allocated in its band.
+
+#### Scenario: Positional shape change is refused
+
+- **WHEN** a field is added to a positional type and assignment runs without the re-identify request
+- **THEN** assignment fails naming the type and the changed fields, and the registry is unchanged
+
+#### Scenario: Explicit re-identification
+
+- **WHEN** the same assignment runs with the re-identify request for that type
+- **THEN** the old identifier is retired, a new identifier is allocated in the band, and the new shape is recorded
+
+### Requirement: Tolerant types evolve fields under the same identifier
+
+For a type with the tolerant layout hook, assignment SHALL keep the type identifier when fields change. It SHALL give each new field the next unused tag for that type. It SHALL record removed fields' tags as retired.
+
+#### Scenario: Adding a field to a tolerant type
+
+- **WHEN** a field is added to a tolerant type and assignment runs
+- **THEN** the type keeps its identifier and the new field receives a previously unused tag
+
+### Requirement: Generated adapters expose a deterministic schema fingerprint
+
+Every generated adapter SHALL expose a schema fingerprint derived only from its type identifier, layout kind, and ordered field tags, names and declared types. A runtime helper SHALL combine a set of adapters into one fingerprint independent of the order they are supplied in.
+
+#### Scenario: Fingerprint is stable across regeneration
+
+- **WHEN** an unchanged model is regenerated on another machine
+- **THEN** its adapter's fingerprint is identical
+
+#### Scenario: Fingerprint changes with shape
+
+- **WHEN** a field is added, removed, retyped or retagged, or the type identifier or layout changes
+- **THEN** the adapter's fingerprint and any combined fingerprint containing it change
+
+### Requirement: Positional reads restore typed collections
+
+Generated positional adapters SHALL restore fields typed as lists, sets or maps, including collections of models, nested collections and nullable collections, with their declared element types. Hive CE restores these values untyped. Stored bytes and write behavior SHALL remain unchanged.
+
+#### Scenario: A list of models restores
+
+- **WHEN** a positional model with a `List<Card>` field is stored and read back from stored bytes
+- **THEN** the field restores as a `List<Card>` with equal elements
+
+#### Scenario: A record written before the fix restores
+
+- **WHEN** a record written by a 0.8.1 positional adapter for a model with typed-map and list-of-model fields is read after regeneration
+- **THEN** every field restores without a storage migration
+
+### Requirement: Wrongly typed positional values raise schema drift
+
+When a stored positional value cannot be converted to its field's declared type, the generated adapter SHALL raise `PHiveSchemaDriftException` naming the type and field instead of a raw `TypeError`.
+
+#### Scenario: A stored string where an integer is declared
+
+- **WHEN** a positional record stores a string under a field now declared as `int`
+- **THEN** the read raises schema drift naming the type and field, and a delete-and-miss registration treats it as a miss
+
+### Requirement: Recorded shapes come from resolved field collection
+
+`assign_type_ids` SHALL resolve the scanned package and record each annotated type's fields with the same field collection the generator uses, including fields inherited from superclasses and fields declared through constant indexes. A shape recorded by the tool SHALL be accepted by the next generation without a rerun.
+
+#### Scenario: Inherited fields are recorded
+
+- **WHEN** an annotated model inherits a mapped field from a superclass and the tool runs
+- **THEN** the recorded shape includes the inherited field and the following build succeeds
+
+#### Scenario: Constant field indexes are resolved
+
+- **WHEN** a tolerant model declares `@PHiveField(kTag)` with an integer constant
+- **THEN** the tool records the constant's value as the field's tag
+
+### Requirement: The registry records enum case tags
+
+The registry SHALL record annotated enums with an `enum` layout, their active case tags and their retired case tags, using the same band, retirement and never-reuse rules as model types.
+
+#### Scenario: An enum in a band
+
+- **WHEN** an `@PHiveAutoType` enum is declared in a band's library and the tool runs
+- **THEN** it receives a type identifier in that band and its cases receive tags
+
+### Requirement: Abandoned identifiers can be retired explicitly
+
+The tool SHALL accept identifiers to retire that no current registry key holds, such as identifiers abandoned when existing data moved to bands, given singly (`N`) or as inclusive ranges (`N-M`), repeatably. They SHALL be recorded as retired, never assigned, and included in generated tombstone registration. Retiring an identifier that is currently assigned, or giving a malformed or reversed range, SHALL fail before anything is written.
+
+#### Scenario: Retiring pre-band identifiers
+
+- **WHEN** the tool runs with explicit retirements for identifiers 0 through 2 that no key holds
+- **THEN** the registry records them as retired and the tombstone file registers all three
+
+#### Scenario: Retiring a range
+
+- **WHEN** the tool runs with the retirement range `0-199`
+- **THEN** all 200 identifiers are recorded as retired and none is ever assigned
+
+#### Scenario: A malformed or reversed range is refused
+
+- **WHEN** a retirement is given as `9-3` or `a-3`
+- **THEN** the tool fails naming the argument and writes neither the registry nor a tombstone file
+
+#### Scenario: Retiring an active identifier is refused
+
+- **WHEN** an explicit retirement names an identifier currently assigned to a type
+- **THEN** the tool fails naming that type and leaves the registry unchanged
+
+### Requirement: Identifier ranges are chosen by the consuming package
+
+PHive SHALL NOT declare, reserve or default any band or identifier range. A registry without declared bands SHALL allocate unbanded identifiers from 0, or from the floor the caller supplies. Bands, their bounds, and any identifiers retired when adopting bands SHALL come only from the consuming package's own registry and tool invocations.
+
+#### Scenario: A new registry has no bands
+
+- **WHEN** `assign_type_ids` runs for the first time in a package with no registry and no options
+- **THEN** the written registry declares no bands and the first class receives identifier 0
+
+#### Scenario: Two packages choose different ranges
+
+- **WHEN** one package declares a band spanning 10000–10999 and another package declares a band spanning 500–599 for its own models
+- **THEN** each package's classes receive identifiers only from its own declared range, and neither range is implied by PHive

@@ -13,11 +13,25 @@ class NoteAdapter extends PTypeAdapter<Note> {
   final int typeId = 1;
 
   @override
+  String? get schemaFingerprint =>
+      '34f96b061de30fdb1b3a8a84451bacfc416123d9027cf716ebd4be101add7745';
+
+  @override
   Note read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'Note',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // text (index 1)
     final raw_text = reader.read();
     final ctx_text = PHiveCtx()..value = raw_text;
@@ -25,7 +39,16 @@ class NoteAdapter extends PTypeAdapter<Note> {
     applyMetadata(ctx_text, metadata_header.globalMetadata);
     runPreRead(const [TTL(1)], ctx_text);
     runPostRead(const [TTL(1)], ctx_text);
-    final res_text = ctx_text.value as String;
+    final String res_text;
+    try {
+      res_text = castStored<String>(ctx_text.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'Note',
+        fieldName: 'text',
+        reason: 'stored ${ctx_text.value.runtimeType} does not match String',
+      );
+    }
     return Note(id: res_id, text: res_text);
   }
 

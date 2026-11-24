@@ -1,0 +1,98 @@
+// ignore_for_file: non_constant_identifier_names
+
+class MigratedModelAdapter extends PTypeAdapter<MigratedModel> {
+  @override
+  final int typeId = 51;
+
+  @override
+  String? get schemaFingerprint =>
+      'd7817e0c276dca14ade30c2414aebff8b36cea06a155cfcc6ec5822693a78fa4';
+
+  @override
+  MigratedModel read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+    final Map<int, dynamic> values;
+    if (metadata_header.isTagged) {
+      final raw_body = reader.read();
+      if (raw_body is! Map) {
+        throw PHiveSchemaDriftException(
+          typeName: 'MigratedModel',
+          reason: 'tagged record body is not a map',
+        );
+      }
+      values = <int, dynamic>{
+        for (final entry in raw_body.entries)
+          if (entry.key is int) entry.key as int: entry.value,
+      };
+    } else {
+      values = <int, dynamic>{};
+      values[0] = reader.read(); // id
+      reader.read(); // retired: legacy
+      values[1] = reader.read(); // body
+    }
+    // id (tag 0)
+    final String res_id;
+    if (values.containsKey(0)) {
+      final raw_id = values[0];
+      try {
+        res_id = castStored<String>(raw_id);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'MigratedModel',
+          fieldName: 'id',
+          reason: 'stored ${raw_id.runtimeType} does not match String',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'MigratedModel',
+        fieldName: 'id',
+        reason: 'required field is missing',
+      );
+    }
+    // body (tag 1)
+    final String res_body;
+    if (values.containsKey(1)) {
+      final raw_body = values[1];
+      try {
+        res_body = castStored<String>(raw_body);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'MigratedModel',
+          fieldName: 'body',
+          reason: 'stored ${raw_body.runtimeType} does not match String',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'MigratedModel',
+        fieldName: 'body',
+        reason: 'required field is missing',
+      );
+    }
+    final result = MigratedModel(res_id, res_body);
+    final ctx_obj = PHiveCtx()..value = result;
+    applyMetadata(ctx_obj, metadata_header.globalMetadata);
+    runPreRead(const [TolerantStubHook(), TolerantLayout()], ctx_obj);
+    runPostRead(const [TolerantStubHook(), TolerantLayout()], ctx_obj);
+    return ctx_obj.value as MigratedModel;
+  }
+
+  @override
+  void write(BinaryWriter writer, MigratedModel obj) {
+    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const [TolerantStubHook(), TolerantLayout()], ctx_obj);
+    final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+    final write_obj = ctx_obj.value as MigratedModel;
+
+    final metadata_header = createMetadataHeader(
+      version: PHiveMetadataHeader.taggedVersion,
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{},
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(<int, dynamic>{0: write_obj.id, 1: write_obj.body});
+
+    runPostWrite(const [TolerantStubHook(), TolerantLayout()], ctx_obj);
+  }
+}

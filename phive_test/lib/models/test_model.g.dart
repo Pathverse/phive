@@ -13,11 +13,25 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
   final int typeId = 1;
 
   @override
+  String? get schemaFingerprint =>
+      '2446692bf1ee50a2bcf1464653137ba586e959f751d25cf74f5d0324f0db048d';
+
+  @override
   DemoUser read(BinaryReader reader) {
     final metadata_header = extractMetadataHeader(reader.read());
 
     // id (index 0)
-    final res_id = reader.read() as String;
+    final raw_id = reader.read();
+    final String res_id;
+    try {
+      res_id = castStored<String>(raw_id);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoUser',
+        fieldName: 'id',
+        reason: 'stored ${raw_id.runtimeType} does not match String',
+      );
+    }
     // secretToken (index 1)
     final raw_secretToken = reader.read();
     final ctx_secretToken = PHiveCtx()..value = raw_secretToken;
@@ -28,7 +42,17 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
     applyMetadata(ctx_secretToken, metadata_header.globalMetadata);
     runPreRead(const [GCMEncrypted()], ctx_secretToken);
     runPostRead(const [GCMEncrypted()], ctx_secretToken);
-    final res_secretToken = ctx_secretToken.value as String;
+    final String res_secretToken;
+    try {
+      res_secretToken = castStored<String>(ctx_secretToken.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoUser',
+        fieldName: 'secretToken',
+        reason:
+            'stored ${ctx_secretToken.value.runtimeType} does not match String',
+      );
+    }
     // cachedData (index 2)
     final raw_cachedData = reader.read();
     final ctx_cachedData = PHiveCtx()..value = raw_cachedData;
@@ -39,7 +63,17 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
     applyMetadata(ctx_cachedData, metadata_header.globalMetadata);
     runPreRead(const [TTL(3600)], ctx_cachedData);
     runPostRead(const [TTL(3600)], ctx_cachedData);
-    final res_cachedData = ctx_cachedData.value as String;
+    final String res_cachedData;
+    try {
+      res_cachedData = castStored<String>(ctx_cachedData.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoUser',
+        fieldName: 'cachedData',
+        reason:
+            'stored ${ctx_cachedData.value.runtimeType} does not match String',
+      );
+    }
     // legacyToken (index 3)
     final raw_legacyToken = reader.read();
     final ctx_legacyToken = PHiveCtx()..value = raw_legacyToken;
@@ -50,7 +84,17 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
     applyMetadata(ctx_legacyToken, metadata_header.globalMetadata);
     runPreRead(const [AESEncrypted()], ctx_legacyToken);
     runPostRead(const [AESEncrypted()], ctx_legacyToken);
-    final res_legacyToken = ctx_legacyToken.value as String;
+    final String res_legacyToken;
+    try {
+      res_legacyToken = castStored<String>(ctx_legacyToken.value);
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoUser',
+        fieldName: 'legacyToken',
+        reason:
+            'stored ${ctx_legacyToken.value.runtimeType} does not match String',
+      );
+    }
     // metadata (index 4)
     final raw_metadata = reader.read();
     final ctx_metadata = PHiveCtx()..value = raw_metadata;
@@ -58,7 +102,19 @@ class DemoUserAdapter extends PTypeAdapter<DemoUser> {
     applyMetadata(ctx_metadata, metadata_header.globalMetadata);
     runPreRead(const [UniversalEncrypted()], ctx_metadata);
     runPostRead(const [UniversalEncrypted()], ctx_metadata);
-    final res_metadata = ctx_metadata.value as Map<String, dynamic>;
+    final Map<String, dynamic> res_metadata;
+    try {
+      res_metadata = castStored<Map<dynamic, dynamic>>(
+        ctx_metadata.value,
+      ).map<String, dynamic>((k0, v0) => MapEntry(castStored<String>(k0), v0));
+    } on TypeError {
+      throw PHiveSchemaDriftException(
+        typeName: 'DemoUser',
+        fieldName: 'metadata',
+        reason:
+            'stored ${ctx_metadata.value.runtimeType} does not match Map<String, dynamic>',
+      );
+    }
     return DemoUser(
       id: res_id,
       secretToken: res_secretToken,

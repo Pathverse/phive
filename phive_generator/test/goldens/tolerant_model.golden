@@ -1,0 +1,199 @@
+// ignore_for_file: non_constant_identifier_names
+
+class TolerantModelAdapter extends PTypeAdapter<TolerantModel> {
+  @override
+  final int typeId = 50;
+
+  @override
+  String? get schemaFingerprint =>
+      '1b924c8ee4c0976129d5c43620040e498b92e35f207318416d9493e55de43844';
+
+  @override
+  TolerantModel read(BinaryReader reader) {
+    final metadata_header = extractMetadataHeader(reader.read());
+    final Map<int, dynamic> values;
+    if (metadata_header.isTagged) {
+      final raw_body = reader.read();
+      if (raw_body is! Map) {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          reason: 'tagged record body is not a map',
+        );
+      }
+      values = <int, dynamic>{
+        for (final entry in raw_body.entries)
+          if (entry.key is int) entry.key as int: entry.value,
+      };
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'TolerantModel',
+        reason: 'version-2 record without a recorded positional sequence',
+      );
+    }
+    // id (tag 0)
+    final String res_id;
+    if (values.containsKey(0)) {
+      final raw_id = values[0];
+      try {
+        res_id = castStored<String>(raw_id);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          fieldName: 'id',
+          reason: 'stored ${raw_id.runtimeType} does not match String',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'TolerantModel',
+        fieldName: 'id',
+        reason: 'required field is missing',
+      );
+    }
+    // title (tag 1)
+    final String? res_title;
+    if (values.containsKey(1)) {
+      final raw_title = values[1];
+      try {
+        res_title = castStored<String?>(raw_title);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          fieldName: 'title',
+          reason: 'stored ${raw_title.runtimeType} does not match String?',
+        );
+      }
+    } else {
+      res_title = null;
+    }
+    // count (tag 2)
+    final int res_count;
+    if (values.containsKey(2)) {
+      final raw_count = values[2];
+      try {
+        res_count = castStored<int>(raw_count);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          fieldName: 'count',
+          reason: 'stored ${raw_count.runtimeType} does not match int',
+        );
+      }
+    } else {
+      res_count = 0;
+    }
+    // labels (tag 3)
+    final List<String> res_labels;
+    if (values.containsKey(3)) {
+      final raw_labels = values[3];
+      try {
+        res_labels = castStored<List<dynamic>>(
+          raw_labels,
+        ).map<String>((e0) => castStored<String>(e0)).toList();
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          fieldName: 'labels',
+          reason:
+              'stored ${raw_labels.runtimeType} does not match List<String>',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'TolerantModel',
+        fieldName: 'labels',
+        reason: 'required field is missing',
+      );
+    }
+    // scores (tag 4)
+    final Map<String, int>? res_scores;
+    if (values.containsKey(4)) {
+      final raw_scores = values[4];
+      try {
+        res_scores = raw_scores == null
+            ? null
+            : castStored<Map<dynamic, dynamic>>(raw_scores).map<String, int>(
+                (k0, v0) =>
+                    MapEntry(castStored<String>(k0), castStored<int>(v0)),
+              );
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          fieldName: 'scores',
+          reason:
+              'stored ${raw_scores.runtimeType} does not match Map<String, int>?',
+        );
+      }
+    } else {
+      res_scores = null;
+    }
+    // secret (tag 9)
+    final String res_secret;
+    if (values.containsKey(9)) {
+      final ctx_secret = PHiveCtx()..value = values[9];
+      applyMetadata(ctx_secret, metadata_header.metadataForField('secret'));
+      applyMetadata(ctx_secret, metadata_header.globalMetadata);
+      runPreRead(const [TolerantStubHook()], ctx_secret);
+      runPostRead(const [TolerantStubHook()], ctx_secret);
+      final raw_secret = ctx_secret.value;
+      try {
+        res_secret = castStored<String>(raw_secret);
+      } on TypeError {
+        throw PHiveSchemaDriftException(
+          typeName: 'TolerantModel',
+          fieldName: 'secret',
+          reason: 'stored ${raw_secret.runtimeType} does not match String',
+        );
+      }
+    } else {
+      throw PHiveSchemaDriftException(
+        typeName: 'TolerantModel',
+        fieldName: 'secret',
+        reason: 'required field is missing',
+      );
+    }
+    final result = TolerantModel(
+      id: res_id,
+      title: res_title,
+      count: res_count,
+      labels: res_labels,
+      scores: res_scores,
+      secret: res_secret,
+    );
+    final ctx_obj = PHiveCtx()..value = result;
+    applyMetadata(ctx_obj, metadata_header.globalMetadata);
+    runPreRead(const [TolerantLayout()], ctx_obj);
+    runPostRead(const [TolerantLayout()], ctx_obj);
+    return ctx_obj.value as TolerantModel;
+  }
+
+  @override
+  void write(BinaryWriter writer, TolerantModel obj) {
+    final ctx_obj = PHiveCtx()..value = obj;
+    runPreWrite(const [TolerantLayout()], ctx_obj);
+    final global_metadata = Map<String, dynamic>.from(ctx_obj.pendingMetadata);
+    final write_obj = ctx_obj.value as TolerantModel;
+    // secret (tag 9)
+    final ctx_secret = PHiveCtx()..value = write_obj.secret;
+    runPreWrite(const [TolerantStubHook()], ctx_secret);
+    final metadata_header = createMetadataHeader(
+      version: PHiveMetadataHeader.taggedVersion,
+      globalMetadata: global_metadata,
+      perFieldMetadata: <String, Map<String, dynamic>>{
+        if (ctx_secret.pendingMetadata.isNotEmpty)
+          'secret': Map<String, dynamic>.from(ctx_secret.pendingMetadata),
+      },
+    );
+    writer.write(serializeMetadataHeader(metadata_header));
+    writer.write(<int, dynamic>{
+      0: write_obj.id,
+      1: write_obj.title,
+      2: write_obj.count,
+      3: write_obj.labels,
+      4: write_obj.scores,
+      9: ctx_secret.value,
+    });
+    runPostWrite(const [TolerantStubHook()], ctx_secret);
+    runPostWrite(const [TolerantLayout()], ctx_obj);
+  }
+}

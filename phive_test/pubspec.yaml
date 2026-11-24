@@ -13,8 +13,8 @@ dependencies:
     sdk: flutter
   hive_ce: ^2.24.0
   hive_ce_flutter: ^2.6.0
-  phive: ^0.8.0
-  phive_barrel: ^0.8.0
+  phive: ^0.9.0
+  phive_barrel: ^0.9.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0
@@ -22,7 +22,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.14
-  phive_generator: ^0.8.0
+  phive_generator: ^0.9.0
 
 dependency_overrides:
   phive:
